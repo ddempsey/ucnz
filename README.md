@@ -11,7 +11,7 @@ A set of Jupyter Notebooks for teaching well testing, hydrology, reservoir engin
 
 4. Wairakei Lumped Parameter Model [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=wairakei.ipynb)
 
-5. ENCN304 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=encn304.ipynb)
+5. ENCN304 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=ENCN304.ipynb)
 
 ## Local Installation
 

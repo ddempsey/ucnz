@@ -13,6 +13,10 @@ A set of Jupyter Notebooks for teaching well testing, hydrology, reservoir engin
 
 5. ENCN304 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=ENCN304.ipynb)
 
+6. Model calibration [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=calibration.ipynb)
+
+7. Model uncertainty [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ddempsey/ucnz/HEAD?filepath=uncertainty.ipynb)
+
 ## Local Installation
 
 Ensure you have Anaconda Python 3.X installed. Then

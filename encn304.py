@@ -24,7 +24,9 @@ def _power_method(it,x1,x2):
     
     x=1.*x0
 
-    ax.plot([0,x[0]], [0,x[1]], 'k--')
+    ax.plot([-1,1], [-1,1], 'b:', label='$v_1$')
+    ax.plot([-1,1], [1,-1], 'b:', alpha=0.5, label='$v_2$')
+    ax.plot([0,x[0]], [0,x[1]], 'k--', label='$x_0$')
     ax.text(x[0], x[1], '$x_0$', ha='left', va='bottom')
     xi=1.
     for i in range(it):
@@ -33,34 +35,38 @@ def _power_method(it,x1,x2):
         ev=x.T.dot(A.dot(x))/(x.T.dot(x))
         al=(i+1)/it
         ax.plot([0,x[0]], [0,x[1]], 'k-', alpha=al) 
-        ax.text(x[0], x[1], '$\lambda_{:d}'.format(i+1)+'$={:4.3f}'.format(ev), 
-            ha='left', va='bottom', alpha=al)
         
         deg=np.arccos(x0.T.dot(x))/np.pi*180.
         x0=1.*x
-
-    ax.text(0.05,0.08,'$x_{:d}'.format(i+1)+'$=', transform=ax.transAxes, 
-        ha='left', va='center')
-    ax.text(0.12,0.10,'{:4.3f}'.format(x[0]), transform=ax.transAxes, 
-        ha='left', va='center')
-    ax.text(0.12,0.06,'{:4.3f}'.format(x[1]), transform=ax.transAxes, 
-        ha='left', va='center')
     
-    ax.text(0.22,0.08,r',  $\Delta\theta$'+'={:4.3f}'.format(deg)+'$^{\circ}$', transform=ax.transAxes, 
-        ha='left', va='center')
+    ax.plot([], [], 'k-', label='$x_i$') 
+    ax.legend(loc=2)
+
+    if it>0:
+        ax.text(x[0], x[1], '$\lambda_{:d}'.format(i+1)+'$={:4.3f}'.format(ev), 
+            ha='left', va='bottom', alpha=al)
+        ax.text(0.05,0.08,'$x_{:d}'.format(i+1)+'$=', transform=ax.transAxes, 
+            ha='left', va='center')
+        ax.text(0.12,0.10,'{:4.3f}'.format(x[0]), transform=ax.transAxes, 
+            ha='left', va='center')
+        ax.text(0.12,0.06,'{:4.3f}'.format(x[1]), transform=ax.transAxes, 
+            ha='left', va='center')
+        
+        ax.text(0.22,0.08,r',  $\Delta\theta$'+'={:4.3f}'.format(deg)+'$^{\circ}$', transform=ax.transAxes, 
+            ha='left', va='center')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
 
-    ax.text(1.05, 0.08, 'x=np.dot(A,x)', transform=ax.transAxes, 
-        ha='left', va='center', size=8, alpha=0.2)
-    ax.text(1.05, 0.06, 'x=x/np.sqrt(np.dot(x.T,x))', transform=ax.transAxes, 
-        ha='left', va='center', size=8, alpha=0.2)
-    ax.text(1.05, 0.04, 'ev=np.dot(np.dot(x.T,A),x)/np.dot(x.T,x)', transform=ax.transAxes, 
-        ha='left', va='center', size=8, alpha=0.2)
-    ax.text(1.05, 0.02, 'iteration: copy-paste, or use for loop', transform=ax.transAxes, 
-        ha='left', va='center', size=8, alpha=0.2,fontstyle='italic')
+    # ax.text(1.05, 0.08, 'x=A@x', transform=ax.transAxes, 
+    #     ha='left', va='center', size=8, alpha=0.2)
+    # ax.text(1.05, 0.06, 'x=x/np.sqrt(x.T@x)', transform=ax.transAxes, 
+    #     ha='left', va='center', size=8, alpha=0.2)
+    # ax.text(1.05, 0.04, 'ev=np.dot(np.dot(x.T,A),x)/np.dot(x.T,x)', transform=ax.transAxes, 
+    #     ha='left', va='center', size=8, alpha=0.2)
+    # ax.text(1.05, 0.02, 'iteration: copy-paste, or use for loop', transform=ax.transAxes, 
+        # ha='left', va='center', size=8, alpha=0.2,fontstyle='italic')
 def power_method():    
-    it=IntSlider(1, 1, 7, 1, description='iterations')
+    it=IntSlider(0, 0, 7, 1, description='iterations')
     x1=FloatText(1)
     x2=FloatText(0)
     io=interactive_output(_power_method, {'it':it,'x1':x1,'x2':x2})

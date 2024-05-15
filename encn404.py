@@ -3,14 +3,18 @@ from ipywidgets import*
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from sklearn.cluster import DBSCAN
 
 import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
-from sklearn.datasets import make_blobs
+from sklearn.datasets import make_blobs, load_boston
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, roc_curve, auc, confusion_matrix
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
+import itertools, os
 
 def _rolling_window(Tm, Tsd, Ti, ts):
     # read in some data
@@ -471,3 +475,200 @@ def neural_network(X,y,Xp):
     predict = Checkbox(value=False, description="predict")
     io=interactive_output(_neural_network, {'step':step, 'show':show, 'check':check, 'predict':predict, 'X':fixed(X), 'y':fixed(y), 'Xp':fixed(Xp)})
     return VBox([HBox([VBox([step, show]), VBox([check, predict])]), io])
+
+def _roc(threshold, Ntrees, data):
+
+    X,y=data
+
+    # Split the dataset
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    # Train the Random Forest model
+    model = RandomForestClassifier(n_estimators=Ntrees, max_depth=3, max_features=2, min_samples_leaf=10, random_state=42)
+    model.fit(X_train, y_train)
+    y_probs = model.predict_proba(X_test)[:, 1]
+
+    # Interactive function
+    fpr, tpr, thresholds = roc_curve(y_test, y_probs)
+    i=np.argmin(abs(thresholds-threshold))
+    roc_auc = auc(fpr, tpr)
+    y_pred = (y_probs >= threshold).astype(int)
+    cm = confusion_matrix(y_test, y_pred)
+
+    if Ntrees !=10:
+        model0 = RandomForestClassifier(n_estimators=10, max_depth=3, max_features=2, min_samples_leaf=10, random_state=42)
+        model0.fit(X_train, y_train)
+        y_probs = model0.predict_proba(X_test)[:, 1]
+
+        # Interactive function
+        fpr0, tpr0, thresholds = roc_curve(y_test, y_probs)
+
+    plt.figure(figsize=(10, 5))
+
+    # ROC Curve
+    plt.subplot(1, 2, 1)
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    if Ntrees != 10:
+        plt.plot(fpr0, tpr0, color='blue', lw=1, alpha=0.5, label=f'ROC curve (10 trees')
+    plt.plot(fpr[i], tpr[i], 'ro', label=f'threshold={threshold:.2f}')
+    plt.plot([0, 1], [0, 1], color='gray', linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+
+    # Confusion Matrix
+    plt.subplot(1, 2, 2)
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title('Confusion Matrix')
+    plt.colorbar()
+    tick_marks = np.arange(2)
+    plt.xticks(tick_marks, ['0', '1'])
+    plt.yticks(tick_marks, ['0', '1'])
+
+    fmt = 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                horizontalalignment="center",
+                color="white" if cm[i, j] > thresh else "black")
+
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+
+    plt.show()
+
+def load_enviro_data():
+    fl='enviro_data.csv'
+    if not os.path.isfile(fl):
+        url = "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data"
+        column_names = [
+            'water_age', 'industrial_area', 'pollutant_type', 'flow_rate', 'chemical_oxygen_demand', 
+            'agricultural_runoff', 'sensor_faults', 'biological_oxygen_demand', 'nearby_construction', 
+            'turbidity', 'treatment_efficiency', 'contaminant_alerts', 'sampling_issues', 'contamination'
+        ]
+        data = pd.read_csv(url, names=column_names)
+        # Preprocess the dataset
+        data = data.replace('?', np.nan)
+        data = data.dropna()
+
+        # Convert data types
+        data = data.astype(float)
+
+        # Convert the contamination to binary (presence or absence of contamination)
+        data['contamination'] = data['contamination'].apply(lambda x: 1 if x > 0 else 0)
+        data.to_csv(fl, index=False)
+    data=pd.read_csv(fl)   
+
+    X = data.drop('contamination', axis=1)
+    y = data['contamination']
+    return X,y
+
+def roc():
+    X,y = load_enviro_data()
+
+    Ntrees = widgets.Dropdown(value=10, options=[10, 20, 30], description="# trees")
+    # check = Checkbox(value=False, description="lock root node")
+
+    fs = widgets.FloatSlider(
+        value=0.5, min=0.1, max=0.95,
+        step=0.05,
+        description="threshold:")
+    data=(X,y)
+    
+    # _roc(fs.value, Ntrees.value, data)
+
+    io=interactive_output(_roc, {'threshold':fs,'Ntrees':Ntrees,'data':fixed(data)})
+    return VBox([HBox([fs, Ntrees]), io])
+
+def _regression_performance(df, **kwargs):
+    # Function to train, evaluate, and plot the model
+    selected_features = [k for k,v in kwargs.items() if v]
+    if not selected_features:
+        print("Please select at least one feature.")
+        return
+    
+    X,y=df
+
+    X_selected = X[selected_features]
+    X_train, X_test, y_train, y_test = train_test_split(X_selected, y, train_size=0.8, random_state=42)
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    # print(f'Selected Features: {selected_features}')
+    print(f'Mean Absolute Error: {mae:.2f}')
+    print(f'Mean Squared Error: {mse:.2f}')
+    print(f'R-squared: {r2:.2f}')
+
+    plt.figure(figsize=(10, 4))
+
+    # Plot actual vs. predicted values
+    plt.subplot(1, 3, 1)
+    plt.scatter(y_test, y_pred, edgecolors=(0, 0, 0))
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=4)
+    plt.xlabel('Actual Integrity Score')
+    plt.ylabel('Predicted Integrity Score')
+    plt.title('Actual vs Predicted')
+
+    # Plot residuals
+    plt.subplot(1, 3, 2)
+    residuals = y_test - y_pred
+    plt.scatter(y_pred, residuals, edgecolors=(0, 0, 0))
+    plt.hlines(0, y_pred.min(), y_pred.max(), colors='r', linestyles='dashed')
+    plt.xlabel('Predicted Integrity Score')
+    plt.ylabel('Residuals')
+    plt.title('Residuals vs Predicted')
+    
+    # Plot residuals
+    plt.subplot(1, 3, 3)
+    residuals = (y_test - y_pred)/y_test*100
+    plt.scatter(y_pred, residuals, edgecolors=(0, 0, 0))
+    plt.hlines(0, y_pred.min(), y_pred.max(), colors='r', linestyles='dashed')
+    plt.xlabel('Predicted Integrity Score')
+    plt.ylabel('% error')
+    plt.title('relative error')
+
+    plt.tight_layout()
+    plt.show()
+
+def load_regression_data():
+    # Load the dataset
+    data = load_boston()
+    X = pd.DataFrame(data.data, columns=data.feature_names)
+    y = data.target
+
+    # Rename the columns for a structural engineering context
+    X.rename(columns={'RM': 'floor_area', 'PTRATIO': 'foundation_type', 'LSTAT': 'pillar_ratio', 'INDUS': 'load_bearing_walls', 
+                      'NOX': 'concrete_quality', 'TAX': 'building_age'}, inplace=True)
+    y = pd.Series(y, name='integrity_score')
+    return X,y
+
+def regression_performance():
+    X,y = load_regression_data()
+
+    # Top five features for selection
+    top_features = ['floor_area', 'pillar_ratio', 'foundation_type', 'load_bearing_walls', 'concrete_quality', 'building_age']
+
+    checkboxes = [Checkbox(value=True, description=feature, layout=Layout(width='auto')) for feature in top_features]
+    ui = HBox([VBox(checkboxes[:3], layout=Layout(padding='0px', width='auto')),
+           VBox(checkboxes[3:], layout=Layout(padding='0px', width='auto'))], layout=Layout(padding='0px', width='auto'))
+
+    
+    inps=dict(zip(top_features,checkboxes))
+    inps.update({'df':fixed((X,y))})
+
+    io=interactive_output(_regression_performance, inps)
+    return VBox([ui, io])
+
+
+if __name__=="__main__":
+    regression_performance()
+    # roc()

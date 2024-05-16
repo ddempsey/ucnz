@@ -8,12 +8,14 @@ import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 from sklearn.datasets import make_blobs, load_boston
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, roc_curve, auc, confusion_matrix
+from sklearn.metrics import silhouette_score, roc_curve, auc, confusion_matrix, accuracy_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeClassifier
 import itertools, os
 
 def _rolling_window(Tm, Tsd, Ti, ts):
@@ -668,7 +670,65 @@ def regression_performance():
     io=interactive_output(_regression_performance, inps)
     return VBox([ui, io])
 
+def _cross_validation(train_size, max_depth, df):
+    
+    time=np.linspace(0, 117, df.shape[0])
+
+    # Feature and target extraction
+    features=df.columns[:-1]
+    X = df[features]  # replace with actual feature columns
+    y = df['eyeDetection']  # replace with actual target column
+
+    scaler = StandardScaler()
+    X=scaler.fit_transform(X)
+
+    # Convert the scaled features back to a DataFrame for saving
+    X = pd.DataFrame(X, columns=features)
+
+    # Calculate split index
+    split_idx = int(len(X) * train_size / 100)
+    X_train, X_test = X[:split_idx], X[split_idx:]
+    y_train, y_test = y[:split_idx], y[split_idx:]
+
+    clf = DecisionTreeClassifier(max_depth=max_depth)
+    # clf = RandomForestClassifier(max_depth=max_depth)
+    clf.fit(X_train, y_train)
+
+    # Predict and calculate errors
+    y_train_pred = clf.predict(X_train)
+    y_test_pred = clf.predict(X_test)
+    in_sample_error = 1 - accuracy_score(y_train, y_train_pred)
+    out_of_sample_error = 1 - accuracy_score(y_test, y_test_pred)
+
+    # Plot errors
+    f,ax=plt.subplots(1,1,figsize=(7, 3.5))
+    ax.plot(time, y, 'k-', lw=1.5, label='data')
+    ax.plot(time[:split_idx], y_train_pred, 'b-', lw=0.5, alpha=0.5, label=f'training: error - {in_sample_error:.2f}')
+    ax.plot(time[split_idx:], y_test_pred, 'r-', lw=0.5, alpha=0.5, label=f'test: error - {out_of_sample_error:.2f}')
+#     plt.plot(train_size, out_of_sample_error, label='Out-of-sample Error', marker='o')
+    ax.set_xlabel('time (seconds)')
+    ax.set_ylabel('Label')
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.grid(True)
+    ax.set_yticks([0,1])
+    ax.set_yticklabels(['open', 'closed'])
+    plt.show()
+
+def cross_validation():
+
+    # Load dataset (assuming a DataFrame `df` with necessary features and target)
+    df = pd.read_csv('eye_movement.csv')  # replace with actual path
+
+    # Interactive widgets
+    train_size=IntSlider(min=50, max=90, step=10, value=70, description='Training Data Size (%)', continuous_update=False)
+    max_depth=IntSlider(min=1, max=20, step=1, value=5, description='Max Depth', continuous_update=False)
+    io=interactive_output(_cross_validation, {'train_size':train_size, 'max_depth':max_depth, 'df':fixed(df)})
+    return VBox([HBox([train_size, max_depth]), io])
+
+
+
 
 if __name__=="__main__":
-    regression_performance()
+    _cross_validation(50,1,pd.read_csv('eye_movement.csv'))
+    # regression_performance()
     # roc()

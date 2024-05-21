@@ -342,19 +342,19 @@ def decision_tree():
         min=min(df["load_capacity"].min(), df["age"].min())-1,
         max=max(df["load_capacity"].max(), df["age"].max())+1,
         step=1,
-        description="Split value:")
+        description="Split value:", continuous_update=False)
     sl2 = widgets.FloatSlider(
         value=10,
         min=min(df["load_capacity"].min(), df["age"].min())-1,
         max=max(df["load_capacity"].max(), df["age"].max())+1,
         step=1,
-        description="Split value:")
+        description="Split value:", continuous_update=False)
     sl3 = widgets.FloatSlider(
         value=10,
         min=min(df["load_capacity"].min(), df["age"].min())-1,
         max=max(df["load_capacity"].max(), df["age"].max())+1,
         step=1,
-        description="Split value:")
+        description="Split value:", continuous_update=False)
     # sl1.value=53
     # fd2.value='material_type'
     # check.value=True

@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
-from sklearn.datasets import make_blobs, load_boston
+from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, roc_curve, auc, confusion_matrix, accuracy_score
@@ -578,7 +578,7 @@ def roc():
     fs = widgets.FloatSlider(
         value=0.5, min=0.1, max=0.95,
         step=0.05,
-        description="threshold:")
+        description="threshold:", continuous_update=False)
     data=(X,y)
     
     # _roc(fs.value, Ntrees.value, data)
@@ -642,15 +642,13 @@ def _regression_performance(df, **kwargs):
     plt.show()
 
 def load_regression_data():
-    # Load the dataset
-    data = load_boston()
-    X = pd.DataFrame(data.data, columns=data.feature_names)
-    y = data.target
+    # Read data from csv
+    df = pd.read_csv('structural_data.csv')
 
-    # Rename the columns for a structural engineering context
-    X.rename(columns={'RM': 'floor_area', 'PTRATIO': 'foundation_type', 'LSTAT': 'pillar_ratio', 'INDUS': 'load_bearing_walls', 
-                      'NOX': 'concrete_quality', 'TAX': 'building_age'}, inplace=True)
-    y = pd.Series(y, name='integrity_score')
+    # Unpack variables
+    X = df.drop(columns='integrity_score')
+    y = df['integrity_score']
+
     return X,y
 
 def regression_performance():

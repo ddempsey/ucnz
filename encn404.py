@@ -5,7 +5,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 import warnings
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+try:
+    warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+except AttributeError: # np.VisibleDeprecationWarning is not defined in numpy < 1.20
+    pass
 
 from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler

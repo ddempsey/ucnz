@@ -13,16 +13,9 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib import cm
-from ipywidgets import interact, fixed, interactive_output, HBox, Button, VBox, Output, IntSlider, Checkbox, FloatSlider, FloatLogSlider, Dropdown
+from ipywidgets import fixed, interactive_output, HBox, VBox, IntSlider, Checkbox, FloatSlider, FloatLogSlider
 TEXTSIZE = 16
-from IPython.display import clear_output
-import time
 from scipy.optimize import curve_fit
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm as colmap
-from copy import copy
-from scipy.stats import multivariate_normal
 
 # commenting in here is pretty shocking tbh
 

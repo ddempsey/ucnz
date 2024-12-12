@@ -3,12 +3,9 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 from ipywidgets import *
 TEXTSIZE = 16
-from IPython.display import display, clear_output
+from IPython.display import clear_output
 import time
 from scipy.optimize import curve_fit
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm as colmap
-from copy import copy
 from scipy.stats import multivariate_normal
 # One day I'll write proper comments in here. But not today. Venture on at your own risk.
 

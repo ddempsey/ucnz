@@ -1,13 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from ipywidgets import interact, fixed, interactive_output, HBox, Button, VBox, Output, IntSlider, Checkbox, FloatSlider
+from ipywidgets import interactive_output, HBox, Button, VBox, Output, IntSlider, Checkbox, FloatSlider
 TEXTSIZE = 16
 from IPython.display import clear_output
 import time
-from scipy.optimize import curve_fit
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm as colmap
-from copy import copy
 
 # One day I'll write proper comments in here. But not today. Venture on at your own risk.
 

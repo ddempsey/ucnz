@@ -14,4 +14,4 @@ area = np.pi * (diameter / 2)**2
 velocity = (pressure_diff / (2 * g * length * (rho / mu)))**0.5
 flow_rate = area * velocity
 
-print(f"Flow rate: {flow_rate:.2f} m^3/s")
+print(f"Flow rate: {flow_rate:.2e} m^3/s")

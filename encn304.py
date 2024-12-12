@@ -2,11 +2,13 @@
 from ipywidgets import*
 import numpy as np
 from matplotlib import pyplot as plt
-from functools import partial
 from scipy.optimize import root
 
 import warnings
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+try:
+    warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+except AttributeError:
+    pass
 from scipy.integrate import trapz
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection

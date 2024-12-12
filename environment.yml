@@ -1,19 +1,13 @@
 name: ucnz
 channels:
-  - defaults
   - conda-forge
 dependencies:
-  - python=3.9.12
+  - python=3.9
   - numpy
   - scipy
   - seaborn
-  - anaflow
   - ipykernel
-  - ipywidgets
-  - ipyleaflet
   - matplotlib
   - pandas
   - pyproj
-  - xlrd
-  - sympy
   - scikit-learn

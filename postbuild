@@ -1,2 +1,4 @@
+#!/bin/bash
+pip install ipywidgets ipyleaflet anaflow
 jupyter contrib nbextension install --user
 jupyter nbextension enable collapsible_headings/main

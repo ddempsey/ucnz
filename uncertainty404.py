@@ -232,16 +232,16 @@ class UberPosterior(object):
         for model in ['linear','log','power','sin']:
             self.fit(model)
     def fit(self, model):
-        if model is 'linear':
+        if model == 'linear':
             self.f = linear
             self.Nargs = 2
-        elif model is 'power':
+        elif model == 'power':
             self.f = powerlaw
             self.Nargs = 3
-        elif model is 'log':
+        elif model == 'log':
             self.f = logarithmic
             self.Nargs = 3
-        elif model is 'sin':
+        elif model == 'sin':
             self.f = sinusoid
             self.Nargs = 3
         self.grid_search()
@@ -278,7 +278,7 @@ class UberPosterior(object):
         S = np.array(S).reshape([len(pv) for pv in pvs])
             # compute posterior
         self.P = np.exp(-S/2.)
-        self.P /= np.sum(self.P)*np.product(self.dps)
+        self.P /= np.sum(self.P)*np.prod(self.dps)
     def get_samples(self,option,N):
         # use rejection sampling on the posterior
         s = []

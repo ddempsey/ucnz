@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from ipywidgets import interactive_output, HBox, Button, VBox, Output, IntSlider, Checkbox, FloatSlider
+from ipywidgets import interact, interactive_output, HBox, Button, VBox, Output, IntSlider, Checkbox, FloatSlider
 TEXTSIZE = 16
 from IPython.display import clear_output
 import time

@@ -334,7 +334,7 @@ def _backward_euler(step, euler):
     
     for i in range(int(np.ceil(step))):
         ynew=root(root_equation, y[-1], args=(y[-1], h0, x[-1], dydx))
-        y.append(ynew.x)
+        y.append(ynew.x[0])
         x.append(x[-1]+h0)
     
     if not euler:
@@ -373,8 +373,8 @@ def _backward_euler(step, euler):
             ax.plot(xi,y1,'bo', mfc='w')
             
             ys=dydx1*(x[-1] - xi)+y1
-            ax.arrow(x[-1],ys[0],0,y[-1][0]-ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
-            ax.arrow(x[-1],y[-1][0],0,-y[-1][0]+ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],ys,0,y[-1]-ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],y[-1],0,-y[-1]+ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
             
             ax.text(x[-1]-dx, y[-1]+dy, 'solving for $x^{'+'({:d})'.format(int(step)+1)+'}$: undershoot $x^{'+'({:d})'.format(int(step))+'}$', color='b', ha=ha, va='center')
             
@@ -386,8 +386,8 @@ def _backward_euler(step, euler):
             ax.plot(xi,y2,'bo', mfc='w')
             
             ys=dydx2*(x[-1] - xi)+y2
-            ax.arrow(x[-1],ys[0],0,y[-1][0]-ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
-            ax.arrow(x[-1],y[-1][0],0,-y[-1][0]+ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],ys,0,y[-1]-ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],y[-1],0,-y[-1]+ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
             
             ax.text(x[-1]-dx, y[-1]+dy, 'solving for $x^{'+'({:d})'.format(int(step)+1)+'}$: overshoot $x^{'+'({:d})'.format(int(step))+'}$', color='b', ha=ha, va='center')
             
@@ -401,8 +401,8 @@ def _backward_euler(step, euler):
             ax.plot(xi,y3,'bo', mfc='w')
             
             ys=dydx3*(x[-1] - xi)+y3
-            ax.arrow(x[-1],ys[0],0,y[-1][0]-ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
-            ax.arrow(x[-1],y[-1][0],0,-y[-1][0]+ys[0],length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],ys,0,y[-1]-ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
+            ax.arrow(x[-1],y[-1],0,-y[-1]+ys,length_includes_head=True, head_length=0.12, head_width=0.01, color='b')
             
             ax.text(x[-1]-dx, y[-1]+dy, 'solving for $x^{'+'({:d})'.format(int(step)+1)+'}$: undershoot $x^{'+'({:d})'.format(int(step))+'}$', color='b', ha=ha, va='center')
         else:	
@@ -418,7 +418,7 @@ def _backward_euler(step, euler):
             ax.plot(xi,yi,'ko', mfc='w', zorder=3)
     
             ax.text(x[-1]-dx, y[-1]+dy, 'solving for $x^{'+'({:d})'.format(int(step))+'}$: within tolerance', color='k', ha=ha, va='center')
-            
+
     ax.plot(x,y,'ko-', mfc='k', label='Backward Euler', zorder=2)
     
     
@@ -433,7 +433,7 @@ def _backward_euler(step, euler):
             y0.append(y0[-1]+h0*dydx(x0[-1], y0[-1]))
             x0.append(x0[-1]+h0)		
             
-        ax.plot(x0,y0,'ko-', color=[0.7,0.7,0.7], mec=[0.7,0.7,0.7], zorder=1, label='Euler')
+        ax.plot(x0,y0,'o-', color=[0.7,0.7,0.7], mec=[0.7,0.7,0.7], zorder=1, label='Euler')
         
         ax.legend(loc=2)
 

@@ -416,7 +416,7 @@ def plot_parameter_space3(ic,ik,N=0,alpha=0.03):
 		
 		xi1,yi1 = np.array([xi,yi]) + alpha*s
 		
-		ax.arrow(xi,yi,xi1-xi,yi1-yi,color='k',head_length = 0.015, head_width=0.015, length_includes_head=True)
+		ax.arrow(xi,yi,xi1-xi,yi1-yi,color='k',head_length = 0.015, head_width=0.015, length_includes_head=True, zorder=3)
 		
 		xi = 1.*xi1
 		yi = 1.*yi1
@@ -425,6 +425,8 @@ def plot_parameter_space3(ic,ik,N=0,alpha=0.03):
 		
 	ax.set_xlabel('c', size=TEXTSIZE)
 	ax.set_ylabel('k', size=TEXTSIZE)
+	ax.set_xlim([0,1])
+	ax.set_ylim([0,1])
 	
 	levels = np.linspace(np.min(r(X,Y,p)), np.max(r(X,Y,p)), 11)
 	ax.contourf(X2,Y2,r(X2,Y2,p), cmap = colmap.Oranges, levels = levels)

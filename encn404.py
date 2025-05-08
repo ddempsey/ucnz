@@ -3,8 +3,11 @@ from ipywidgets import*
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from IPython.display import display, clear_output, Math
 
 import warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 try:
     warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 except AttributeError: # np.VisibleDeprecationWarning is not defined in numpy < 1.20
@@ -19,6 +22,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPRegressor
 import itertools, os
 
 def _rolling_window(Tm, Tsd, Ti, ts):
@@ -726,6 +730,141 @@ def cross_validation():
     io=interactive_output(_cross_validation, {'train_size':train_size, 'max_depth':max_depth, 'df':fixed(df)})
     return VBox([HBox([train_size, max_depth]), io])
 
+# ----- target functions for each complexity level -----
+def target_function(X, n_terms):
+    """n_terms = 1, 2, or 3 → progressively richer sine composition."""
+    base = np.sin(2 * np.pi * X)                          # always present
+    if n_terms == 1:
+        return base
+    second = 0.4 * np.sin(6 * np.pi * X)                 # + mid-frequency
+    if n_terms == 2:
+        return base + second
+    third = 0.2 * np.sin(12 * np.pi * X)                  # + high-frequency
+    return base + second + third
+
+# ----- live LaTeX renderer ----------------------------------------------------
+def make_equation_latex(n_terms):
+    """Return LaTeX string with inactive terms greyed out."""
+    colors = ["black" if i < n_terms else "gray" for i in range(3)]
+    terms = [
+        rf"\color{{{colors[0]}}}{{\sin(2\pi x)}}",
+        rf"\color{{{colors[1]}}}{{+\,0.4\sin(6\pi x)}}",
+        rf"\color{{{colors[2]}}}{{+\,0.2\sin(12\pi x)}}",
+    ]
+    # join without extra '+' in first slot (already included where needed)
+    latex = r"".join(terms)
+    return r"$$f(x)=" + latex + r"$$"
+
+# ---------- helper to draw a simple network diagram ----------
+def draw_network(layer_sizes, ax):
+    ax.clear()
+    h_spacing = 1.0
+    v_spacing = 1.0
+    max_neurons = max(layer_sizes)
+
+    for layer_idx, neurons in enumerate(layer_sizes):
+        x = layer_idx * h_spacing
+        y_start = (max_neurons - neurons) * v_spacing / 2
+        for n in range(neurons):
+            y = y_start + n * v_spacing
+            ax.scatter(
+                x,
+                y,
+                s=300,
+                facecolors="white",
+                edgecolors="k",
+                zorder=3,
+            )
+            if layer_idx > 0:
+                prev_neurons = layer_sizes[layer_idx - 1]
+                x_prev = (layer_idx - 1) * h_spacing
+                y_prev_start = (max_neurons - prev_neurons) * v_spacing / 2
+                for pn in range(prev_neurons):
+                    y_prev = y_prev_start + pn * v_spacing
+                    ax.plot(
+                        [x_prev, x],
+                        [y_prev, y],
+                        "k-",
+                        linewidth=0.4,
+                        zorder=1,
+                    )
+
+    ax.set_xlim(-0.5, (len(layer_sizes) - 1) * h_spacing + 0.5)
+    ax.set_ylim(-0.5, max_neurons * v_spacing - 0.5)
+    ax.axis("off")
+
+
+
+def function_approximation():
+    # ---------- widgets ----------
+    layers_slider = IntSlider(
+        value=1, min=1, max=8, step=1, description="Hidden layers", continuous_update=False
+    )
+    width_slider = IntSlider(
+        value=4, min=4, max=24, step=5, description="Neurons / layer", continuous_update=False
+    )
+    complexity_dd = Dropdown(
+    options=[("1-term", 1), ("2-term", 2), ("3-term", 3)],
+    value=1,
+    description="Complexity"
+    )
+    out = Output()
+    
+    # ---------- training + plotting routine ----------
+    def refresh(n_layers, n_width, n_terms):
+        X = np.linspace(-1, 1, 400).reshape(-1, 1)
+        y = target_function(X, n_terms)
+
+        model = MLPRegressor(
+            hidden_layer_sizes=(n_width,) * n_layers,
+            activation="tanh",
+            solver="lbfgs",
+            max_iter=1500,
+            random_state=0,
+        )
+        model.fit(X, y.ravel())
+        y_pred = model.predict(X)
+        mse = np.mean((y_pred - y.ravel()) ** 2)
+
+        with out:
+            clear_output(wait=True)
+            display(Math(make_equation_latex(n_terms)))
+            fig, (ax_fit, ax_net) = plt.subplots(1, 2, figsize=(12, 4))
+
+            # --- Fit subplot ---
+            ax_fit.plot(X, y, label="Target", lw=2)
+            ax_fit.plot(
+                X,
+                y_pred,
+                label=f"NN ({n_layers} × {n_width})\nMSE={mse:0.4f}",
+                lw=2,
+            )
+            ax_fit.set_xlabel("x")
+            ax_fit.set_ylabel("y")
+            ax_fit.set_title("Function approximation")
+            ax_fit.grid(alpha=0.3)
+            ax_fit.legend(loc="upper right")
+
+            # --- Network diagram subplot ---
+            draw_network([1] + [n_width] * n_layers + [1], ax_net)
+            ax_net.set_title("Network architecture")
+
+            plt.tight_layout()
+            plt.show()
+
+    # initial render
+    refresh(layers_slider.value, width_slider.value, complexity_dd.value)
+
+
+    # ----- callbacks -----
+    def on_widget_change(change):
+        if change["name"] == "value":
+            refresh(layers_slider.value, width_slider.value, complexity_dd.value)
+
+    for w in (layers_slider, width_slider, complexity_dd):
+        w.observe(on_widget_change)
+
+    display(VBox([VBox([layers_slider, width_slider, complexity_dd]), out]))
 
 
 

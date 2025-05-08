@@ -186,15 +186,16 @@ class GroundwaterMap(Map):
                 hh += Theis(np.sqrt((xx.flatten()-x)**2+(yy.flatten()-y)**2), t*24*3600, T, 1.e-4, q).reshape(xx.shape)
         lat,lon=transform(inProj,outProj,xx.flatten(),yy.flatten())
         cs = plt.contourf(lat.reshape(xx.shape), lon.reshape(yy.shape), hh, 
-            levels=levels, extend='both')
-        ts = plt.clabel(cs, levels=[l for l,a in zip(cs.levels, cs.allsegs) if len(a)>0])
+            levels=levels, extend='both', zorder=3)
+        ts = plt.clabel(cs, levels=[l for l,a in zip(cs.levels, cs.allsegs) if len(a)>0],
+                        inline=True, inline_spacing=2)
         plt.close()
         
         allsegs = cs.allsegs
         allkinds = cs.allkinds
         cmap = cm.Blues
         colors = ['#%02x%02x%02x' % tuple(int(j*255) for j in cmap(i)[:3]) for i in np.linspace(0,1,len(allsegs))]
-        alphas = np.linspace(0.2,0.7,len(allsegs))
+        alphas = np.linspace(0.2,0.7,len(allsegs))*0+1
         ps = []
         for clev in range(len(cs.allsegs)):
             kinds = None if allkinds is None else allkinds[clev]
@@ -204,6 +205,7 @@ class GroundwaterMap(Map):
                             color='yellow',
                             weight=1,
                             opacity=1.,
+                            
                             fill_color=colors[clev],
                             fill_opacity=alphas[clev]
             )

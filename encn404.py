@@ -775,6 +775,12 @@ def draw_network(layer_sizes, ax):
                 edgecolors="k",
                 zorder=3,
             )
+            if layer_idx == 0 and n == 0:                       # first (input) node
+                ax.text(x, y, r"$x$",   ha="center", va="center",
+                        fontsize=8, zorder=4)
+            elif layer_idx == len(layer_sizes) - 1 and n == 0:  # last (output) node
+                ax.text(x, y, r"$f(x)$", ha="center", va="center",
+                        fontsize=8, zorder=4)
             if layer_idx > 0:
                 prev_neurons = layer_sizes[layer_idx - 1]
                 x_prev = (layer_idx - 1) * h_spacing
@@ -837,9 +843,14 @@ def function_approximation():
                 label=f"NN ({n_layers} × {n_width})\nMSE={mse:0.4f}",
                 lw=2,
             )
-            ax_fit.set_xlabel("x")
-            ax_fit.set_ylabel("y")
-            ax_fit.set_title("Function approximation")
+            ax_fit.set_xlabel("$x$")
+            ax_fit.set_ylabel("$f(x)$")
+            if n_terms == 1:
+                ax_fit.set_title("Function approximation: simple")
+            elif n_terms == 2:
+                ax_fit.set_title("Function approximation: moderate")
+            else:
+                ax_fit.set_title("Function approximation: complex")
             ax_fit.grid(alpha=0.3)
             ax_fit.legend(loc="upper right")
 

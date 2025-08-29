@@ -7,15 +7,22 @@ from scipy.integrate import solve_ivp
 
 from ipyleaflet import Map, basemaps, Marker, Polyline, Polygon, DivIcon, AwesomeIcon
 from ipywidgets import HBox, VBox, IntSlider, FloatSlider, Button, Layout, BoundedFloatText, FloatLogSlider
-from pyproj import Proj, transform
+from pyproj import Proj, Transformer
 
 from functools import partial
 from random import random
-
+import sys, time
 from scipy.special import expi
 
-inProj = Proj('epsg:32759')
-outProj = Proj('epsg:4326')
+# inProj = Proj('epsg:32759')
+# outProj = Proj('epsg:4326')
+t_out_to_in  = Transformer.from_crs("EPSG:4326", "EPSG:32759", always_xy=True)  # lon, lat -> x, y
+t_in_to_out  = Transformer.from_crs("EPSG:32759", "EPSG:4326", always_xy=True)  # x, y -> lon, lat
+
+def _p(msg):
+    pass
+    # print(f"[{time.strftime('%H:%M:%S')}] {msg}")
+    # sys.stdout.flush()
 
 # class to handle widgets and updating map with contours
 class GroundwaterMap(Map):
@@ -29,18 +36,39 @@ class GroundwaterMap(Map):
         self.add_layer(well)
         self.wells.append(well)
     def update_contours(self, ps, ts):
+        _p(f"update_contours(): {len(ps)} polys, {len(ts)} labels")
         for p,p0 in zip(ps,self.ps0):
             p0.locations = p.locations
+
+        # Before adding new ps in update_contours
+        for p in getattr(self, "ps0", []):
+            try:
+                self.remove_layer(p)
+            except Exception:
+                pass
+        self.ps0 = ps
+        for polygons in self.ps0:
+            self.add_layer(polygons)  # added last -> on top
 
         [self.remove_layer(tk) for tk in self.contour_labels]
 
         self.contour_labels=[]
         for ti in ts:
-            i = DivIcon(html=ti._text+'&nbsp;m')
+            label_html = (
+                f'<div style="display:inline-block; '
+                'padding:2px 6px; margin:0; '
+                'background:rgba(255,255,255,.9); '
+                'border:1px solid rgba(0,0,0,.35); border-radius:4px; '
+                'font:12px/1.2 sans-serif; color:#111; '
+                'white-space:nowrap; width:auto; height:auto;">'
+                f'{ti._text}&nbsp;m</div>'
+            )
+            i = DivIcon(html=label_html, class_name='', icon_size=None)  # class_name '' avoids extra CSS
             tsm = Marker(location=[ti._x, ti._y], icon=i)
             self.add_layer(tsm)
             self.contour_labels.append(tsm)
     def on_change(self,event):
+        _p("on_change()")
         self.func()
     def configure(self, widgets, func):
         self.widgets=widgets
@@ -128,13 +156,20 @@ class GroundwaterMap(Map):
         
         ps, ts = self.TheisContours(T, [Q], bnds, [dhdx, theta], levels=np.arange(-10,20,1))
 
-        try:
-            self.update_contours(ps,ts)
-        except AttributeError:
+        print(hasattr(self, 'ps0'))
+        if not hasattr(self, 'ps0'):
             self.ps0=ps
             for polygons in self.ps0:
                 self.add_layer(polygons)
+        else:
+        # try:
+            self.update_contours(ps,ts)
+        # except AttributeError:
+        #     self.ps0=ps
+        #     for polygons in self.ps0:
+        #         self.add_layer(polygons)
     def superposition(self, T, bnds=None):
+        _p("superposition()")
         qs = [self.widgets['Q{:d}'.format(i)].value/1.e3 for i,w in enumerate(self.wells)]
 
         # add or update piezometric surface
@@ -144,29 +179,31 @@ class GroundwaterMap(Map):
                 bnds = ((-43.54369559037467, 172.58697509765628), 
                     (-43.493903600645126, 172.7502250671387))
         ps, ts = self.TheisContours(T, qs, bnds)
-
-        try:
-            self.update_contours(ps,ts)
-        except AttributeError:
+        
+        if not hasattr(self, 'ps0'):
             self.ps0=ps
             for polygons in self.ps0:
-                self.add_layer(polygons)        
+                self.add_layer(polygons)
+        else:
+            self.update_contours(ps,ts)     
     def TheisContours(self, T, qs, bnds=None, grad=[0,0], levels=(0.5,0.75,1,1.25,1.5,1.75,2.0)):
-        
-            
+        _p("TheisContours()")
         lats = []
         lons = []
         for w in self.wells:
             lat,lon = w.location
             lats.append(lat); lons.append(lon)
-        xs,ys = transform(outProj, inProj, lats, lons)
+            
+        xs, ys = t_out_to_in.transform(lons, lats)
+        
         if bnds is None:
             xs2,ys2 = xs,ys
         else:
             for bnd in bnds:
                 lat,lon = bnd
                 lats.append(lat); lons.append(lon)
-                xs2,ys2 = transform(outProj, inProj, lats, lons)
+                xs2,ys2 = t_out_to_in.transform(lons, lats)
+                
         n = 100
         x0,x1 = np.min(xs2), np.max(xs2)
         xr = x1-x0
@@ -184,18 +221,23 @@ class GroundwaterMap(Map):
                 hh -= Theis(np.sqrt((xx.flatten()-x)**2+(yy.flatten()-y)**2), t*24*3600, T, 1.e-4, q).reshape(xx.shape)
             else:
                 hh += Theis(np.sqrt((xx.flatten()-x)**2+(yy.flatten()-y)**2), t*24*3600, T, 1.e-4, q).reshape(xx.shape)
-        lat,lon=transform(inProj,outProj,xx.flatten(),yy.flatten())
+        lon, lat = t_in_to_out.transform(xx.flatten(), yy.flatten())
+        
         cs = plt.contourf(lat.reshape(xx.shape), lon.reshape(yy.shape), hh, 
             levels=levels, extend='both', zorder=3)
         ts = plt.clabel(cs, levels=[l for l,a in zip(cs.levels, cs.allsegs) if len(a)>0],
                         inline=True, inline_spacing=2)
+        
+        seen = set()
+        ts = [t for t in ts if (t.get_text() not in seen and not seen.add(t.get_text()))]
+        
         plt.close()
         
         allsegs = cs.allsegs
         allkinds = cs.allkinds
         cmap = cm.Blues
         colors = ['#%02x%02x%02x' % tuple(int(j*255) for j in cmap(i)[:3]) for i in np.linspace(0,1,len(allsegs))]
-        alphas = np.linspace(0.2,0.7,len(allsegs))*0+1
+        alphas = np.linspace(0.2,0.7,len(allsegs))
         ps = []
         for clev in range(len(cs.allsegs)):
             kinds = None if allkinds is None else allkinds[clev]
@@ -205,11 +247,11 @@ class GroundwaterMap(Map):
                             color='yellow',
                             weight=1,
                             opacity=1.,
-                            
                             fill_color=colors[clev],
                             fill_opacity=alphas[clev]
             )
             ps.append(polygons)
+        
         return ps,ts
 
 # drawdown functions
@@ -266,47 +308,80 @@ def travel_time_dimensionless(t0):
 
 # map functions
 def xy2ll(x,y,lat0,lon0):   
-    x0,y0=transform(outProj, inProj, lat0, lon0)#, lat0)
-    lat,lon = transform(inProj,outProj,x+x0,y+y0)
+    x0,y0=t_out_to_in.transform(lon0, lat0)#transform(outProj, inProj, lat0, lon0)#, lat0)
+    # lat,lon = transform(inProj,outProj,x+x0,y+y0)
+    lon, lat = t_in_to_out.transform(x+x0,y+y0)
     return list(lat), list(lon)
-def split_contours(segs, kinds=None):
-    """takes a list of polygons and vertex kinds and separates disconnected vertices into separate lists.
-    The input arrays can be derived from the allsegs and allkinds atributes of the result of a matplotlib
-    contour or contourf call. They correspond to the contours of one contour level.
-    
-    Example:
-    cs = plt.contourf(x, y, z)
-    allsegs = cs.allsegs
-    allkinds = cs.allkinds
-    for i, segs in enumerate(allsegs):
-        kinds = None if allkinds is None else allkinds[i]
-        new_segs = split_contours(segs, kinds)
-        # do something with new_segs
-        
-    More information:
-    https://matplotlib.org/3.3.3/_modules/matplotlib/contour.html#ClabelText
-    https://matplotlib.org/3.1.0/api/path_api.html#matplotlib.path.Path
 
-    Solution from here:
-    https://stackoverflow.com/questions/65634602/plotting-contours-with-ipyleaflet
+def split_contours(segs, kinds=None):
     """
-    if kinds is None:
-        return segs    # nothing to be done
-    # search for kind=79 as this marks the end of one polygon segment
-    # Notes: 
-    # 1. we ignore the different polygon styles of matplotlib Path here and only
-    # look for polygon segments.
-    # 2. the Path documentation recommends to use iter_segments instead of direct
-    # access to vertices and node types. However, since the ipyleaflet Polygon expects
-    # a complete polygon and not individual segments, this cannot be used here
-    # (it may be helpful to clean polygons before passing them into ipyleaflet's Polygon,
-    # but so far I don't see a necessity to do so)
+    Split a contour level into separate polygon rings.
+
+    Parameters
+    ----------
+    segs  : list of (N_i x 2) arrays  (cs.allsegs[level])
+    kinds : list of (N_i,) int arrays (cs.allkinds[level]) or None
+
+    Returns
+    -------
+    new_segs : list of (M_j x 2) arrays, one ring per array (len>=3)
+    """
     new_segs = []
-    for i, seg in enumerate(segs):
-        segkinds = kinds[i]
-        boundaries = [0] + list(np.nonzero(segkinds == 79)[0])
-        for b in range(len(boundaries)-1):
-            new_segs.append(seg[boundaries[b]+(1 if b>0 else 0):boundaries[b+1]])
+
+    # Case 1: No codes provided -> segs are usually already split in modern Matplotlib
+    if kinds is None:
+        for seg in segs:
+            a = np.asarray(seg)
+            if a.ndim != 2 or a.shape[1] != 2:
+                continue
+            if not len(a):
+                continue
+            # If a ring contains NaN breaks, split on NaNs
+            mask = np.isfinite(a).all(axis=1)
+            if mask.all():
+                if len(a) >= 3:
+                    new_segs.append(a)
+            else:
+                i = 0
+                n = len(a)
+                while i < n:
+                    # skip NaNs
+                    while i < n and not mask[i]:
+                        i += 1
+                    j = i
+                    # take finite run
+                    while j < n and mask[j]:
+                        j += 1
+                    if j - i >= 3:
+                        new_segs.append(a[i:j])
+                    i = j
+        return new_segs
+
+    # Case 2: Codes provided -> parse MOVETO/CLOSEPOLY subpaths
+    for seg, codes in zip(segs, kinds):
+        a = np.asarray(seg)
+        c = np.asarray(codes)
+        if a.ndim != 2 or a.shape[1] != 2 or len(a) < 3:
+            continue
+        if len(c) > len(a):
+            c = c[:len(a)]
+
+        start = None  # index of current subpath start
+        for i, code in enumerate(c):
+            if code == 1:  # Path.MOVETO
+                # finish any open subpath before starting a new one
+                if start is not None and i - start >= 3:
+                    new_segs.append(a[start:i])
+                start = i
+            elif code == 79:  # Path.CLOSEPOLY
+                if start is not None and i - start >= 3:
+                    new_segs.append(a[start:i])  # exclude CLOSEPOLY vertex
+                start = None
+
+        # If we ended without a CLOSEPOLY, keep the trailing open ring
+        if start is not None and len(a) - start >= 3:
+            new_segs.append(a[start:])
+
     return new_segs
 
 # widget functions
@@ -356,4 +431,5 @@ def theis_fun():
     return VBox([m, Q])
 
 if __name__ == "__main__":
-    travel_time_fun()
+    # travel_time_fun()
+    theis_fun()

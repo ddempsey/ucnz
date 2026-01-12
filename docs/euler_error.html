@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler Error - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+        }
+        .control-group input[type="number"] {
+            width: 80px;
+            padding: 5px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Euler Error</h1>
+
+    <div class="explainer">
+        <p>The exercise below attempts to solve the ODE</p>
+
+        <p style="text-align: center;">
+            \[\frac{dx}{dt} = \sin\left(a\sin(t)\sqrt{t}+\frac{\cos(bt)}{t+1}\right)\]
+        </p>
+
+        <p>
+            with \(a = 8\) and \(b = 8.5\). However, we should be mindful of the tradeoff between
+            <strong>efficiency and accuracy</strong> (or effort and error).
+        </p>
+
+        <p>
+            Experiment with the input boxes below. <strong>In general, how many steps are required to get the
+            error below 5%?</strong>
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>predict at:</label>
+                <input type="number" id="predictAt" value="2.2" min="0.1" max="10" step="0.1">
+            </div>
+            <div class="control-group">
+                <label>with steps:</label>
+                <input type="number" id="steps" value="20" min="1" max="500" step="1">
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ODE parameters
+        const a = 8;
+        const b = 8.5;
+
+        // ODE function: dx/dt = sin(a*sin(t)*sqrt(t) + cos(b*t)/(t+1))
+        function dvarsin(t) {
+            if (t <= 0) return Math.sin(Math.cos(b * t) / (t + 1));
+            return Math.sin(a * Math.sin(t) * Math.sqrt(t) + Math.cos(b * t) / (t + 1));
+        }
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Plot parameters
+        const margin = { top: 40, right: 40, bottom: 50, left: 60 };
+
+        // Axis limits
+        const xLim = [0, 10];
+        let yLim = [-2, 2];
+
+        function toCanvasX(x) {
+            const plotWidth = canvas.width - margin.left - margin.right;
+            return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * plotWidth;
+        }
+
+        function toCanvasY(y) {
+            const plotHeight = canvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - yLim[0]) / (yLim[1] - yLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, canvas.height - margin.bottom);
+            ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Zero line (dotted)
+            ctx.strokeStyle = '#333';
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, toCanvasY(0));
+            ctx.lineTo(canvas.width - margin.right, toCanvasY(0));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // X label
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.fillText('time, t', canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('solution, x', 0, 0);
+            ctx.restore();
+
+            // X ticks
+            ctx.textAlign = 'center';
+            ctx.font = '12px Segoe UI';
+            for (let x = 0; x <= 10; x += 2) {
+                const cx = toCanvasX(x);
+                ctx.beginPath();
+                ctx.moveTo(cx, canvas.height - margin.bottom);
+                ctx.lineTo(cx, canvas.height - margin.bottom + 5);
+                ctx.stroke();
+                ctx.fillText(x.toString(), cx, canvas.height - margin.bottom + 18);
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            const yStep = (yLim[1] - yLim[0]) / 4;
+            for (let i = 0; i <= 4; i++) {
+                const y = yLim[0] + i * yStep;
+                const cy = toCanvasY(y);
+                ctx.beginPath();
+                ctx.moveTo(margin.left - 5, cy);
+                ctx.lineTo(margin.left, cy);
+                ctx.stroke();
+                ctx.fillText(y.toFixed(1), margin.left - 8, cy + 4);
+            }
+        }
+
+        // Plot line with dots
+        function plotLine(xs, ys, color, showDots = true) {
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.5;
+
+            // Draw line
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                if (i === 0) {
+                    ctx.moveTo(cx, cy);
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+
+            // Draw dots
+            if (showDots) {
+                for (let i = 0; i < xs.length; i++) {
+                    const cx = toCanvasX(xs[i]);
+                    const cy = toCanvasY(ys[i]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Draw legend
+        function drawLegend() {
+            const legendX = canvas.width - margin.right - 80;
+            const legendY = canvas.height - margin.bottom - 50;
+
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'left';
+
+            // Euler
+            ctx.strokeStyle = 'blue';
+            ctx.fillStyle = 'blue';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(legendX, legendY + 6);
+            ctx.lineTo(legendX + 20, legendY + 6);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(legendX + 10, legendY + 6, 3, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillText('Euler', legendX + 25, legendY + 10);
+
+            // Error
+            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(legendX, legendY + 26);
+            ctx.lineTo(legendX + 20, legendY + 26);
+            ctx.stroke();
+            ctx.fillText('error', legendX + 25, legendY + 30);
+        }
+
+        // Main drawing function
+        function draw() {
+            const predictValue = parseFloat(document.getElementById('predictAt').value);
+            const steps = parseInt(document.getElementById('steps').value);
+
+            // Validate inputs
+            if (isNaN(predictValue) || isNaN(steps) || steps < 1 || predictValue <= 0) {
+                return;
+            }
+
+            // Compute "accurate" solution using trapezoid method with 10x steps
+            const nAccurate = 10 * steps;
+            const xsAccurate = [];
+            const ysAccurate = [];
+            const hAccurate = predictValue / nAccurate;
+
+            for (let i = 0; i <= nAccurate; i++) {
+                xsAccurate.push(i * hAccurate);
+                if (i === 0) {
+                    ysAccurate.push(0);
+                } else {
+                    const yi = ysAccurate[i - 1] + hAccurate / 2 * (dvarsin(xsAccurate[i - 1]) + dvarsin(xsAccurate[i]));
+                    ysAccurate.push(yi);
+                }
+            }
+
+            // Compute Euler solution
+            const h = predictValue / steps;
+            const xs = [];
+            const ys = [];
+
+            for (let i = 0; i <= steps; i++) {
+                xs.push(i * h);
+                if (i === 0) {
+                    ys.push(0);
+                } else {
+                    ys.push(ys[i - 1] + h * dvarsin(xs[i - 1]));
+                }
+            }
+
+            // Get values at prediction point
+            const xEst = xs[xs.length - 1];
+            const yEst = ys[ys.length - 1];
+            const yTrue = ysAccurate[ysAccurate.length - 1];
+
+            // Calculate error
+            let errPercent;
+            if (Math.abs(yTrue) < 1e-10) {
+                errPercent = Math.abs(yEst) * 100;
+            } else {
+                errPercent = Math.abs((yEst - yTrue) / yTrue) * 100;
+            }
+
+            // Determine y-axis limits
+            const allYs = [...ys];
+            const yMin = Math.min(...allYs, yTrue, 0);
+            const yMax = Math.max(...allYs, yTrue, 0);
+            const yPadding = (yMax - yMin) * 0.15 || 0.5;
+            yLim = [yMin - yPadding, yMax + yPadding];
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw axes
+            drawAxes();
+
+            // Plot Euler solution
+            plotLine(xs, ys, 'blue', true);
+
+            // Plot error bar
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(xEst), toCanvasY(yEst));
+            ctx.lineTo(toCanvasX(xEst), toCanvasY(yTrue));
+            ctx.stroke();
+
+            // Error label
+            const yMid = (yEst + yTrue) / 2;
+            ctx.fillStyle = 'red';
+            ctx.font = errPercent < 1 ? 'bold 12px Segoe UI' : '12px Segoe UI';
+            ctx.textAlign = 'left';
+
+            let errStr;
+            if (errPercent < 1) {
+                errStr = ' err < 1%';
+            } else {
+                errStr = ` err = ${Math.round(errPercent)}%`;
+            }
+            ctx.fillText(errStr, toCanvasX(xEst) + 5, toCanvasY(yMid));
+
+            // Draw legend
+            drawLegend();
+        }
+
+        // Event listeners
+        document.getElementById('predictAt').addEventListener('input', draw);
+        document.getElementById('steps').addEventListener('input', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

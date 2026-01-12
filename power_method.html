@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .description {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .description p {
+            margin: 0.5em 0;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            color: #555;
+        }
+        .vector-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .vector-inputs input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #iterations {
+            width: 150px;
+        }
+        #iterValue {
+            min-width: 20px;
+            font-weight: bold;
+        }
+        .canvas-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+        }
+        .info-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .legend {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+        .legend-line {
+            width: 30px;
+            height: 2px;
+        }
+        .legend-dashed {
+            border-top: 2px dashed;
+        }
+        /* MathJax styling */
+        .math-container {
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+    </style>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <div class="description">
+        <p>The power method is an iterative technique for estimating the eigenvalues and eigenvectors of a matrix.</p>
+        <div class="math-container">
+            <p>For the matrix $A$, and initial guess of the eigenvector, $\mathbf{x}_0$, we obtain subsequent guesses:</p>
+            <p>$\mathbf{x}_{k+1} = \frac{A\mathbf{x}_k}{|A\mathbf{x}_k|}, \quad\quad \lambda_1 \approx \frac{\mathbf{x}_{k+1}^T A \mathbf{x}_{k+1}}{\mathbf{x}_{k+1}^T \mathbf{x}_{k+1}}$</p>
+        </div>
+        <p>The example below shows successive estimates of the eigenvector and eigenvalue. Try changing the starting vector and see how the error reduces with each iteration.</p>
+        <div class="math-container">
+            <p>$A = \begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}, \quad\quad \mathbf{x}_0 = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$</p>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="iterations">Iterations:</label>
+            <input type="range" id="iterations" min="0" max="7" value="0">
+            <span id="iterValue">0</span>
+        </div>
+        <div class="control-group">
+            <label>$\mathbf{x}_0$:</label>
+            <div class="vector-inputs">
+                <input type="number" id="x1" value="1" step="0.1">
+                <input type="number" id="x2" value="0" step="0.1">
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="canvas" width="500" height="500"></canvas>
+        <div class="info-panel" id="infoPanel"></div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-line legend-dashed" style="border-color: blue;"></div>
+                <span>$v_1$ (eigenvector for $\lambda_1 = 3$)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line legend-dashed" style="border-color: blue; opacity: 0.5;"></div>
+                <span>$v_2$ (eigenvector for $\lambda_2 = -1$)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line legend-dashed" style="border-color: black;"></div>
+                <span>$x_0$ (initial guess)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: black;"></div>
+                <span>$x_i$ (successive estimates)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix A = [[1, 2], [2, 1]]
+        const A = [[1, 2], [2, 1]];
+
+        // Get DOM elements
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const iterSlider = document.getElementById('iterations');
+        const iterValue = document.getElementById('iterValue');
+        const x1Input = document.getElementById('x1');
+        const x2Input = document.getElementById('x2');
+        const infoPanel = document.getElementById('infoPanel');
+
+        // Coordinate system parameters
+        const width = canvas.width;
+        const height = canvas.height;
+        const margin = 50;
+        const plotSize = width - 2 * margin;
+        const scale = plotSize / 2.2; // maps [-1.1, 1.1] to canvas
+
+        // Convert math coordinates to canvas coordinates
+        function toCanvas(x, y) {
+            return [
+                margin + plotSize/2 + x * scale,
+                margin + plotSize/2 - y * scale  // flip y axis
+            ];
+        }
+
+        // Vector operations
+        function normalize(v) {
+            const mag = Math.sqrt(v[0]*v[0] + v[1]*v[1]);
+            if (mag === 0) return [0, 0];
+            return [v[0]/mag, v[1]/mag];
+        }
+
+        function matVec(M, v) {
+            return [
+                M[0][0]*v[0] + M[0][1]*v[1],
+                M[1][0]*v[0] + M[1][1]*v[1]
+            ];
+        }
+
+        function dot(v1, v2) {
+            return v1[0]*v2[0] + v1[1]*v2[1];
+        }
+
+        // Draw dashed line
+        function drawDashedLine(x1, y1, x2, y2, color, alpha=1) {
+            const [cx1, cy1] = toCanvas(x1, y1);
+            const [cx2, cy2] = toCanvas(x2, y2);
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx2, cy2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Draw solid line
+        function drawLine(x1, y1, x2, y2, color, alpha=1, lineWidth=1) {
+            const [cx1, cy1] = toCanvas(x1, y1);
+            const [cx2, cy2] = toCanvas(x2, y2);
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx2, cy2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Draw text
+        function drawText(text, x, y, align='left', baseline='bottom', color='black') {
+            const [cx, cy] = toCanvas(x, y);
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = align;
+            ctx.textBaseline = baseline;
+            ctx.fillText(text, cx, cy);
+            ctx.restore();
+        }
+
+        // Main drawing function
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw axes
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+
+            // X axis
+            let [ax1, ay1] = toCanvas(-1.1, 0);
+            let [ax2, ay2] = toCanvas(1.1, 0);
+            ctx.beginPath();
+            ctx.moveTo(ax1, ay1);
+            ctx.lineTo(ax2, ay2);
+            ctx.stroke();
+
+            // Y axis
+            [ax1, ay1] = toCanvas(0, -1.1);
+            [ax2, ay2] = toCanvas(0, 1.1);
+            ctx.beginPath();
+            ctx.moveTo(ax1, ay1);
+            ctx.lineTo(ax2, ay2);
+            ctx.stroke();
+
+            // Draw eigenvector lines
+            // v1 = [1, 1] / sqrt(2) -> line y = x
+            drawDashedLine(-1, -1, 1, 1, 'blue', 1);
+            // v2 = [1, -1] / sqrt(2) -> line y = -x
+            drawDashedLine(-1, 1, 1, -1, 'blue', 0.5);
+
+            // Get inputs
+            const iterations = parseInt(iterSlider.value);
+            let x1 = parseFloat(x1Input.value) || 0;
+            let x2 = parseFloat(x2Input.value) || 0;
+
+            // Handle zero vector
+            if (x1 === 0 && x2 === 0) {
+                x1 = 1;
+            }
+
+            // Normalize initial vector
+            let x0 = normalize([x1, x2]);
+            let x = [...x0];
+
+            // Draw initial vector x0 (dashed)
+            drawDashedLine(0, 0, x[0], x[1], 'black', 1);
+            drawText('x\u2080', x[0], x[1], 'left', 'bottom');
+
+            // Store previous vector for angle calculation
+            let xPrev = [...x];
+            let eigenvalue = 0;
+            let deltaTheta = 0;
+
+            // Power method iterations
+            for (let i = 0; i < iterations; i++) {
+                xPrev = [...x];
+
+                // x = A * x
+                let Ax = matVec(A, x);
+
+                // Normalize
+                x = normalize(Ax);
+
+                // Calculate eigenvalue estimate (Rayleigh quotient)
+                Ax = matVec(A, x);
+                eigenvalue = dot(x, Ax) / dot(x, x);
+
+                // Calculate angle difference
+                const cosAngle = Math.min(1, Math.max(-1, dot(xPrev, x)));
+                deltaTheta = Math.acos(Math.abs(cosAngle)) * 180 / Math.PI;
+
+                // Draw vector with increasing opacity
+                const alpha = (i + 1) / iterations;
+                drawLine(0, 0, x[0], x[1], 'black', alpha, 2);
+            }
+
+            // Update info panel using DOM manipulation (avoids Moodle innerHTML sanitization)
+            while (infoPanel.firstChild) {
+                infoPanel.removeChild(infoPanel.firstChild);
+            }
+
+            const infoRow = document.createElement('div');
+            infoRow.className = 'info-row';
+
+            if (iterations > 0) {
+                // Vector estimate
+                const vecSpan = document.createElement('span');
+                const vecStrong = document.createElement('strong');
+                vecStrong.textContent = 'x';
+                const vecSub = document.createElement('sub');
+                vecSub.textContent = iterations;
+                vecStrong.appendChild(vecSub);
+                vecSpan.appendChild(vecStrong);
+                vecSpan.appendChild(document.createTextNode(' = [' + x[0].toFixed(3) + ', ' + x[1].toFixed(3) + '], '));
+                infoRow.appendChild(vecSpan);
+
+                // Eigenvalue estimate
+                const eigSpan = document.createElement('span');
+                const eigStrong = document.createElement('strong');
+                eigStrong.textContent = '\u03BB';
+                const eigSub = document.createElement('sub');
+                eigSub.textContent = iterations;
+                eigStrong.appendChild(eigSub);
+                eigSpan.appendChild(eigStrong);
+                eigSpan.appendChild(document.createTextNode(' = ' + eigenvalue.toFixed(3)+', '));
+                infoRow.appendChild(eigSpan);
+
+                // Angular error
+                const angSpan = document.createElement('span');
+                const angStrong = document.createElement('strong');
+                angStrong.textContent = '\u0394\u03B8';
+                angSpan.appendChild(angStrong);
+                angSpan.appendChild(document.createTextNode(' = ' + deltaTheta.toFixed(3) + '\u00B0'));
+                infoRow.appendChild(angSpan);
+
+                // Draw eigenvalue label near the final vector
+                const labelX = x[0] * 1.05;
+                const labelY = x[1] * 1.05;
+                drawText('\u03BB' + iterations + ' = ' + eigenvalue.toFixed(3), labelX, labelY, 'left', 'bottom');
+            } else {
+                const msgSpan = document.createElement('span');
+                msgSpan.textContent = 'Adjust iterations to see the power method in action';
+                infoRow.appendChild(msgSpan);
+            }
+
+            infoPanel.appendChild(infoRow);
+
+            // Draw border
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            ctx.strokeRect(margin, margin, plotSize, plotSize);
+
+            // Draw axis labels
+            ctx.fillStyle = '#666';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+
+            // Tick marks and labels
+            for (let val = -1; val <= 1; val += 0.5) {
+                if (val === 0) continue;
+                const [tx, ty] = toCanvas(val, 0);
+                ctx.fillText(val.toFixed(1), tx, ty + 15);
+
+                const [ty2x, ty2y] = toCanvas(0, val);
+                ctx.textAlign = 'right';
+                ctx.fillText(val.toFixed(1), ty2x - 5, ty2y + 4);
+                ctx.textAlign = 'center';
+            }
+        }
+
+        // Event listeners
+        iterSlider.addEventListener('input', function() {
+            iterValue.textContent = this.value;
+            draw();
+        });
+
+        x1Input.addEventListener('input', draw);
+        x2Input.addEventListener('input', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

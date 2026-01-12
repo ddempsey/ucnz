@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Building Response</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .description {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .controls {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .controls label {
+            font-weight: bold;
+        }
+        .controls input[type="range"] {
+            flex: 1;
+            max-width: 400px;
+        }
+        .controls span {
+            min-width: 50px;
+        }
+        .plot-container {
+            display: flex;
+            gap: 20px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        #timePlot, #buildingPlot {
+            flex: 1;
+            height: 450px;
+        }
+        .equation {
+            font-style: italic;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Earthquake Building Response</h1>
+
+    <div class="description">
+        <p>The earthquake response problem involves the solution to a coupled set of 2nd order ODEs, one for each floor of a building. The solution is:</p>
+        <p class="equation"><strong>x</strong> = c₁<strong>v</strong>₁ cos(ω₁t + φ₁) + c₂<strong>v</strong>₂ cos(ω₂t + φ₂) + c₃<strong>v</strong>₃ cos(ω₃t + φ₃)</p>
+        <p>where:</p>
+        <ul>
+            <li>indices 1-3 refer to the individual floors</li>
+            <li>ωᵢ = √λᵢ are the harmonic frequencies, related to the eigenvalues</li>
+            <li><strong>v</strong>ᵢ are the characteristic displacements (eigenvectors)</li>
+            <li>cᵢ and φᵢ are determined by initial position and velocity conditions</li>
+        </ul>
+        <p>If the initial velocity is zero, φᵢ = 0 and <strong>c</strong> = V⁻¹<strong>x</strong>₀.</p>
+    </div>
+
+    <div class="controls">
+        <label for="timeSlider">Time:</label>
+        <input type="range" id="timeSlider" min="0" max="20" step="0.2" value="0">
+        <span id="timeValue">0</span>
+    </div>
+
+    <div class="plot-container">
+        <div id="timePlot"></div>
+        <div id="buildingPlot"></div>
+    </div>
+
+    <script>
+        // Matrix operations
+        function matmul(A, B) {
+            // A is m x n, B is n x p (or n-vector)
+            if (!Array.isArray(B[0])) {
+                // B is a vector
+                const result = [];
+                for (let i = 0; i < A.length; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < A[0].length; j++) {
+                        sum += A[i][j] * B[j];
+                    }
+                    result.push(sum);
+                }
+                return result;
+            }
+            // B is a matrix
+            const m = A.length;
+            const n = A[0].length;
+            const p = B[0].length;
+            const result = [];
+            for (let i = 0; i < m; i++) {
+                result[i] = [];
+                for (let j = 0; j < p; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) {
+                        sum += A[i][k] * B[k][j];
+                    }
+                    result[i][j] = sum;
+                }
+            }
+            return result;
+        }
+
+        function transpose(A) {
+            const m = A.length;
+            const n = A[0].length;
+            const result = [];
+            for (let j = 0; j < n; j++) {
+                result[j] = [];
+                for (let i = 0; i < m; i++) {
+                    result[j][i] = A[i][j];
+                }
+            }
+            return result;
+        }
+
+        function invertMatrix3x3(m) {
+            // Calculate determinant
+            const det =
+                m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+                m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+                m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+
+            if (Math.abs(det) < 1e-10) {
+                throw new Error("Matrix is singular");
+            }
+
+            const invDet = 1 / det;
+
+            return [
+                [
+                    (m[1][1] * m[2][2] - m[1][2] * m[2][1]) * invDet,
+                    (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invDet,
+                    (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invDet
+                ],
+                [
+                    (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invDet,
+                    (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invDet,
+                    (m[0][2] * m[1][0] - m[0][0] * m[1][2]) * invDet
+                ],
+                [
+                    (m[1][0] * m[2][1] - m[1][1] * m[2][0]) * invDet,
+                    (m[0][1] * m[2][0] - m[0][0] * m[2][1]) * invDet,
+                    (m[0][0] * m[1][1] - m[0][1] * m[1][0]) * invDet
+                ]
+            ];
+        }
+
+        // Power iteration for eigenvalue/eigenvector
+        function powerIteration(A, maxIter = 1000, tol = 1e-10) {
+            let x = [1, 1, 1];
+            let eigenvalue = 0;
+
+            for (let iter = 0; iter < maxIter; iter++) {
+                // Multiply A * x
+                let y = matmul(A, x);
+
+                // Find the largest component (by absolute value)
+                let maxVal = Math.max(...y.map(Math.abs));
+                eigenvalue = maxVal;
+
+                // Normalize
+                x = y.map(v => v / maxVal);
+
+                // Check convergence
+                let newY = matmul(A, x);
+                let newMax = Math.max(...newY.map(Math.abs));
+                if (Math.abs(newMax - eigenvalue) < tol) break;
+            }
+
+            // Normalize eigenvector
+            let norm = Math.sqrt(x.reduce((s, v) => s + v * v, 0));
+            x = x.map(v => v / norm);
+
+            return { eigenvalue, eigenvector: x };
+        }
+
+        // Compute all eigenvalues and eigenvectors using QR algorithm (simplified)
+        function eigenDecomposition(A) {
+            // For this specific 3x3 symmetric matrix, we use a direct approach
+            // The matrix A = [[1,-1,0],[-1,3,-2],[0,-2,5]] has known eigenvalues
+            // We'll compute them numerically
+
+            const n = A.length;
+            const eigenvalues = [];
+            const eigenvectors = [];
+
+            // Use deflation with power iteration
+            let Acurrent = A.map(row => [...row]);
+
+            for (let k = 0; k < n; k++) {
+                const result = powerIteration(Acurrent);
+                eigenvalues.push(result.eigenvalue);
+                eigenvectors.push(result.eigenvector);
+
+                if (k < n - 1) {
+                    // Deflate the matrix
+                    const v = result.eigenvector;
+                    const lambda = result.eigenvalue;
+                    for (let i = 0; i < n; i++) {
+                        for (let j = 0; j < n; j++) {
+                            Acurrent[i][j] -= lambda * v[i] * v[j];
+                        }
+                    }
+                }
+            }
+
+            return { eigenvalues, eigenvectors };
+        }
+
+        // More robust eigenvalue computation using characteristic polynomial
+        function computeEigenvalues3x3(A) {
+            // For a 3x3 matrix, solve the characteristic polynomial
+            // det(A - λI) = 0
+            // -λ³ + tr(A)λ² - (sum of 2x2 principal minors)λ + det(A) = 0
+
+            const a = A[0][0], b = A[0][1], c = A[0][2];
+            const d = A[1][0], e = A[1][1], f = A[1][2];
+            const g = A[2][0], h = A[2][1], i = A[2][2];
+
+            // Trace
+            const tr = a + e + i;
+
+            // Sum of 2x2 principal minors
+            const m1 = a * e - b * d;
+            const m2 = a * i - c * g;
+            const m3 = e * i - f * h;
+            const minorSum = m1 + m2 + m3;
+
+            // Determinant
+            const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+
+            // Characteristic polynomial: λ³ - tr*λ² + minorSum*λ - det = 0
+            // Use Cardano's formula or numerical methods
+            return solveCubic(1, -tr, minorSum, -det);
+        }
+
+        function solveCubic(a, b, c, d) {
+            // Solve ax³ + bx² + cx + d = 0
+            // Normalize
+            b /= a; c /= a; d /= a;
+
+            const p = c - b * b / 3;
+            const q = 2 * b * b * b / 27 - b * c / 3 + d;
+
+            const discriminant = q * q / 4 + p * p * p / 27;
+
+            let roots = [];
+
+            if (discriminant > 0) {
+                // One real root
+                const sqrtD = Math.sqrt(discriminant);
+                const u = Math.cbrt(-q / 2 + sqrtD);
+                const v = Math.cbrt(-q / 2 - sqrtD);
+                roots.push(u + v - b / 3);
+            } else {
+                // Three real roots (for symmetric matrices)
+                const r = Math.sqrt(-p * p * p / 27);
+                const theta = Math.acos(-q / (2 * r));
+                const m = 2 * Math.cbrt(r);
+
+                roots.push(m * Math.cos(theta / 3) - b / 3);
+                roots.push(m * Math.cos((theta + 2 * Math.PI) / 3) - b / 3);
+                roots.push(m * Math.cos((theta + 4 * Math.PI) / 3) - b / 3);
+            }
+
+            return roots.sort((a, b) => b - a); // Sort descending
+        }
+
+        function computeEigenvector(A, lambda) {
+            // Solve (A - λI)v = 0
+            const n = A.length;
+            const B = A.map((row, i) => row.map((val, j) => val - (i === j ? lambda : 0)));
+
+            // Use null space computation (simplified for 3x3)
+            // Find the row with smallest pivot and use cross product
+            const row0 = [B[0][0], B[0][1], B[0][2]];
+            const row1 = [B[1][0], B[1][1], B[1][2]];
+
+            // Cross product gives null space vector
+            let v = [
+                row0[1] * row1[2] - row0[2] * row1[1],
+                row0[2] * row1[0] - row0[0] * row1[2],
+                row0[0] * row1[1] - row0[1] * row1[0]
+            ];
+
+            // Handle degenerate case
+            const norm = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+            if (norm < 1e-10) {
+                // Try different row combination
+                const row2 = [B[2][0], B[2][1], B[2][2]];
+                v = [
+                    row0[1] * row2[2] - row0[2] * row2[1],
+                    row0[2] * row2[0] - row0[0] * row2[2],
+                    row0[0] * row2[1] - row0[1] * row2[0]
+                ];
+            }
+
+            // Normalize
+            const n2 = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+            return v.map(x => x / n2);
+        }
+
+        // Generate time array
+        function linspace(start, end, n) {
+            const arr = [];
+            const step = (end - start) / (n - 1);
+            for (let i = 0; i < n; i++) {
+                arr.push(start + i * step);
+            }
+            return arr;
+        }
+
+        // Main earthquake response calculation
+        const A = [
+            [1, -1, 0],
+            [-1, 3, -2],
+            [0, -2, 5]
+        ];
+
+        // Compute eigenvalues and eigenvectors
+        const eigenvalues = computeEigenvalues3x3(A);
+        const eigenvectors = eigenvalues.map(lambda => computeEigenvector(A, lambda));
+
+        // Create V matrix (eigenvectors as columns)
+        const V = [
+            [eigenvectors[0][0], eigenvectors[1][0], eigenvectors[2][0]],
+            [eigenvectors[0][1], eigenvectors[1][1], eigenvectors[2][1]],
+            [eigenvectors[0][2], eigenvectors[1][2], eigenvectors[2][2]]
+        ];
+
+        const Vinv = invertMatrix3x3(V);
+
+        // Initial conditions
+        const x0 = [-3, -2, -1];
+        const ci = matmul(Vinv, x0);
+
+        // Time array
+        const t = linspace(0, 20, 101);
+
+        // Compute displacements for each floor
+        function computeDisplacement(floorIndex, time) {
+            let x = 0;
+            for (let j = 0; j < 3; j++) {
+                x += ci[j] * Math.cos(eigenvalues[j] * time) * V[floorIndex][j];
+            }
+            return x;
+        }
+
+        // Precompute all floor displacements over time
+        const floorDisplacements = [[], [], []];
+        for (let floor = 0; floor < 3; floor++) {
+            for (let i = 0; i < t.length; i++) {
+                floorDisplacements[floor].push(computeDisplacement(floor, t[i]));
+            }
+        }
+
+        const colors = ['red', 'green', 'blue'];
+        const floorLabels = ['x₁ (Floor 1)', 'x₂ (Floor 2)', 'x₃ (Floor 3)'];
+
+        // Compute fixed axis limits for time series plot
+        const allDisplacements = floorDisplacements.flat();
+        const yMin = Math.min(...allDisplacements);
+        const yMax = Math.max(...allDisplacements);
+        const yPadding = (yMax - yMin) * 0.1;
+        const yAxisRange = [yMin - yPadding, yMax + yPadding];
+
+        // Create time series plot
+        function createTimePlot(currentTime) {
+            const traces = [];
+            const currentPositions = [];
+
+            for (let floor = 0; floor < 3; floor++) {
+                // Line trace
+                traces.push({
+                    x: t,
+                    y: floorDisplacements[floor],
+                    mode: 'lines',
+                    name: floorLabels[floor],
+                    line: { color: colors[floor] }
+                });
+
+                // Find current position
+                const timeIndex = Math.round(currentTime / 20 * (t.length - 1));
+                const currentY = floorDisplacements[floor][timeIndex];
+                currentPositions.push(currentY);
+
+                // Marker at current time
+                traces.push({
+                    x: [currentTime],
+                    y: [currentY],
+                    mode: 'markers',
+                    marker: { color: colors[floor], size: 10 },
+                    showlegend: false
+                });
+            }
+
+            const layout = {
+                title: 'Floor Displacement vs Time',
+                xaxis: { title: 'time, t', range: [0, 20] },
+                yaxis: { title: 'horizontal position, x', range: yAxisRange },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 }
+            };
+
+            Plotly.react('timePlot', traces, layout);
+
+            return currentPositions;
+        }
+
+        // Create building visualization
+        function createBuildingPlot(positions) {
+            const traces = [];
+            const dx = 1.5;
+            const dy = 0.5;
+
+            for (let floor = 0; floor < 3; floor++) {
+                const x = positions[floor];
+                const y = 3 - floor;
+
+                // Floor rectangle
+                traces.push({
+                    x: [x - dx, x + dx, x + dx, x - dx, x - dx],
+                    y: [y + dy, y + dy, y - dy, y - dy, y + dy],
+                    mode: 'lines',
+                    line: { color: colors[floor], width: 2 },
+                    fill: 'toself',
+                    fillcolor: colors[floor].replace(')', ', 0.3)').replace('rgb', 'rgba'),
+                    name: `Floor ${floor + 1}`,
+                    showlegend: false
+                });
+            }
+
+            // Center line connecting floors
+            traces.push({
+                x: positions,
+                y: [3, 2, 1],
+                mode: 'lines+markers',
+                line: { color: 'black', width: 2 },
+                marker: { color: 'black', size: 8 },
+                showlegend: false
+            });
+
+            // Ground line
+            traces.push({
+                x: [-5, 5],
+                y: [0.3, 0.3],
+                mode: 'lines',
+                line: { color: 'brown', width: 3 },
+                showlegend: false
+            });
+
+            // Ground anchor
+            traces.push({
+                x: [0],
+                y: [0.3],
+                mode: 'markers',
+                marker: { color: 'brown', size: 12, symbol: 'triangle-down' },
+                showlegend: false
+            });
+
+            const layout = {
+                title: 'Building Displacement',
+                xaxis: {
+                    title: 'horizontal position, x',
+                    range: [-5, 5],
+                    zeroline: true
+                },
+                yaxis: {
+                    range: [0, 4],
+                    showticklabels: false,
+                    zeroline: false
+                },
+                showlegend: false
+            };
+
+            Plotly.react('buildingPlot', traces, layout);
+        }
+
+        // Update function
+        function updatePlots(currentTime) {
+            const positions = createTimePlot(currentTime);
+            createBuildingPlot(positions);
+        }
+
+        // Initialize
+        updatePlots(0);
+
+        // Slider event
+        const slider = document.getElementById('timeSlider');
+        const timeValue = document.getElementById('timeValue');
+
+        slider.addEventListener('input', function() {
+            const time = parseFloat(this.value);
+            timeValue.textContent = time.toFixed(1);
+            updatePlots(time);
+        });
+
+        // Animation (optional - uncomment to enable auto-play)
+        /*
+        let animating = false;
+        function animate() {
+            if (!animating) return;
+            let time = parseFloat(slider.value);
+            time += 0.2;
+            if (time > 20) time = 0;
+            slider.value = time;
+            timeValue.textContent = time.toFixed(1);
+            updatePlots(time);
+            requestAnimationFrame(animate);
+        }
+        */
+    </script>
+</body>
+</html>

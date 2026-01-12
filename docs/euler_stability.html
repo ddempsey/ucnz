@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler Stability - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 60px;
+        }
+        .control-group input[type="range"] {
+            width: 200px;
+        }
+        .control-group select {
+            padding: 5px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .control-group .value {
+            min-width: 30px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Euler Stability</h1>
+
+    <div class="explainer">
+        <p>
+            Consider the simple ODE \(x' = \lambda x\), which we know has an exponential solution. For the case
+            that \(\lambda < 0\), the solution should decay to zero.
+        </p>
+
+        <p>The Euler update step is</p>
+
+        <p style="text-align: center;">
+            \[\begin{aligned}
+            x^{(k+1)} &= x^{(k)} + \lambda \,\Delta t\,x^{(k)} \\
+            &= \left(1+\lambda \Delta t\right)x^{(k)} \\
+            &= \left(1+\lambda \Delta t\right)^k x^{(0)}
+            \end{aligned}\]
+        </p>
+
+        <p>
+            If \(|1+\lambda \Delta t| > 1\) then \(x^{(k)}\) will keep increasing in value rather than decaying to 0.
+            This defines a <strong>stability criterion</strong> for Euler's method applied to this problem:
+        </p>
+
+        <p style="text-align: center;">
+            \[-1 < 1+\lambda \Delta t < 1 \Rightarrow 1 + \lambda \Delta t > -1 \Rightarrow \lambda \Delta t > -2 \Rightarrow \Delta t < -\frac{2}{\lambda}\]
+        </p>
+
+        <p>
+            Therefore the stability criterion for the Euler method to give stable solutions for this problem is
+            \(\Delta t < -\dfrac{2}{\lambda}\).
+        </p>
+
+        <p>
+            For \(\lambda = -10\), the stability criterion is \(\Delta t < 0.2\). Use the slider below to see
+            what happens when this criterion is violated. Compare the behavior of different numerical methods.
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>steps:</label>
+                <input type="range" id="stepsSlider" min="3" max="15" step="1" value="15">
+                <span class="value" id="stepsValue">15</span>
+            </div>
+            <div class="control-group">
+                <label>method:</label>
+                <select id="methodSelect">
+                    <option value="Euler">Euler</option>
+                    <option value="Improved Euler">Improved Euler</option>
+                    <option value="Backward Euler">Backward Euler</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ODE function: dx/dt = -10*x (lambda = -10)
+        const lambda = -10;
+
+        function dydx(t, x) {
+            return lambda * x;
+        }
+
+        // Solve implicit equation for Backward Euler
+        // For dx/dt = lambda*x, the implicit equation is:
+        // y_{k+1} = y_k + h * lambda * y_{k+1}
+        // y_{k+1} (1 - h*lambda) = y_k
+        // y_{k+1} = y_k / (1 - h*lambda)
+        function solveImplicitLinear(yk, h) {
+            return yk / (1 - h * lambda);
+        }
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Plot parameters
+        const margin = { top: 40, right: 40, bottom: 50, left: 60 };
+
+        // Axis limits
+        const xLim = [0, 1];
+        let yLim = [-1, 1.5];  // Will be adjusted dynamically
+
+        function toCanvasX(x) {
+            const plotWidth = canvas.width - margin.left - margin.right;
+            return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * plotWidth;
+        }
+
+        function toCanvasY(y) {
+            const plotHeight = canvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - yLim[0]) / (yLim[1] - yLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis at y=0 if visible, otherwise at bottom
+            const yAxisPos = (yLim[0] <= 0 && yLim[1] >= 0) ? toCanvasY(0) : canvas.height - margin.bottom;
+
+            ctx.beginPath();
+            ctx.moveTo(margin.left, yAxisPos);
+            ctx.lineTo(canvas.width - margin.right, yAxisPos);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // X label
+            ctx.textAlign = 'center';
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.fillText('t', canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('x', 0, 0);
+            ctx.restore();
+        }
+
+        // Plot line with markers
+        function plotLineWithMarkers(xs, ys, color, lineStyle = 'dashed', markerStyle = 'x') {
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.5;
+
+            // Set line dash
+            if (lineStyle === 'dashed') {
+                ctx.setLineDash([5, 5]);
+            } else {
+                ctx.setLineDash([]);
+            }
+
+            // Draw line
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                // Clamp to plot area
+                const clampedY = Math.max(margin.top, Math.min(canvas.height - margin.bottom, cy));
+                if (i === 0) {
+                    ctx.moveTo(cx, clampedY);
+                } else {
+                    ctx.lineTo(cx, clampedY);
+                }
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw markers
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+
+                // Skip if outside plot area
+                if (cy < margin.top - 10 || cy > canvas.height - margin.bottom + 10) continue;
+
+                if (markerStyle === 'x') {
+                    const size = 5;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - size, cy - size);
+                    ctx.lineTo(cx + size, cy + size);
+                    ctx.moveTo(cx + size, cy - size);
+                    ctx.lineTo(cx - size, cy + size);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Plot solid line (for exact solution)
+        function plotSolidLine(xs, ys, color, lineWidth = 2) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash([]);
+
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                if (i === 0) {
+                    ctx.moveTo(cx, cy);
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+        }
+
+        // Draw legend
+        function drawLegend(method, methodColor) {
+            const legendX = canvas.width - margin.right - 130;
+            const legendY = margin.top + 10;
+
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'left';
+
+            // Method line
+            ctx.strokeStyle = methodColor;
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(legendX, legendY + 6);
+            ctx.lineTo(legendX + 25, legendY + 6);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Method marker
+            const markerX = legendX + 12;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(markerX - 4, legendY + 2);
+            ctx.lineTo(markerX + 4, legendY + 10);
+            ctx.moveTo(markerX + 4, legendY + 2);
+            ctx.lineTo(markerX - 4, legendY + 10);
+            ctx.stroke();
+
+            ctx.fillStyle = methodColor;
+            ctx.fillText(method, legendX + 32, legendY + 10);
+
+            // Exact line
+            ctx.strokeStyle = 'cyan';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(legendX, legendY + 26);
+            ctx.lineTo(legendX + 25, legendY + 26);
+            ctx.stroke();
+
+            ctx.fillStyle = 'cyan';
+            ctx.fillText('exact', legendX + 32, legendY + 30);
+        }
+
+        // Main drawing function
+        function draw() {
+            const steps = parseInt(document.getElementById('stepsSlider').value);
+            const method = document.getElementById('methodSelect').value;
+
+            document.getElementById('stepsValue').textContent = steps;
+
+            // Calculate step size
+            const x0 = 0;
+            const x1 = 1;
+            const y0 = 1;
+            const h = (x1 - x0) / steps;
+
+            // Compute numerical solution
+            let xs = [x0];
+            let ys = [y0];
+
+            if (method === 'Euler') {
+                while (xs[xs.length - 1] < x1 - 1e-10) {
+                    const xn = xs[xs.length - 1];
+                    const yn = ys[ys.length - 1];
+                    ys.push(yn + h * dydx(xn, yn));
+                    xs.push(xn + h);
+                }
+            } else if (method === 'Backward Euler') {
+                while (xs[xs.length - 1] < x1 - 1e-10) {
+                    const xn = xs[xs.length - 1];
+                    const yn = ys[ys.length - 1];
+                    ys.push(solveImplicitLinear(yn, h));
+                    xs.push(xn + h);
+                }
+            } else if (method === 'Improved Euler') {
+                while (xs[xs.length - 1] < x1 - 1e-10) {
+                    const xn = xs[xs.length - 1];
+                    const yn = ys[ys.length - 1];
+                    const k1 = dydx(xn, yn);
+                    const k2 = dydx(xn + h, yn + h * k1);
+                    ys.push(yn + h / 2 * (k1 + k2));
+                    xs.push(xn + h);
+                }
+            }
+
+            // Compute exact solution
+            const xExact = [];
+            const yExact = [];
+            for (let i = 0; i <= 100; i++) {
+                const t = x0 + (x1 - x0) * i / 100;
+                xExact.push(t);
+                yExact.push(Math.exp(lambda * t));
+            }
+
+            // Determine y-axis limits based on solution
+            const yMin = Math.min(...ys, 0);
+            const yMax = Math.max(...ys, 1);
+            const yRange = yMax - yMin;
+            yLim = [yMin - 0.1 * yRange, yMax + 0.1 * yRange];
+
+            // Clamp y limits if solution is very unstable
+            if (yLim[0] < -5) yLim[0] = -5;
+            if (yLim[1] > 5) yLim[1] = 5;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw axes
+            drawAxes();
+
+            // Determine method color
+            let methodColor;
+            if (method === 'Euler') {
+                methodColor = 'blue';
+            } else if (method === 'Backward Euler') {
+                methodColor = 'red';
+            } else {
+                methodColor = 'green';
+            }
+
+            // Plot exact solution
+            plotSolidLine(xExact, yExact, 'cyan', 2);
+
+            // Plot numerical solution
+            plotLineWithMarkers(xs, ys, methodColor);
+
+            // Draw legend
+            drawLegend(method, methodColor);
+
+            // Draw parameter info
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(`λ = ${lambda}, Δt = ${h.toFixed(3)}`, canvas.width / 2, margin.top - 10);
+
+            // Stability indicator
+            const stabilityLimit = -2 / lambda;
+            const isStable = h < stabilityLimit;
+            ctx.font = '12px Segoe UI';
+            if (method === 'Euler') {
+                ctx.fillStyle = isStable ? 'green' : 'red';
+                const statusText = isStable ?
+                    `Δt < ${stabilityLimit.toFixed(1)} (stable)` :
+                    `Δt ≥ ${stabilityLimit.toFixed(1)} (unstable)`;
+                ctx.fillText(statusText, canvas.width / 2, margin.top + 8);
+            } else if (method === 'Backward Euler') {
+                ctx.fillStyle = 'green';
+                ctx.fillText('Unconditionally stable', canvas.width / 2, margin.top + 8);
+            } else {
+                // Improved Euler has stability limit |1 + lambda*h + (lambda*h)^2/2| < 1
+                const z = lambda * h;
+                const amplification = Math.abs(1 + z + z*z/2);
+                const isImprovedStable = amplification < 1;
+                ctx.fillStyle = isImprovedStable ? 'green' : 'red';
+                const statusText = isImprovedStable ? 'Stable' : 'Unstable';
+                ctx.fillText(statusText, canvas.width / 2, margin.top + 8);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('stepsSlider').addEventListener('input', draw);
+        document.getElementById('methodSelect').addEventListener('change', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

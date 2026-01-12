@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backward Euler Method - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 80px;
+        }
+        .control-group input[type="range"] {
+            width: 250px;
+        }
+        .control-group .value {
+            min-width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Implicit Methods</h1>
+
+    <div class="explainer">
+        <p>
+            An issue with the methods we have looked so far is their stability in non-linear problems. If the function
+            is changing rapidly, it will have a large derivative. Using the estimate of the derivative at the current
+            value of the solution and 'jumping ahead' can run the risk that we greatly overshoot. An unstable problem
+            will compound these overshoots.
+        </p>
+
+        <p>
+            Methods that use the current estimate of the gradient to jump ahead are called <strong>Explicit</strong> methods.
+        </p>
+
+        <p>
+            But what if we could use the derivative in the future, at the end of the time step? This partly solves the
+            overshoot problem, but it also puts the horse before the cart. How can we know the derivative in the future
+            if we haven't taken a step there yet?
+        </p>
+
+        <p>
+            <strong>Implicit</strong> methods involve iteratively guessing a future solution that, when we calculate its
+            derivative, draws a line connecting back to our current step. Usually, the first guess is wrong, which means
+            we need to keep calculating updates until it is approximately correct.
+        </p>
+
+        <p>Thus, backward Euler is defined</p>
+
+        <p style="text-align: center;">
+            \[x_{n+1} = x_{n}+\Delta t\, f(t_{n+1}, x_{n+1})\]
+        </p>
+
+        <p>
+            which is almost identical to the regular Euler method, except that the derivative is evaluated at
+            \(f(t_{n+1}, x_{n+1})\) instead of \(f(t_{n}, x_{n})\).
+        </p>
+
+        <p>
+            The demonstration below shows how the Backward Euler method works. The slider controls the iteration
+            process: at each quarter-step, you can see how the method iteratively refines its guess until convergence.
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>steps:</label>
+                <input type="range" id="stepsSlider" min="1.25" max="9" step="0.25" value="7.25">
+                <span class="value" id="stepsValue">7.25</span>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="compareEuler">
+                <label for="compareEuler">compare Euler</label>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="450"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ODE function: dx/dt = (1 + t*x)^2
+        function dydx(t, x) {
+            return Math.pow(1 + t * x, 2);
+        }
+
+        // Solve implicit equation using Newton-Raphson
+        // Find y_{k+1} such that: y_{k+1} = y_k + h * f(t_{k+1}, y_{k+1})
+        // g(y) = y - y_k - h * f(t_{k+1}, y) = 0
+        // g'(y) = 1 - h * df/dy = 1 - h * 2*t*(1+t*y)
+        function solveImplicit(yk, h, tk) {
+            let y = yk;  // initial guess
+            const tk1 = tk + h;
+
+            for (let iter = 0; iter < 50; iter++) {
+                const f = dydx(tk1, y);
+                const g = y - yk - h * f;
+                const dgdy = 1 - h * 2 * tk1 * (1 + tk1 * y);
+
+                const dy = -g / dgdy;
+                y = y + dy;
+
+                if (Math.abs(dy) < 1e-10) break;
+            }
+            return y;
+        }
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Plot parameters
+        const h0 = 0.08;
+        const margin = { top: 40, right: 40, bottom: 50, left: 60 };
+
+        // Axis limits
+        const xLim = [-0.05, 0.75];
+        const yLim = [0.1, 6];
+
+        function toCanvasX(x) {
+            const plotWidth = canvas.width - margin.left - margin.right;
+            return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * plotWidth;
+        }
+
+        function toCanvasY(y) {
+            const plotHeight = canvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - yLim[0]) / (yLim[1] - yLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, canvas.height - margin.bottom);
+            ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // X label
+            ctx.textAlign = 'center';
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.fillText('t', canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('x(t)', 0, 0);
+            ctx.restore();
+
+            // X ticks
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            for (let x = 0; x <= 0.7; x += 0.1) {
+                const cx = toCanvasX(x);
+                ctx.beginPath();
+                ctx.moveTo(cx, canvas.height - margin.bottom);
+                ctx.lineTo(cx, canvas.height - margin.bottom + 5);
+                ctx.stroke();
+                ctx.fillText(x.toFixed(1), cx, canvas.height - margin.bottom + 18);
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            for (let y = 1; y <= 6; y += 1) {
+                const cy = toCanvasY(y);
+                ctx.beginPath();
+                ctx.moveTo(margin.left - 5, cy);
+                ctx.lineTo(margin.left, cy);
+                ctx.stroke();
+                ctx.fillText(y.toFixed(0), margin.left - 8, cy + 4);
+            }
+        }
+
+        // Draw arrow
+        function drawArrow(x1, y1, x2, y2, color, headLen = 8) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) return;
+
+            const angle = Math.atan2(dy, dx);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Plot line with points
+        function plotLine(xs, ys, color, lineWidth = 1, showPoints = false, fillPoints = true, alpha = 1) {
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                if (i === 0) {
+                    ctx.moveTo(cx, cy);
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+
+            if (showPoints) {
+                for (let i = 0; i < xs.length; i++) {
+                    const cx = toCanvasX(xs[i]);
+                    const cy = toCanvasY(ys[i]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+                    if (fillPoints) {
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = 'white';
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw dashed line
+        function plotDashedLine(x1, y1, x2, y2, color, alpha = 1) {
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(x1), toCanvasY(y1));
+            ctx.lineTo(toCanvasX(x2), toCanvasY(y2));
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+        }
+
+        // Main drawing function
+        function draw() {
+            const step = parseFloat(document.getElementById('stepsSlider').value);
+            const compareEuler = document.getElementById('compareEuler').checked;
+
+            document.getElementById('stepsValue').textContent = step.toFixed(2);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawAxes();
+
+            // Compute backward Euler solution
+            let xs = [0];
+            let ys = [1];
+
+            for (let i = 0; i < Math.ceil(step); i++) {
+                const ynew = solveImplicit(ys[ys.length - 1], h0, xs[xs.length - 1]);
+                ys.push(ynew);
+                xs.push(xs[xs.length - 1] + h0);
+            }
+
+            // If not comparing with Euler, show iteration visualization
+            if (!compareEuler) {
+                const j = Math.abs(step - Math.floor(step));
+
+                // Get the "true" next point
+                const xi = xs[xs.length - 1];
+                const yi = ys[ys.length - 1];
+
+                // Remove last point for visualization
+                xs = xs.slice(0, -1);
+                ys = ys.slice(0, -1);
+
+                // Calculate intermediate guesses
+                const dyTrue = yi - ys[ys.length - 1];
+                const dy1 = 0.2 * dyTrue;
+                const dy2 = 1.5 * dyTrue;
+                const dy3 = 0.7 * dyTrue;
+                const dy4 = dyTrue;
+
+                const y1 = ys[ys.length - 1] + dy1;
+                const y2 = ys[ys.length - 1] + dy2;
+                const y3 = ys[ys.length - 1] + dy3;
+                const y4 = ys[ys.length - 1] + dy4;
+
+                const dydx1 = dydx(xi, y1);
+                const dydx2 = dydx(xi, y2);
+                const dydx3 = dydx(xi, y3);
+                const dydx4 = dydx(xi, y4);
+
+                const dx = 0.05;
+                const dy = 0.7;
+
+                // Determine text alignment based on step
+                let ha;
+                if (step < 3.25) {
+                    ha = 'left';
+                } else if (step < 4.25) {
+                    ha = 'center';
+                } else {
+                    ha = 'right';
+                }
+
+                const stepInt = Math.floor(step);
+                const textX = xs[xs.length - 1] - dx;
+                const textY = ys[ys.length - 1] + dy;
+
+                if (j > 0.2 && j < 0.4) {
+                    // First iteration: undershoot
+                    const lineY1 = dydx1 * (xLim[0] - xi) + y1;
+                    const lineY2 = dydx1 * (xLim[1] - xi) + y1;
+                    plotDashedLine(xLim[0], lineY1, xLim[1], lineY2, 'blue');
+
+                    // Hollow point at guess
+                    ctx.beginPath();
+                    ctx.arc(toCanvasX(xi), toCanvasY(y1), 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Arrows showing error
+                    const ysAtPrev = dydx1 * (xs[xs.length - 1] - xi) + y1;
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]), 'blue');
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev), 'blue');
+
+                    // Label
+                    ctx.fillStyle = 'blue';
+                    ctx.font = '12px Segoe UI';
+                    ctx.textAlign = ha;
+                    ctx.fillText(`solving for x⁽${stepInt + 1}⁾: undershoot x⁽${stepInt}⁾`, toCanvasX(textX), toCanvasY(textY));
+
+                } else if (j > 0.4 && j < 0.6) {
+                    // Second iteration: overshoot
+                    // Faded first line
+                    const line1Y1 = dydx1 * (xLim[0] - xi) + y1;
+                    const line1Y2 = dydx1 * (xLim[1] - xi) + y1;
+                    plotDashedLine(xLim[0], line1Y1, xLim[1], line1Y2, 'blue', 0.5);
+
+                    // Current line
+                    const line2Y1 = dydx2 * (xLim[0] - xi) + y2;
+                    const line2Y2 = dydx2 * (xLim[1] - xi) + y2;
+                    plotDashedLine(xLim[0], line2Y1, xLim[1], line2Y2, 'blue');
+
+                    // Hollow point at guess
+                    ctx.beginPath();
+                    ctx.arc(toCanvasX(xi), toCanvasY(y2), 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Arrows showing error
+                    const ysAtPrev = dydx2 * (xs[xs.length - 1] - xi) + y2;
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]), 'blue');
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev), 'blue');
+
+                    // Label
+                    ctx.fillStyle = 'blue';
+                    ctx.font = '12px Segoe UI';
+                    ctx.textAlign = ha;
+                    ctx.fillText(`solving for x⁽${stepInt + 1}⁾: overshoot x⁽${stepInt}⁾`, toCanvasX(textX), toCanvasY(textY));
+
+                } else if (j > 0.6 && j < 0.8) {
+                    // Third iteration: undershoot again
+                    // Faded previous lines
+                    const line1Y1 = dydx1 * (xLim[0] - xi) + y1;
+                    const line1Y2 = dydx1 * (xLim[1] - xi) + y1;
+                    plotDashedLine(xLim[0], line1Y1, xLim[1], line1Y2, 'blue', 0.5);
+
+                    const line2Y1 = dydx2 * (xLim[0] - xi) + y2;
+                    const line2Y2 = dydx2 * (xLim[1] - xi) + y2;
+                    plotDashedLine(xLim[0], line2Y1, xLim[1], line2Y2, 'blue', 0.5);
+
+                    // Current line
+                    const line3Y1 = dydx3 * (xLim[0] - xi) + y3;
+                    const line3Y2 = dydx3 * (xLim[1] - xi) + y3;
+                    plotDashedLine(xLim[0], line3Y1, xLim[1], line3Y2, 'blue');
+
+                    // Hollow point at guess
+                    ctx.beginPath();
+                    ctx.arc(toCanvasX(xi), toCanvasY(y3), 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Arrows showing error
+                    const ysAtPrev = dydx3 * (xs[xs.length - 1] - xi) + y3;
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]), 'blue');
+                    drawArrow(toCanvasX(xs[xs.length - 1]), toCanvasY(ys[ys.length - 1]),
+                              toCanvasX(xs[xs.length - 1]), toCanvasY(ysAtPrev), 'blue');
+
+                    // Label
+                    ctx.fillStyle = 'blue';
+                    ctx.font = '12px Segoe UI';
+                    ctx.textAlign = ha;
+                    ctx.fillText(`solving for x⁽${stepInt + 1}⁾: undershoot x⁽${stepInt}⁾`, toCanvasX(textX), toCanvasY(textY));
+
+                } else {
+                    // Converged: within tolerance
+                    // Faded previous lines
+                    const line1Y1 = dydx1 * (xLim[0] - xi) + y1;
+                    const line1Y2 = dydx1 * (xLim[1] - xi) + y1;
+                    plotDashedLine(xLim[0], line1Y1, xLim[1], line1Y2, 'blue', 0.5);
+
+                    const line2Y1 = dydx2 * (xLim[0] - xi) + y2;
+                    const line2Y2 = dydx2 * (xLim[1] - xi) + y2;
+                    plotDashedLine(xLim[0], line2Y1, xLim[1], line2Y2, 'blue', 0.5);
+
+                    const line3Y1 = dydx3 * (xLim[0] - xi) + y3;
+                    const line3Y2 = dydx3 * (xLim[1] - xi) + y3;
+                    plotDashedLine(xLim[0], line3Y1, xLim[1], line3Y2, 'blue', 0.5);
+
+                    // Final converged line (black)
+                    const line4Y1 = dydx4 * (xLim[0] - xi) + y4;
+                    const line4Y2 = dydx4 * (xLim[1] - xi) + y4;
+                    plotDashedLine(xLim[0], line4Y1, xLim[1], line4Y2, 'black');
+
+                    // Hollow point at converged position
+                    ctx.beginPath();
+                    ctx.arc(toCanvasX(xi), toCanvasY(yi), 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Label
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Segoe UI';
+                    ctx.textAlign = ha;
+                    ctx.fillText(`solving for x⁽${stepInt}⁾: within tolerance`, toCanvasX(textX), toCanvasY(textY));
+                }
+            }
+
+            // Plot backward Euler solution
+            plotLine(xs, ys, 'black', 1.5, true, true);
+
+            // Compare with regular Euler if checkbox is checked
+            if (compareEuler) {
+                let xs0 = [0];
+                let ys0 = [1];
+
+                while (xs0.length < xs.length) {
+                    ys0.push(ys0[ys0.length - 1] + h0 * dydx(xs0[xs0.length - 1], ys0[ys0.length - 1]));
+                    xs0.push(xs0[xs0.length - 1] + h0);
+                }
+
+                // Plot Euler in gray
+                plotLine(xs0, ys0, '#888888', 1.5, true, true);
+
+                // Legend
+                ctx.font = '12px Segoe UI';
+                ctx.textAlign = 'left';
+
+                // Backward Euler
+                ctx.fillStyle = 'black';
+                ctx.fillRect(margin.left + 10, margin.top + 10, 20, 2);
+                ctx.beginPath();
+                ctx.arc(margin.left + 20, margin.top + 11, 4, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillText('Backward Euler', margin.left + 35, margin.top + 15);
+
+                // Euler
+                ctx.fillStyle = '#888888';
+                ctx.fillRect(margin.left + 10, margin.top + 30, 20, 2);
+                ctx.beginPath();
+                ctx.arc(margin.left + 20, margin.top + 31, 4, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillText('Euler', margin.left + 35, margin.top + 35);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('stepsSlider').addEventListener('input', draw);
+        document.getElementById('compareEuler').addEventListener('change', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

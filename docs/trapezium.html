@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trapezium Method - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .control-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+        }
+        .control-group input[type="range"] {
+            width: 150px;
+        }
+        .control-group select {
+            padding: 5px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .control-group .value {
+            min-width: 20px;
+            font-family: monospace;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input {
+            width: 16px;
+            height: 16px;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+        }
+        .canvas-wrapper {
+            text-align: center;
+        }
+        .canvas-wrapper h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Trapezium Method</h1>
+
+    <div class="explainer">
+        <p>
+            Why do we need numerical methods for integration? <strong>Not all integrals can be solved analytically.</strong>
+            Take the general integral \(I=\int\limits_{a}^{b}f(x)\,dx\), where we know \(f(x)\) as the <strong>integrand</strong>.
+        </p>
+
+        <p>
+            We shall consider a class of methods that approximately evaluate this integral. These methods are based on
+            the idea that the value of an integral, \(I\), corresponds to the area under the graph of the integrand.
+            There are two cases:
+        </p>
+
+        <ol>
+            <li>We <strong>know</strong> the integrand, \(f(x)\), exactly.</li>
+            <li>We <strong>don't know</strong> \(f(x)\) exactly, but we do have some data, \((x_i, y_i)\).
+                Therefore, we can find an interpolating function, \(g(x) \approx f(x)\).</li>
+        </ol>
+
+        <p>
+            Numerical integration methods break the integration range into subintervals and then compute the area of each.
+            If \(f(x)\) is known, then the subintervals can be chosen. Otherwise, the subintervals are defined by the
+            data locations \(x_i\).
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-column">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="knowFx">
+                    <label for="knowFx">f(x) known</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showSubints">
+                    <label for="showSubints">show subintervals</label>
+                </div>
+                <div class="control-group">
+                    <label>show area:</label>
+                    <select id="showArea">
+                        <option value="None">None</option>
+                        <option value="A0">A0</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="Atot">Atot</option>
+                    </select>
+                </div>
+            </div>
+            <div class="control-group">
+                <label># subintervals:</label>
+                <input type="range" id="numSubints" min="1" max="10" step="1" value="1">
+                <span class="value" id="numSubintsValue">1</span>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <h3>Concept: Known Function vs Data</h3>
+                <canvas id="leftCanvas" width="550" height="400"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <h3>Trapezium Method Applied</h3>
+                <canvas id="rightCanvas" width="550" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Left panel function: f(x) = (x-2)*(x-5.5)*(x-7)/8 + 8
+        function f_int(x) {
+            return (x - 2) * (x - 5.5) * (x - 7) / 8 + 8;
+        }
+
+        // Right panel data for polynomial fitting
+        const dataX = [2.5, 3.5, 4.5, 5.6, 8.6, 9.9, 13.0, 13.5];
+        const dataY = [24.7, 21.5, 21.6, 22.2, 28.2, 26.3, 41.7, 54.8];
+
+        // Polynomial evaluation
+        function polyval(coeffs, x) {
+            let result = 0;
+            for (let i = 0; i < coeffs.length; i++) {
+                result += coeffs[i] * Math.pow(x, i);
+            }
+            return result;
+        }
+
+        // Fit 5th order polynomial using least squares (Vandermonde approach)
+        function fitPoly5(xi, yi) {
+            const m = 5;
+            const n = xi.length;
+
+            // Build normal equations: V^T * V * a = V^T * y
+            // where V is Vandermonde-like matrix
+            const VTV = [];
+            const VTy = [];
+
+            for (let i = 0; i <= m; i++) {
+                VTV[i] = [];
+                for (let j = 0; j <= m; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) {
+                        sum += Math.pow(xi[k], i + j);
+                    }
+                    VTV[i][j] = sum;
+                }
+                let sum = 0;
+                for (let k = 0; k < n; k++) {
+                    sum += Math.pow(xi[k], i) * yi[k];
+                }
+                VTy[i] = sum;
+            }
+
+            // Solve using Gaussian elimination
+            const coeffs = solveLinear(VTV, VTy);
+            return coeffs;
+        }
+
+        // Gaussian elimination solver
+        function solveLinear(A, b) {
+            const n = b.length;
+            const aug = A.map((row, i) => [...row, b[i]]);
+
+            for (let i = 0; i < n; i++) {
+                // Find pivot
+                let maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) {
+                        maxRow = k;
+                    }
+                }
+                [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
+
+                // Eliminate
+                for (let k = i + 1; k < n; k++) {
+                    const factor = aug[k][i] / aug[i][i];
+                    for (let j = i; j <= n; j++) {
+                        aug[k][j] -= factor * aug[i][j];
+                    }
+                }
+            }
+
+            // Back substitution
+            const x = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                x[i] = aug[i][n];
+                for (let j = i + 1; j < n; j++) {
+                    x[i] -= aug[i][j] * x[j];
+                }
+                x[i] /= aug[i][i];
+            }
+            return x;
+        }
+
+        // Exact integral of polynomial
+        function intPoly(coeffs, xlim) {
+            // Integrate: sum(a_i * x^i) -> sum(a_i * x^(i+1) / (i+1))
+            let result = 0;
+            for (let i = 0; i < coeffs.length; i++) {
+                result += coeffs[i] / (i + 1) * (Math.pow(xlim[1], i + 1) - Math.pow(xlim[0], i + 1));
+            }
+            return result;
+        }
+
+        // Trapezoid rule
+        function trapz(y, x) {
+            let sum = 0;
+            for (let i = 0; i < x.length - 1; i++) {
+                sum += (x[i + 1] - x[i]) * (y[i] + y[i + 1]) / 2;
+            }
+            return sum;
+        }
+
+        // Canvas setup
+        const leftCanvas = document.getElementById('leftCanvas');
+        const rightCanvas = document.getElementById('rightCanvas');
+        const leftCtx = leftCanvas.getContext('2d');
+        const rightCtx = rightCanvas.getContext('2d');
+
+        const margin = { top: 40, right: 30, bottom: 50, left: 60 };
+
+        // Left panel limits
+        const leftXLim = [0, 10];
+        const leftYLim = [0, 15];
+
+        function leftToCanvasX(x) {
+            const plotWidth = leftCanvas.width - margin.left - margin.right;
+            return margin.left + (x - leftXLim[0]) / (leftXLim[1] - leftXLim[0]) * plotWidth;
+        }
+
+        function leftToCanvasY(y) {
+            const plotHeight = leftCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - leftYLim[0]) / (leftYLim[1] - leftYLim[0])) * plotHeight;
+        }
+
+        // Right panel limits (dynamic based on data)
+        let rightXLim = [2, 14];
+        let rightYLim = [0, 60];
+
+        function rightToCanvasX(x) {
+            const plotWidth = rightCanvas.width - margin.left - margin.right;
+            return margin.left + (x - rightXLim[0]) / (rightXLim[1] - rightXLim[0]) * plotWidth;
+        }
+
+        function rightToCanvasY(y) {
+            const plotHeight = rightCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - rightYLim[0]) / (rightYLim[1] - rightYLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes(ctx, canvas, xLim, yLim, toCanvasX, toCanvasY, xLabel, yLabel) {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, canvas.height - margin.bottom);
+            ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // X label
+            ctx.textAlign = 'center';
+            ctx.fillText(xLabel, canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+
+            // X ticks
+            ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center';
+            const xStep = (xLim[1] - xLim[0]) / 5;
+            for (let x = xLim[0]; x <= xLim[1]; x += xStep) {
+                const cx = toCanvasX(x);
+                ctx.beginPath();
+                ctx.moveTo(cx, canvas.height - margin.bottom);
+                ctx.lineTo(cx, canvas.height - margin.bottom + 5);
+                ctx.stroke();
+                ctx.fillText(x.toFixed(0), cx, canvas.height - margin.bottom + 16);
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            const yStep = (yLim[1] - yLim[0]) / 5;
+            for (let y = yLim[0]; y <= yLim[1]; y += yStep) {
+                const cy = toCanvasY(y);
+                ctx.beginPath();
+                ctx.moveTo(margin.left - 5, cy);
+                ctx.lineTo(margin.left, cy);
+                ctx.stroke();
+                ctx.fillText(y.toFixed(0), margin.left - 8, cy + 4);
+            }
+        }
+
+        // Fill polygon
+        function fillPolygon(ctx, points, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i][0], points[i][1]);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Draw legend
+        function drawLegend(ctx, items, x, y) {
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'left';
+
+            items.forEach((item, i) => {
+                const ly = y + i * 18;
+
+                if (item.type === 'line') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, ly);
+                    ctx.lineTo(x + 20, ly);
+                    ctx.stroke();
+                } else if (item.type === 'marker') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    const size = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 10 - size, ly - size);
+                    ctx.lineTo(x + 10 + size, ly + size);
+                    ctx.moveTo(x + 10 + size, ly - size);
+                    ctx.lineTo(x + 10 - size, ly + size);
+                    ctx.stroke();
+                } else if (item.type === 'dashed') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, ly);
+                    ctx.lineTo(x + 20, ly);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                ctx.fillStyle = '#333';
+                ctx.fillText(item.label, x + 25, ly + 4);
+            });
+        }
+
+        // Main drawing function
+        function draw() {
+            const knowFx = document.getElementById('knowFx').checked;
+            const showSubints = document.getElementById('showSubints').checked;
+            const showArea = document.getElementById('showArea').value;
+            const numSubints = parseInt(document.getElementById('numSubints').value);
+
+            document.getElementById('numSubintsValue').textContent = numSubints;
+
+            // Clear canvases
+            leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+            rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+            // ===== LEFT PANEL =====
+            drawAxes(leftCtx, leftCanvas, leftXLim, leftYLim, leftToCanvasX, leftToCanvasY, 'time', 'temperature');
+
+            let xi, yi;
+            const legendItems = [];
+
+            if (knowFx) {
+                // Plot known function
+                leftCtx.strokeStyle = 'red';
+                leftCtx.lineWidth = 2;
+                leftCtx.beginPath();
+                for (let i = 0; i <= 100; i++) {
+                    const x = 2 + (8 - 2) * i / 100;
+                    const y = f_int(x);
+                    const cx = leftToCanvasX(x);
+                    const cy = leftToCanvasY(y);
+                    if (i === 0) leftCtx.moveTo(cx, cy);
+                    else leftCtx.lineTo(cx, cy);
+                }
+                leftCtx.stroke();
+                legendItems.push({ type: 'line', color: 'red', label: 'known function, f(x)' });
+
+                if (showSubints) {
+                    const N = 3;
+                    xi = [];
+                    yi = [];
+                    for (let i = 0; i <= N; i++) {
+                        const x = 2 + (8 - 2) * i / N;
+                        xi.push(x);
+                        yi.push(f_int(x));
+                    }
+                    // Plot evaluation points
+                    leftCtx.strokeStyle = 'black';
+                    leftCtx.lineWidth = 2;
+                    xi.forEach((x, i) => {
+                        const cx = leftToCanvasX(x);
+                        const cy = leftToCanvasY(yi[i]);
+                        const size = 5;
+                        leftCtx.beginPath();
+                        leftCtx.moveTo(cx - size, cy - size);
+                        leftCtx.lineTo(cx + size, cy + size);
+                        leftCtx.moveTo(cx + size, cy - size);
+                        leftCtx.lineTo(cx - size, cy + size);
+                        leftCtx.stroke();
+                    });
+                    legendItems.push({ type: 'marker', color: 'black', label: 'eval. function, g(xᵢ)' });
+                }
+            } else {
+                // Plot known data points
+                xi = [2, 3.5, 6.8, 8];
+                yi = [7.8, 8.5, 8.1, 10.0];
+
+                leftCtx.strokeStyle = 'black';
+                leftCtx.lineWidth = 2;
+                xi.forEach((x, i) => {
+                    const cx = leftToCanvasX(x);
+                    const cy = leftToCanvasY(yi[i]);
+                    const size = 5;
+                    leftCtx.beginPath();
+                    leftCtx.moveTo(cx - size, cy - size);
+                    leftCtx.lineTo(cx + size, cy + size);
+                    leftCtx.moveTo(cx + size, cy - size);
+                    leftCtx.lineTo(cx - size, cy + size);
+                    leftCtx.stroke();
+                });
+                legendItems.push({ type: 'marker', color: 'black', label: 'known data, (xᵢ, yᵢ)' });
+            }
+
+            // Show subintervals
+            if (showSubints && xi) {
+                // Dashed lines connecting points
+                leftCtx.strokeStyle = 'black';
+                leftCtx.lineWidth = 1;
+                leftCtx.setLineDash([5, 5]);
+                leftCtx.beginPath();
+                leftCtx.moveTo(leftToCanvasX(xi[0]), leftToCanvasY(yi[0]));
+                for (let i = 1; i < xi.length; i++) {
+                    leftCtx.lineTo(leftToCanvasX(xi[i]), leftToCanvasY(yi[i]));
+                }
+                leftCtx.stroke();
+
+                // Vertical dashed lines
+                for (let i = 0; i < xi.length; i++) {
+                    leftCtx.beginPath();
+                    leftCtx.moveTo(leftToCanvasX(xi[i]), leftToCanvasY(yi[i]));
+                    leftCtx.lineTo(leftToCanvasX(xi[i]), leftToCanvasY(0));
+                    leftCtx.stroke();
+                }
+                leftCtx.setLineDash([]);
+
+                if (legendItems.length < 3) {
+                    legendItems.push({ type: 'dashed', color: 'black', label: 'three subintervals' });
+                }
+
+                // Show area labels or shaded regions
+                const areaVal = showArea === 'None' ? 0 :
+                               showArea === 'A0' ? 1 :
+                               showArea === 'A1' ? 2 :
+                               showArea === 'A2' ? 3 : -1;
+
+                if (areaVal === 0) {
+                    // Show I1, I2, I3 labels
+                    leftCtx.font = '14px Segoe UI';
+                    leftCtx.fillStyle = '#333';
+                    leftCtx.textAlign = 'center';
+                    for (let i = 0; i < xi.length - 1; i++) {
+                        const xMid = (xi[i] + xi[i + 1]) / 2;
+                        const yMid = (yi[i] + yi[i + 1]) / 4;
+                        leftCtx.fillText(`I${i + 1}`, leftToCanvasX(xMid), leftToCanvasY(yMid));
+                    }
+                } else if (areaVal > 0) {
+                    // Shade specific area
+                    const idx = areaVal - 1;
+                    if (idx < xi.length - 1) {
+                        const points = [
+                            [leftToCanvasX(xi[idx]), leftToCanvasY(yi[idx])],
+                            [leftToCanvasX(xi[idx + 1]), leftToCanvasY(yi[idx + 1])],
+                            [leftToCanvasX(xi[idx + 1]), leftToCanvasY(0)],
+                            [leftToCanvasX(xi[idx]), leftToCanvasY(0)]
+                        ];
+                        fillPolygon(leftCtx, points, 'rgba(255, 0, 0, 0.2)');
+
+                        const area = trapz([yi[idx], yi[idx + 1]], [xi[idx], xi[idx + 1]]);
+                        leftCtx.font = '12px Segoe UI';
+                        leftCtx.fillStyle = '#333';
+                        leftCtx.textAlign = 'center';
+                        const xMid = (xi[idx] + xi[idx + 1]) / 2;
+                        const yMid = (yi[idx] + yi[idx + 1]) / 4;
+                        leftCtx.fillText(`A${idx}`, leftToCanvasX(xMid), leftToCanvasY(yMid) - 15);
+                        leftCtx.fillText('=', leftToCanvasX(xMid), leftToCanvasY(yMid));
+                        leftCtx.fillText(area.toFixed(1), leftToCanvasX(xMid), leftToCanvasY(yMid) + 15);
+                    }
+                } else if (areaVal < 0) {
+                    // Shade total area
+                    const points = [];
+                    for (let i = 0; i < xi.length; i++) {
+                        points.push([leftToCanvasX(xi[i]), leftToCanvasY(yi[i])]);
+                    }
+                    points.push([leftToCanvasX(xi[xi.length - 1]), leftToCanvasY(0)]);
+                    points.push([leftToCanvasX(xi[0]), leftToCanvasY(0)]);
+                    fillPolygon(leftCtx, points, 'rgba(255, 0, 0, 0.2)');
+
+                    const area = trapz(yi, xi);
+                    leftCtx.font = '12px Segoe UI';
+                    leftCtx.fillStyle = '#333';
+                    leftCtx.textAlign = 'center';
+                    const xMid = (xi[0] + xi[xi.length - 1]) / 2;
+                    const yMid = (Math.min(...yi) + Math.max(...yi)) / 4;
+                    leftCtx.fillText('Aₜₒₜ', leftToCanvasX(xMid), leftToCanvasY(yMid) - 15);
+                    leftCtx.fillText('=', leftToCanvasX(xMid), leftToCanvasY(yMid));
+                    leftCtx.fillText(area.toFixed(1), leftToCanvasX(xMid), leftToCanvasY(yMid) + 15);
+                }
+            } else if (!showSubints && showArea === 'Atot') {
+                // Show total area without subintervals
+                let polyPoints, area;
+                if (knowFx) {
+                    polyPoints = [];
+                    const xs = [];
+                    const ys = [];
+                    for (let i = 0; i <= 100; i++) {
+                        const x = 2 + (8 - 2) * i / 100;
+                        xs.push(x);
+                        ys.push(f_int(x));
+                        polyPoints.push([leftToCanvasX(x), leftToCanvasY(f_int(x))]);
+                    }
+                    polyPoints.push([leftToCanvasX(8), leftToCanvasY(0)]);
+                    polyPoints.push([leftToCanvasX(2), leftToCanvasY(0)]);
+                    area = trapz(ys, xs);
+                } else {
+                    polyPoints = [];
+                    for (let i = 0; i < xi.length; i++) {
+                        polyPoints.push([leftToCanvasX(xi[i]), leftToCanvasY(yi[i])]);
+                    }
+                    polyPoints.push([leftToCanvasX(xi[xi.length - 1]), leftToCanvasY(0)]);
+                    polyPoints.push([leftToCanvasX(xi[0]), leftToCanvasY(0)]);
+                    area = trapz(yi, xi);
+                }
+                fillPolygon(leftCtx, polyPoints, 'rgba(255, 0, 0, 0.2)');
+
+                leftCtx.font = '12px Segoe UI';
+                leftCtx.fillStyle = '#333';
+                leftCtx.textAlign = 'center';
+                leftCtx.fillText(`Area = ${area.toFixed(1)}`, leftToCanvasX(5), leftToCanvasY(4));
+            }
+
+            // Draw legend
+            drawLegend(leftCtx, legendItems, margin.left + 10, margin.top + 10);
+
+            // ===== RIGHT PANEL =====
+            // Fit polynomial and apply trapezium method
+            const coeffs = fitPoly5(dataX, dataY);
+            const xlim = [dataX[0], dataX[dataX.length - 1]];
+
+            // Compute y values for plotting
+            const xPlot = [];
+            const yPlot = [];
+            for (let i = 0; i <= 100; i++) {
+                const x = xlim[0] + (xlim[1] - xlim[0]) * i / 100;
+                xPlot.push(x);
+                yPlot.push(polyval(coeffs, x));
+            }
+
+            // Subinterval points
+            const xSub = [];
+            const ySub = [];
+            for (let i = 0; i <= numSubints; i++) {
+                const x = xlim[0] + (xlim[1] - xlim[0]) * i / numSubints;
+                xSub.push(x);
+                ySub.push(polyval(coeffs, x));
+            }
+
+            // Compute areas
+            const dx = xSub[1] - xSub[0];
+            let areaTrap = dx / 2 * (ySub[0] + 2 * ySub.slice(1, -1).reduce((a, b) => a + b, 0) + ySub[ySub.length - 1]);
+            const areaTrue = intPoly(coeffs, xlim);
+            const errPercent = (areaTrue - areaTrap) / areaTrue * 100;
+
+            // Update right panel limits
+            rightYLim = [0, Math.max(...yPlot) * 1.1];
+
+            drawAxes(rightCtx, rightCanvas, rightXLim, rightYLim, rightToCanvasX, rightToCanvasY, 'time', 'temperature');
+
+            // Plot polynomial curve
+            rightCtx.strokeStyle = 'red';
+            rightCtx.lineWidth = 2;
+            rightCtx.beginPath();
+            for (let i = 0; i < xPlot.length; i++) {
+                const cx = rightToCanvasX(xPlot[i]);
+                const cy = rightToCanvasY(yPlot[i]);
+                if (i === 0) rightCtx.moveTo(cx, cy);
+                else rightCtx.lineTo(cx, cy);
+            }
+            rightCtx.stroke();
+
+            // Plot subintervals (dashed lines connecting points)
+            rightCtx.strokeStyle = 'black';
+            rightCtx.lineWidth = 1;
+            rightCtx.setLineDash([5, 5]);
+            rightCtx.beginPath();
+            rightCtx.moveTo(rightToCanvasX(xSub[0]), rightToCanvasY(ySub[0]));
+            for (let i = 1; i < xSub.length; i++) {
+                rightCtx.lineTo(rightToCanvasX(xSub[i]), rightToCanvasY(ySub[i]));
+            }
+            rightCtx.stroke();
+
+            // Vertical dashed lines at subinterval points
+            for (let i = 0; i < xSub.length; i++) {
+                rightCtx.beginPath();
+                rightCtx.moveTo(rightToCanvasX(xSub[i]), rightToCanvasY(ySub[i]));
+                rightCtx.lineTo(rightToCanvasX(xSub[i]), rightToCanvasY(0));
+                rightCtx.stroke();
+            }
+            rightCtx.setLineDash([]);
+
+            // Plot subinterval markers (x marks)
+            rightCtx.strokeStyle = 'red';
+            rightCtx.lineWidth = 2;
+            xSub.forEach((x, i) => {
+                const cx = rightToCanvasX(x);
+                const cy = rightToCanvasY(ySub[i]);
+                const size = 4;
+                rightCtx.beginPath();
+                rightCtx.moveTo(cx - size, cy - size);
+                rightCtx.lineTo(cx + size, cy + size);
+                rightCtx.moveTo(cx + size, cy - size);
+                rightCtx.lineTo(cx - size, cy + size);
+                rightCtx.stroke();
+            });
+
+            // Draw legend for right panel
+            drawLegend(rightCtx, [
+                { type: 'line', color: 'red', label: 'f(x)' },
+                { type: 'dashed', color: 'black', label: 'subintervals' }
+            ], margin.left + 10, margin.top + 10);
+
+            // Area annotations
+            rightCtx.font = '12px Segoe UI';
+            rightCtx.fillStyle = '#333';
+            rightCtx.textAlign = 'left';
+            const annotX = margin.left + 10;
+            const annotY = margin.top + 80;
+            rightCtx.fillText(`A${numSubints} = ${areaTrap.toFixed(1)}`, annotX, annotY);
+            rightCtx.fillText(`A∞ = ${areaTrue.toFixed(1)}`, annotX, annotY + 18);
+            rightCtx.fillText(`% err = ${errPercent.toFixed(1)}`, annotX, annotY + 36);
+        }
+
+        // Event listeners
+        document.getElementById('knowFx').addEventListener('change', draw);
+        document.getElementById('showSubints').addEventListener('change', draw);
+        document.getElementById('showArea').addEventListener('change', draw);
+        document.getElementById('numSubints').addEventListener('input', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

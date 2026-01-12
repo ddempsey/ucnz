@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler's Method - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 60px;
+        }
+        .control-group input[type="range"] {
+            width: 200px;
+        }
+        .control-group .value {
+            min-width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+        }
+        .canvas-wrapper {
+            text-align: center;
+        }
+        .canvas-wrapper h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Euler's Method</h1>
+
+    <div class="explainer">
+        <p>
+            Time-marching methods examined in this course match the derivatives in a <strong>Taylor's expansion</strong>
+            over a finite region to some order. The omission of <strong>higher-order</strong> Taylor series terms in the
+            approximation means that each method will have an associated <strong>error</strong>. The <strong>Euler method</strong>
+            is the simplest in that it only approximates the first derivative of the function. It does this using a
+            first-order <strong>finite difference</strong> approximation to the derivative.
+        </p>
+
+        <p>Supposing the ODE can be written in the form</p>
+
+        <p style="text-align: center;">
+            \[\frac{dx}{dt} = f(t,x(t))\]
+        </p>
+
+        <p>then the finite difference approximation to the derivative is:</p>
+
+        <p style="text-align: center;">
+            \[\frac{dx}{dt} \thickapprox \dfrac{\Delta x}{\Delta t} = \dfrac{x(t+\Delta t) - x(t)}{\Delta t} = f\left(t,x(t)\right)\]
+        </p>
+
+        <p>This can be rearranged to give</p>
+
+        <p style="text-align: center;">
+            \[x(t+\Delta t) = x(t) + \Delta t\,f\left(t,x(t)\right)\]
+        </p>
+
+        <p>In terms of an iterating index, \(k\), Euler's method is written</p>
+
+        <p style="text-align: center;">
+            \[x^{(k+1)} = x^{(k)} + \Delta t\,f^{(k)},\quad\quad f^{(k)}=f\left(t^{(k)},x^{(k)}\right), \quad\quad t^{(k+1)}=t^{(k)}+\Delta t\]
+        </p>
+
+        <p>The example below shows, step-by-step, how Euler's method is applied for the ODE</p>
+
+        <p style="text-align: center;">
+            \[\frac{dx}{dt} = (1+tx)^2\]
+        </p>
+
+        <p>Unlike most examples in this course, this ODE is <strong>non-linear</strong>, which means there is no analytical solution to compare against.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>steps:</label>
+                <input type="range" id="stepsSlider" min="0.5" max="10" step="0.5" value="0.5">
+                <span class="value" id="stepsValue">0.5</span>
+            </div>
+            <div class="control-group">
+                <label>h:</label>
+                <input type="range" id="hSlider" min="0.02" max="0.2" step="0.02" value="0.1">
+                <span class="value" id="hValue">0.10</span>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <h3>Step-by-step Euler Method</h3>
+                <canvas id="leftCanvas" width="550" height="400"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <h3>Effect of Step Size</h3>
+                <canvas id="rightCanvas" width="550" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ODE function: dx/dt = (1 + t*x)^2
+        function dydx(t, x) {
+            return Math.pow(1 + t * x, 2);
+        }
+
+        // Canvas setup
+        const leftCanvas = document.getElementById('leftCanvas');
+        const rightCanvas = document.getElementById('rightCanvas');
+        const leftCtx = leftCanvas.getContext('2d');
+        const rightCtx = rightCanvas.getContext('2d');
+
+        // Plot parameters
+        const h0 = 0.1;  // Reference step size
+        const margin = { top: 40, right: 30, bottom: 50, left: 60 };
+
+        // Transform functions for left plot
+        const leftXLim = [-0.05, 1.15];
+        const leftYLim = [-0.9, 10];
+
+        function leftToCanvasX(x) {
+            const plotWidth = leftCanvas.width - margin.left - margin.right;
+            return margin.left + (x - leftXLim[0]) / (leftXLim[1] - leftXLim[0]) * plotWidth;
+        }
+
+        function leftToCanvasY(y) {
+            const plotHeight = leftCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - leftYLim[0]) / (leftYLim[1] - leftYLim[0])) * plotHeight;
+        }
+
+        // Transform functions for right plot
+        const rightXLim = [-0.05, 1.15];
+        const rightYLim = [0, 20];
+
+        function rightToCanvasX(x) {
+            const plotWidth = rightCanvas.width - margin.left - margin.right;
+            return margin.left + (x - rightXLim[0]) / (rightXLim[1] - rightXLim[0]) * plotWidth;
+        }
+
+        function rightToCanvasY(y) {
+            const plotHeight = rightCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - rightYLim[0]) / (rightYLim[1] - rightYLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes(ctx, canvas, xLim, yLim, toCanvasX, toCanvasY, xLabel, yLabel) {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, canvas.height - margin.bottom);
+            ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // X label
+            ctx.textAlign = 'center';
+            ctx.fillText(xLabel, canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+
+            // X ticks
+            ctx.textAlign = 'center';
+            for (let x = 0; x <= 1; x += 0.2) {
+                const cx = toCanvasX(x);
+                ctx.beginPath();
+                ctx.moveTo(cx, canvas.height - margin.bottom);
+                ctx.lineTo(cx, canvas.height - margin.bottom + 5);
+                ctx.stroke();
+                ctx.fillText(x.toFixed(1), cx, canvas.height - margin.bottom + 18);
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            const yStep = (yLim[1] - yLim[0]) / 5;
+            for (let y = yLim[0]; y <= yLim[1]; y += yStep) {
+                if (y >= yLim[0]) {
+                    const cy = toCanvasY(y);
+                    ctx.beginPath();
+                    ctx.moveTo(margin.left - 5, cy);
+                    ctx.lineTo(margin.left, cy);
+                    ctx.stroke();
+                    ctx.fillText(y.toFixed(0), margin.left - 8, cy + 4);
+                }
+            }
+        }
+
+        // Draw arrow
+        function drawArrow(ctx, x1, y1, x2, y2, color, headLen = 8) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const angle = Math.atan2(dy, dx);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1;
+
+            // Line
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Plot line with points
+        function plotLine(ctx, xs, ys, toCanvasX, toCanvasY, color, lineWidth = 1, showPoints = false, fillPoints = true) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                if (i === 0) {
+                    ctx.moveTo(cx, cy);
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+
+            if (showPoints) {
+                for (let i = 0; i < xs.length; i++) {
+                    const cx = toCanvasX(xs[i]);
+                    const cy = toCanvasY(ys[i]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+                    if (fillPoints) {
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = 'white';
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Draw dashed line
+        function plotDashedLine(ctx, xs, ys, toCanvasX, toCanvasY, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(xs[0]), toCanvasY(ys[0]));
+            ctx.lineTo(toCanvasX(xs[1]), toCanvasY(ys[1]));
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+        }
+
+        // Main drawing function
+        function draw() {
+            const step = parseFloat(document.getElementById('stepsSlider').value);
+            const h = parseFloat(document.getElementById('hSlider').value);
+
+            // Update display values
+            document.getElementById('stepsValue').textContent = step.toFixed(1);
+            document.getElementById('hValue').textContent = h.toFixed(2);
+
+            // Clear canvases
+            leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+            rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+            // Draw axes
+            drawAxes(leftCtx, leftCanvas, leftXLim, leftYLim, leftToCanvasX, leftToCanvasY, 't', 'x');
+            drawAxes(rightCtx, rightCanvas, rightXLim, rightYLim, rightToCanvasX, rightToCanvasY, 't', 'x');
+
+            // ===== LEFT PLOT: Step-by-step Euler =====
+            let xs = [0];
+            let ys = [1];
+
+            // Compute steps
+            for (let i = 0; i < Math.floor(step); i++) {
+                ys.push(ys[ys.length - 1] + h0 * dydx(xs[xs.length - 1], ys[ys.length - 1]));
+                xs.push(xs[xs.length - 1] + h0);
+            }
+
+            // Check if we're at a half step (showing derivative)
+            const isHalfStep = Math.abs(step - Math.floor(step)) > 0.25;
+            const stepInt = Math.floor(step);
+
+            if (isHalfStep) {
+                // Plot derivative line
+                const deriv = dydx(xs[xs.length - 1], ys[ys.length - 1]);
+                const lineXs = [leftXLim[0], leftXLim[1]];
+                const lineYs = lineXs.map(x => deriv * (x - xs[xs.length - 1]) + ys[ys.length - 1]);
+
+                plotDashedLine(leftCtx, lineXs, lineYs, leftToCanvasX, leftToCanvasY, 'red');
+
+                // Annotation
+                leftCtx.fillStyle = 'red';
+                leftCtx.font = '12px Segoe UI';
+                leftCtx.textAlign = 'right';
+                const annotY = Math.min(lineYs[1] * 1.05, 9);
+                leftCtx.fillText(
+                    `compute derivative: f⁽${stepInt}⁾ = f(t⁽${stepInt}⁾, x⁽${stepInt}⁾)`,
+                    leftToCanvasX(0.95 * leftXLim[1]),
+                    leftToCanvasY(annotY) - 5
+                );
+            } else if (xs.length > 1) {
+                // Show step annotation with arrows
+                const lastIdx = xs.length - 1;
+                const prevIdx = lastIdx - 1;
+                const dy = 0.4;
+                const dx = 0.04;
+
+                // Horizontal arrows for dt
+                const arrowY = ys[prevIdx] - dy;
+                drawArrow(leftCtx,
+                    leftToCanvasX(xs[prevIdx]), leftToCanvasY(arrowY),
+                    leftToCanvasX(xs[lastIdx]), leftToCanvasY(arrowY),
+                    'red', 6
+                );
+                drawArrow(leftCtx,
+                    leftToCanvasX(xs[lastIdx]), leftToCanvasY(arrowY),
+                    leftToCanvasX(xs[prevIdx]), leftToCanvasY(arrowY),
+                    'red', 6
+                );
+
+                // dt label
+                leftCtx.fillStyle = 'red';
+                leftCtx.font = '11px Segoe UI';
+                leftCtx.textAlign = 'center';
+                leftCtx.fillText(
+                    `t⁽${stepInt}⁾ = t⁽${stepInt-1}⁾ + Δt`,
+                    leftToCanvasX(0.5 * (xs[lastIdx] + xs[prevIdx])),
+                    leftToCanvasY(ys[prevIdx] - 2 * dy) + 15
+                );
+
+                // Vertical arrows for dx
+                const arrowX = xs[lastIdx] + dx;
+                drawArrow(leftCtx,
+                    leftToCanvasX(arrowX), leftToCanvasY(ys[prevIdx]),
+                    leftToCanvasX(arrowX), leftToCanvasY(ys[lastIdx]),
+                    'red', 6
+                );
+                drawArrow(leftCtx,
+                    leftToCanvasX(arrowX), leftToCanvasY(ys[lastIdx]),
+                    leftToCanvasX(arrowX), leftToCanvasY(ys[prevIdx]),
+                    'red', 6
+                );
+
+                // dx label
+                leftCtx.textAlign = 'left';
+                leftCtx.fillText(
+                    `take step: x⁽${stepInt}⁾ = x⁽${stepInt-1}⁾ + Δt·f⁽${stepInt-1}⁾`,
+                    leftToCanvasX(xs[lastIdx] + 2 * dx),
+                    leftToCanvasY(0.5 * (ys[lastIdx] + ys[prevIdx]))
+                );
+            }
+
+            // Plot the Euler solution line and points
+            plotLine(leftCtx, xs, ys, leftToCanvasX, leftToCanvasY, 'black', 1.5, true, true);
+
+            // Plot the last point as hollow (current position)
+            const lastCx = leftToCanvasX(xs[xs.length - 1]);
+            const lastCy = leftToCanvasY(ys[ys.length - 1]);
+            leftCtx.beginPath();
+            leftCtx.arc(lastCx, lastCy, 5, 0, 2 * Math.PI);
+            leftCtx.fillStyle = 'white';
+            leftCtx.fill();
+            leftCtx.strokeStyle = 'black';
+            leftCtx.lineWidth = 2;
+            leftCtx.stroke();
+
+            // ===== RIGHT PLOT: Step size comparison =====
+            // Solution with current h
+            let xs1 = [0];
+            let ys1 = [1];
+            while (xs1[xs1.length - 1] < 1) {
+                ys1.push(ys1[ys1.length - 1] + h * dydx(xs1[xs1.length - 1], ys1[ys1.length - 1]));
+                xs1.push(xs1[xs1.length - 1] + h);
+            }
+
+            // Solution with reference h0
+            let xs0 = [0];
+            let ys0 = [1];
+            while (xs0[xs0.length - 1] < 1) {
+                ys0.push(ys0[ys0.length - 1] + h0 * dydx(xs0[xs0.length - 1], ys0[ys0.length - 1]));
+                xs0.push(xs0[xs0.length - 1] + h0);
+            }
+            // Remove last point that went past 1
+            xs0.pop();
+            ys0.pop();
+
+            // Plot both solutions
+            plotLine(rightCtx, xs1, ys1, rightToCanvasX, rightToCanvasY, 'black', 1.5, true, true);
+
+            rightCtx.globalAlpha = 0.5;
+            plotLine(rightCtx, xs0, ys0, rightToCanvasX, rightToCanvasY, 'black', 1.5, true, true);
+            rightCtx.globalAlpha = 1.0;
+
+            // Legend
+            rightCtx.font = '12px Segoe UI';
+            rightCtx.textAlign = 'left';
+
+            // h = current value
+            rightCtx.fillStyle = 'black';
+            rightCtx.fillRect(margin.left + 10, margin.top + 10, 20, 2);
+            rightCtx.beginPath();
+            rightCtx.arc(margin.left + 20, margin.top + 11, 4, 0, 2 * Math.PI);
+            rightCtx.fill();
+            rightCtx.fillText(`h = ${h.toFixed(2)}`, margin.left + 35, margin.top + 15);
+
+            // h = 0.10 (reference)
+            rightCtx.globalAlpha = 0.5;
+            rightCtx.fillRect(margin.left + 10, margin.top + 30, 20, 2);
+            rightCtx.beginPath();
+            rightCtx.arc(margin.left + 20, margin.top + 31, 4, 0, 2 * Math.PI);
+            rightCtx.fill();
+            rightCtx.globalAlpha = 1.0;
+            rightCtx.fillStyle = 'rgba(0,0,0,0.5)';
+            rightCtx.fillText(`h = ${h0.toFixed(2)}`, margin.left + 35, margin.top + 35);
+        }
+
+        // Event listeners
+        document.getElementById('stepsSlider').addEventListener('input', draw);
+        document.getElementById('hSlider').addEventListener('input', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

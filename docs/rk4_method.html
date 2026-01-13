@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runge-Kutta (RK4) Method - Interactive Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 60px;
+        }
+        .control-group input[type="range"] {
+            width: 300px;
+        }
+        .control-group .value {
+            min-width: 60px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+        }
+        .canvas-wrapper {
+            text-align: center;
+        }
+        .canvas-wrapper h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        .stage-info {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px 15px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .stage-info .stage-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .stage-info .stage-desc {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Runge-Kutta (RK4) Method</h1>
+
+    <div class="explainer">
+        <p>
+            The <strong>Runge-Kutta methods</strong> are a family of iterative techniques that achieve higher accuracy
+            by evaluating the derivative at multiple points within each step. The most commonly used is the
+            <strong>4th-order Runge-Kutta method (RK4)</strong>, which evaluates four "slopes" and combines them
+            in a weighted average.
+        </p>
+
+        <p>For an ODE of the form \(\frac{dx}{dt} = f(t,x)\), RK4 computes:</p>
+
+        <p style="text-align: center;">
+            \[\begin{aligned}
+            k_1 &= f(t_n, x_n) \\
+            k_2 &= f\left(t_n + \frac{\Delta t}{2}, x_n + \frac{\Delta t}{2}k_1\right) \\
+            k_3 &= f\left(t_n + \frac{\Delta t}{2}, x_n + \frac{\Delta t}{2}k_2\right) \\
+            k_4 &= f\left(t_n + \Delta t, x_n + \Delta t\,k_3\right)
+            \end{aligned}\]
+        </p>
+
+        <p>Then the next value is computed as:</p>
+
+        <p style="text-align: center;">
+            \[x_{n+1} = x_n + \frac{\Delta t}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right)\]
+        </p>
+
+        <p>
+            The key insight is that \(k_1\) is the slope at the beginning, \(k_2\) and \(k_3\) are slopes at the
+            <strong>midpoint</strong> (using different estimates to get there), and \(k_4\) is the slope at the end.
+            The weighted average gives more influence to the midpoint slopes (factor of 2), which is similar to
+            Simpson's rule in numerical integration.
+        </p>
+
+        <p>The demonstration below shows, step-by-step, how RK4 is applied for the ODE</p>
+
+        <p style="text-align: center;">
+            \[\frac{dx}{dt} = (1+tx)^2\]
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>progress:</label>
+                <input type="range" id="stepsSlider" min="0" max="5" step="0.125" value="0">
+                <span class="value" id="stepsValue">step 0, k1</span>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="compareEuler">
+                <label for="compareEuler">compare Euler</label>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <h3>Step-by-step RK4 Method</h3>
+                <canvas id="leftCanvas" width="550" height="450"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <h3>Effect of Step Size</h3>
+                <canvas id="rightCanvas" width="550" height="450"></canvas>
+            </div>
+        </div>
+
+        <div class="stage-info">
+            <div class="stage-title" id="stageTitle">Initial state</div>
+            <div class="stage-desc" id="stageDesc">Starting point at (t, x) = (0, 1)</div>
+        </div>
+    </div>
+
+    <script>
+        // ODE function: dx/dt = (1 + t*x)^2
+        function dxdt(t, x) {
+            return Math.pow(1 + t * x, 2);
+        }
+
+        // Canvas setup
+        const leftCanvas = document.getElementById('leftCanvas');
+        const rightCanvas = document.getElementById('rightCanvas');
+        const leftCtx = leftCanvas.getContext('2d');
+        const rightCtx = rightCanvas.getContext('2d');
+
+        // Plot parameters
+        const h0 = 0.15;  // Step size for visualization
+        const margin = { top: 40, right: 30, bottom: 50, left: 60 };
+
+        // Colors for each k
+        const colors = {
+            k1: '#e63946',  // red
+            k2: '#2a9d8f',  // teal
+            k3: '#e9c46a',  // gold
+            k4: '#9b59b6',  // purple
+            final: '#264653' // dark blue
+        };
+
+        // Transform functions for left plot
+        const leftXLim = [-0.05, 0.85];
+        const leftYLim = [0.5, 5];
+
+        function leftToCanvasX(x) {
+            const plotWidth = leftCanvas.width - margin.left - margin.right;
+            return margin.left + (x - leftXLim[0]) / (leftXLim[1] - leftXLim[0]) * plotWidth;
+        }
+
+        function leftToCanvasY(y) {
+            const plotHeight = leftCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - leftYLim[0]) / (leftYLim[1] - leftYLim[0])) * plotHeight;
+        }
+
+        // Transform functions for right plot
+        const rightXLim = [-0.05, 0.65];
+        const rightYLim = [0.5, 5];
+
+        function rightToCanvasX(x) {
+            const plotWidth = rightCanvas.width - margin.left - margin.right;
+            return margin.left + (x - rightXLim[0]) / (rightXLim[1] - rightXLim[0]) * plotWidth;
+        }
+
+        function rightToCanvasY(y) {
+            const plotHeight = rightCanvas.height - margin.top - margin.bottom;
+            return margin.top + (1 - (y - rightYLim[0]) / (rightYLim[1] - rightYLim[0])) * plotHeight;
+        }
+
+        // Draw axes
+        function drawAxes(ctx, canvas, xLim, yLim, toCanvasX, toCanvasY, xLabel, yLabel) {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, canvas.height - margin.bottom);
+            ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            // X label
+            ctx.textAlign = 'center';
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.fillText(xLabel, canvas.width / 2, canvas.height - 10);
+
+            // Y label
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+
+            // X ticks
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            const xStep = (xLim[1] - xLim[0]) / 5;
+            for (let x = 0; x <= xLim[1]; x += xStep) {
+                if (x >= xLim[0]) {
+                    const cx = toCanvasX(x);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, canvas.height - margin.bottom);
+                    ctx.lineTo(cx, canvas.height - margin.bottom + 5);
+                    ctx.stroke();
+                    ctx.fillText(x.toFixed(2), cx, canvas.height - margin.bottom + 18);
+                }
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            const yStep = (yLim[1] - yLim[0]) / 5;
+            for (let y = yLim[0]; y <= yLim[1]; y += yStep) {
+                const cy = toCanvasY(y);
+                ctx.beginPath();
+                ctx.moveTo(margin.left - 5, cy);
+                ctx.lineTo(margin.left, cy);
+                ctx.stroke();
+                ctx.fillText(y.toFixed(1), margin.left - 8, cy + 4);
+            }
+        }
+
+        // Draw arrow
+        function drawArrow(ctx, x1, y1, x2, y2, color, headLen = 8, lineWidth = 2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) return;
+
+            const angle = Math.atan2(dy, dx);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = lineWidth;
+
+            // Line
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Plot line with points
+        function plotLine(ctx, xs, ys, toCanvasX, toCanvasY, color, lineWidth = 1.5, showPoints = false, alpha = 1) {
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+
+            ctx.beginPath();
+            for (let i = 0; i < xs.length; i++) {
+                const cx = toCanvasX(xs[i]);
+                const cy = toCanvasY(ys[i]);
+                if (i === 0) {
+                    ctx.moveTo(cx, cy);
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+
+            if (showPoints) {
+                ctx.fillStyle = color;
+                for (let i = 0; i < xs.length; i++) {
+                    const cx = toCanvasX(xs[i]);
+                    const cy = toCanvasY(ys[i]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw dashed slope line through a point
+        function drawSlopeLine(ctx, t, x, slope, toCanvasX, toCanvasY, xLim, color, alpha = 1) {
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+
+            // Compute line endpoints within plot bounds
+            const t1 = xLim[0];
+            const t2 = xLim[1];
+            const x1 = x + slope * (t1 - t);
+            const x2 = x + slope * (t2 - t);
+
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(t1), toCanvasY(x1));
+            ctx.lineTo(toCanvasX(t2), toCanvasY(x2));
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw a hollow point
+        function drawHollowPoint(ctx, cx, cy, color, radius = 5) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Draw a filled point
+        function drawFilledPoint(ctx, cx, cy, color, radius = 4) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // RK4 step function - returns intermediate values
+        function rk4Step(t, x, h) {
+            const k1 = dxdt(t, x);
+            const k2 = dxdt(t + h/2, x + h/2 * k1);
+            const k3 = dxdt(t + h/2, x + h/2 * k2);
+            const k4 = dxdt(t + h, x + h * k3);
+            const xNew = x + h/6 * (k1 + 2*k2 + 2*k3 + k4);
+            return { k1, k2, k3, k4, xNew };
+        }
+
+        // Euler step
+        function eulerStep(t, x, h) {
+            return x + h * dxdt(t, x);
+        }
+
+        // Update stage description
+        function updateStageInfo(step, substep) {
+            const titleEl = document.getElementById('stageTitle');
+            const descEl = document.getElementById('stageDesc');
+
+            const stepInt = Math.floor(step);
+            const stages = [
+                { title: `Step ${stepInt}: Compute k1`, desc: `Evaluate the slope at the current point: k1 = f(t, x)` },
+                { title: `Step ${stepInt}: Compute k2`, desc: `Move to the midpoint using k1, evaluate slope there: k2 = f(t + h/2, x + h/2 * k1)` },
+                { title: `Step ${stepInt}: Compute k3`, desc: `Return to start, move to midpoint using k2: k3 = f(t + h/2, x + h/2 * k2)` },
+                { title: `Step ${stepInt}: Compute k4`, desc: `Return to start, move to endpoint using k3: k4 = f(t + h, x + h * k3)` },
+                { title: `Step ${stepInt}: Weighted average`, desc: `Combine slopes: x_new = x + h/6 * (k1 + 2*k2 + 2*k3 + k4)` },
+                { title: `Step ${stepInt}: Complete`, desc: `Accept the new point and prepare for the next step` }
+            ];
+
+            // Map substep (0-1) to stage index (0-5)
+            // Each stage gets one slider tick (0.125 increment)
+            let stageIdx;
+            if (substep < 0.125) stageIdx = 0;       // k1
+            else if (substep < 0.25) stageIdx = 1;   // k2
+            else if (substep < 0.375) stageIdx = 2;  // k3
+            else if (substep < 0.5) stageIdx = 3;    // k4
+            else if (substep < 0.625) stageIdx = 4;  // avg
+            else stageIdx = 5;                        // done
+
+            if (step === 0 && substep === 0) {
+                titleEl.textContent = 'Initial state';
+                descEl.textContent = 'Starting point at (t, x) = (0, 1). Use the slider to step through the RK4 method.';
+            } else {
+                titleEl.textContent = stages[stageIdx].title;
+                descEl.textContent = stages[stageIdx].desc;
+            }
+        }
+
+        // Main drawing function
+        function draw() {
+            const step = parseFloat(document.getElementById('stepsSlider').value);
+            const compareEuler = document.getElementById('compareEuler').checked;
+
+            // Parse step into integer and fractional parts
+            const stepInt = Math.floor(step);
+            const substep = step - stepInt;
+
+            // Update slider display
+            // Each stage gets one slider tick (0.125 increment)
+            let stageLabel;
+            if (substep < 0.125) stageLabel = `step ${stepInt}, k1`;
+            else if (substep < 0.25) stageLabel = `step ${stepInt}, k2`;
+            else if (substep < 0.375) stageLabel = `step ${stepInt}, k3`;
+            else if (substep < 0.5) stageLabel = `step ${stepInt}, k4`;
+            else if (substep < 0.625) stageLabel = `step ${stepInt}, avg`;
+            else stageLabel = `step ${stepInt}, done`;
+
+            document.getElementById('stepsValue').textContent = stageLabel;
+            updateStageInfo(step, substep);
+
+            // Clear canvases
+            leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+            rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+            // Draw axes
+            drawAxes(leftCtx, leftCanvas, leftXLim, leftYLim, leftToCanvasX, leftToCanvasY, 't', 'x');
+            drawAxes(rightCtx, rightCanvas, rightXLim, rightYLim, rightToCanvasX, rightToCanvasY, 't', 'x');
+
+            // ===== LEFT PLOT: Step-by-step RK4 =====
+            let ts = [0];
+            let xs = [1];
+
+            // Compute completed steps
+            for (let i = 0; i < stepInt; i++) {
+                const result = rk4Step(ts[ts.length - 1], xs[xs.length - 1], h0);
+                xs.push(result.xNew);
+                ts.push(ts[ts.length - 1] + h0);
+            }
+
+            // Current position
+            const tCurr = ts[ts.length - 1];
+            const xCurr = xs[xs.length - 1];
+
+            // Compute k values for current step
+            const k1 = dxdt(tCurr, xCurr);
+            const x_k2_point = xCurr + h0/2 * k1;
+            const k2 = dxdt(tCurr + h0/2, x_k2_point);
+            const x_k3_point = xCurr + h0/2 * k2;
+            const k3 = dxdt(tCurr + h0/2, x_k3_point);
+            const x_k4_point = xCurr + h0 * k3;
+            const k4 = dxdt(tCurr + h0, x_k4_point);
+            const xNew = xCurr + h0/6 * (k1 + 2*k2 + 2*k3 + k4);
+
+            // Draw based on substep
+            if (substep >= 0.001) {
+                // k1: Show slope at current point
+                drawSlopeLine(leftCtx, tCurr, xCurr, k1, leftToCanvasX, leftToCanvasY, leftXLim, colors.k1, 0.7);
+
+                // Label k1
+                leftCtx.fillStyle = colors.k1;
+                leftCtx.font = '12px Segoe UI';
+                leftCtx.textAlign = 'left';
+                leftCtx.fillText(`k1 = ${k1.toFixed(2)}`, leftToCanvasX(tCurr + 0.02), leftToCanvasY(xCurr + 0.3));
+            }
+
+            if (substep >= 0.125) {
+                // k2: Show arrow to midpoint and slope there
+                const tMid = tCurr + h0/2;
+
+                // Draw arrow from current to midpoint estimate using k1
+                drawArrow(leftCtx,
+                    leftToCanvasX(tCurr), leftToCanvasY(xCurr),
+                    leftToCanvasX(tMid), leftToCanvasY(x_k2_point),
+                    colors.k2, 6, 1.5);
+
+                // Draw hollow point at k2 evaluation point
+                drawHollowPoint(leftCtx, leftToCanvasX(tMid), leftToCanvasY(x_k2_point), colors.k2);
+
+                // Draw k2 slope line
+                drawSlopeLine(leftCtx, tMid, x_k2_point, k2, leftToCanvasX, leftToCanvasY, leftXLim, colors.k2, 0.7);
+
+                // Label k2
+                leftCtx.fillStyle = colors.k2;
+                leftCtx.textAlign = 'left';
+                leftCtx.fillText(`k2 = ${k2.toFixed(2)}`, leftToCanvasX(tMid + 0.02), leftToCanvasY(x_k2_point - 0.15));
+            }
+
+            if (substep >= 0.25) {
+                // k3: Show arrow to midpoint using k2 and slope there
+                const tMid = tCurr + h0/2;
+
+                // Draw arrow from current to midpoint estimate using k2
+                drawArrow(leftCtx,
+                    leftToCanvasX(tCurr), leftToCanvasY(xCurr),
+                    leftToCanvasX(tMid), leftToCanvasY(x_k3_point),
+                    colors.k3, 6, 1.5);
+
+                // Draw hollow point at k3 evaluation point
+                drawHollowPoint(leftCtx, leftToCanvasX(tMid), leftToCanvasY(x_k3_point), colors.k3);
+
+                // Draw k3 slope line
+                drawSlopeLine(leftCtx, tMid, x_k3_point, k3, leftToCanvasX, leftToCanvasY, leftXLim, colors.k3, 0.7);
+
+                // Label k3
+                leftCtx.fillStyle = colors.k3;
+                leftCtx.textAlign = 'right';
+                leftCtx.fillText(`k3 = ${k3.toFixed(2)}`, leftToCanvasX(tMid - 0.02), leftToCanvasY(x_k3_point + 0.2));
+            }
+
+            if (substep >= 0.375) {
+                // k4: Show arrow to endpoint using k3 and slope there
+                const tEnd = tCurr + h0;
+
+                // Draw arrow from current to endpoint estimate using k3
+                drawArrow(leftCtx,
+                    leftToCanvasX(tCurr), leftToCanvasY(xCurr),
+                    leftToCanvasX(tEnd), leftToCanvasY(x_k4_point),
+                    colors.k4, 6, 1.5);
+
+                // Draw hollow point at k4 evaluation point
+                drawHollowPoint(leftCtx, leftToCanvasX(tEnd), leftToCanvasY(x_k4_point), colors.k4);
+
+                // Draw k4 slope line
+                drawSlopeLine(leftCtx, tEnd, x_k4_point, k4, leftToCanvasX, leftToCanvasY, leftXLim, colors.k4, 0.7);
+
+                // Label k4
+                leftCtx.fillStyle = colors.k4;
+                leftCtx.textAlign = 'left';
+                leftCtx.fillText(`k4 = ${k4.toFixed(2)}`, leftToCanvasX(tEnd + 0.02), leftToCanvasY(x_k4_point));
+            }
+
+            if (substep >= 0.5) {
+                // Show the weighted average result
+                const tEnd = tCurr + h0;
+
+                // Draw the final step arrow
+                drawArrow(leftCtx,
+                    leftToCanvasX(tCurr), leftToCanvasY(xCurr),
+                    leftToCanvasX(tEnd), leftToCanvasY(xNew),
+                    colors.final, 8, 2.5);
+
+                // Draw hollow point at new position
+                drawHollowPoint(leftCtx, leftToCanvasX(tEnd), leftToCanvasY(xNew), colors.final, 6);
+
+                // Label the average
+                leftCtx.fillStyle = colors.final;
+                leftCtx.font = 'bold 12px Segoe UI';
+                leftCtx.textAlign = 'left';
+                const avgSlope = (k1 + 2*k2 + 2*k3 + k4) / 6;
+                leftCtx.fillText(`avg = ${avgSlope.toFixed(2)}`, leftToCanvasX(tEnd + 0.02), leftToCanvasY(xNew + 0.25));
+            }
+
+            // Plot the completed RK4 solution
+            plotLine(leftCtx, ts, xs, leftToCanvasX, leftToCanvasY, 'black', 2, true);
+
+            // Current point (hollow)
+            drawHollowPoint(leftCtx, leftToCanvasX(tCurr), leftToCanvasY(xCurr), 'black', 5);
+
+            // Legend
+            leftCtx.font = '11px Segoe UI';
+            leftCtx.textAlign = 'left';
+            const legendX = margin.left + 10;
+            let legendY = margin.top + 15;
+
+            const legendItems = [
+                { color: colors.k1, label: 'k1: slope at start' },
+                { color: colors.k2, label: 'k2: midpoint via k1' },
+                { color: colors.k3, label: 'k3: midpoint via k2' },
+                { color: colors.k4, label: 'k4: endpoint via k3' },
+                { color: colors.final, label: 'weighted average' }
+            ];
+
+            for (const item of legendItems) {
+                leftCtx.fillStyle = item.color;
+                leftCtx.fillRect(legendX, legendY - 5, 15, 2);
+                leftCtx.fillText(item.label, legendX + 20, legendY);
+                legendY += 15;
+            }
+
+            // ===== RIGHT PLOT: Comparison =====
+            // Compute full RK4 solution
+            let tsRK4 = [0];
+            let xsRK4 = [1];
+            while (tsRK4[tsRK4.length - 1] < 0.6) {
+                const result = rk4Step(tsRK4[tsRK4.length - 1], xsRK4[xsRK4.length - 1], h0);
+                xsRK4.push(result.xNew);
+                tsRK4.push(tsRK4[tsRK4.length - 1] + h0);
+            }
+
+            // Plot RK4 solution
+            plotLine(rightCtx, tsRK4, xsRK4, rightToCanvasX, rightToCanvasY, 'black', 2, true);
+
+            if (compareEuler) {
+                // Compute Euler solution with same step size
+                let tsEuler = [0];
+                let xsEuler = [1];
+                while (tsEuler[tsEuler.length - 1] < 0.6) {
+                    xsEuler.push(eulerStep(tsEuler[tsEuler.length - 1], xsEuler[xsEuler.length - 1], h0));
+                    tsEuler.push(tsEuler[tsEuler.length - 1] + h0);
+                }
+
+                // Plot Euler solution
+                plotLine(rightCtx, tsEuler, xsEuler, rightToCanvasX, rightToCanvasY, '#888888', 2, true, 0.7);
+            }
+
+            // Compute fine solution for "reference"
+            const hFine = 0.01;
+            let tsFine = [0];
+            let xsFine = [1];
+            while (tsFine[tsFine.length - 1] < 0.6) {
+                const result = rk4Step(tsFine[tsFine.length - 1], xsFine[xsFine.length - 1], hFine);
+                xsFine.push(result.xNew);
+                tsFine.push(tsFine[tsFine.length - 1] + hFine);
+            }
+            plotLine(rightCtx, tsFine, xsFine, rightToCanvasX, rightToCanvasY, '#3498db', 1.5, false, 0.5);
+
+            // Legend for right plot
+            rightCtx.font = '12px Segoe UI';
+            rightCtx.textAlign = 'left';
+
+            // RK4
+            rightCtx.fillStyle = 'black';
+            rightCtx.fillRect(margin.left + 10, margin.top + 10, 20, 2);
+            drawFilledPoint(rightCtx, margin.left + 20, margin.top + 11, 'black');
+            rightCtx.fillText(`RK4 (h = ${h0.toFixed(2)})`, margin.left + 35, margin.top + 15);
+
+            // Reference
+            rightCtx.globalAlpha = 0.5;
+            rightCtx.fillStyle = '#3498db';
+            rightCtx.fillRect(margin.left + 10, margin.top + 30, 20, 2);
+            rightCtx.globalAlpha = 1;
+            rightCtx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+            rightCtx.fillText('reference (h = 0.01)', margin.left + 35, margin.top + 35);
+
+            if (compareEuler) {
+                rightCtx.globalAlpha = 0.7;
+                rightCtx.fillStyle = '#888888';
+                rightCtx.fillRect(margin.left + 10, margin.top + 50, 20, 2);
+                drawFilledPoint(rightCtx, margin.left + 20, margin.top + 51, '#888888');
+                rightCtx.globalAlpha = 1;
+                rightCtx.fillText(`Euler (h = ${h0.toFixed(2)})`, margin.left + 35, margin.top + 55);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('stepsSlider').addEventListener('input', draw);
+        document.getElementById('compareEuler').addEventListener('change', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

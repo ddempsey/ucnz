@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration - Gradient Descent</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label { font-weight: 500; }
+        .control-group input[type="range"] { width: 160px; }
+        .control-group .value {
+            min-width: 35px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Gradient Descent</h1>
+
+    <div class="explainer">
+        <p>
+            <strong>Gradient descent</strong> (the method of steepest descent) iteratively updates the parameter
+            estimate by stepping in the direction of steepest descent:
+        </p>
+        <p style="text-align:center;">
+            \[\boldsymbol{\theta}_{i+1} = \boldsymbol{\theta}_i - \alpha\,\hat{\mathbf{s}}'(\boldsymbol{\theta}_i)\]
+        </p>
+        <p>
+            Providing the step size \(\alpha\) is small enough, each update yields a better estimate
+            (\(S(\boldsymbol{\theta}_{i+1}) < S(\boldsymbol{\theta}_i)\)).
+        </p>
+        <p><strong>Use the sliders to explore gradient descent and answer the questions below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(c\):</label>
+                <input type="range" id="cSlider" min="0" max="20" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label>\(k\):</label>
+                <input type="range" id="kSlider" min="3" max="17" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label>steps:</label>
+                <input type="range" id="nSlider" min="0" max="10" step="1" value="0">
+                <span class="value" id="nValue">0</span>
+            </div>
+            <div class="control-group">
+                <label>\(\alpha\):</label>
+                <input type="range" id="aSlider" min="0" max="0.10" step="0.02" value="0.04">
+                <span class="value" id="aValue">0.04</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="650" height="650"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>Set the initial path position to \(c = 0.75\) and \(k = 1.3\).</p>
+        <p>Increase the number of gradient descent steps. Describe the trajectory of the path.</p>
+        <p>Increase \(\alpha\). Will it take MORE or LESS computation to find the minimum?</p>
+        <p>Are there any disadvantages to increasing \(\alpha\)?</p>
+        <p>Change the initial path position to \(c = 0.8\) and \(k = 1.3\). Describe the outcome of gradient descent.</p>
+    </div>
+
+    <script>
+        // ========== Surface function ==========
+        const par = [10, 4, 2, 0.4, 0.6, 0.06, 0.12];
+        function rFunc(x, y) {
+            return (par[0] - Math.exp(-((x-par[3])**2/par[5] + (y-par[4])**2/par[6]))) *
+                (1 - (x/par[1])**par[2]) * (1 + (y/par[1])**par[2]);
+        }
+
+        function linspace(a, b, n) {
+            const arr = [];
+            for (let i = 0; i < n; i++) arr.push(a + i * (b - a) / (n - 1));
+            return arr;
+        }
+
+        // ========== Pre-compute grid ==========
+        const NG = 101;
+        const xG = linspace(0, 1, NG);
+        const yG = linspace(0, 1, NG);
+        const zG = [];
+        let zMin = Infinity, zMax = -Infinity;
+        for (let j = 0; j < NG; j++) {
+            zG[j] = [];
+            for (let i = 0; i < NG; i++) {
+                zG[j][i] = rFunc(xG[i], yG[j]);
+                if (zG[j][i] < zMin) zMin = zG[j][i];
+                if (zG[j][i] > zMax) zMax = zG[j][i];
+            }
+        }
+        const levels = linspace(zMin, zMax, 11);
+
+        // Allowed region
+        let i1 = 0, i2 = 0, md1 = 99, md2 = 99;
+        for (let i = 0; i < NG; i++) {
+            if (Math.abs(yG[i] - 0.15) < md1) { md1 = Math.abs(yG[i] - 0.15); i1 = i; }
+            if (Math.abs(yG[i] - 0.85) < md2) { md2 = Math.abs(yG[i] - 0.85); i2 = i; }
+        }
+
+        // ========== Canvas ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 650, cssH = 650;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const margin = { top: 20, right: 25, bottom: 60, left: 70 };
+        const plotW = cssW - margin.left - margin.right;
+        const plotH = cssH - margin.top - margin.bottom;
+        function txf(x) { return margin.left + x * plotW; }
+        function tyf(y) { return margin.top + (1 - y) * plotH; }
+
+        // ========== Colormap ==========
+        function orangeColor(t) {
+            t = Math.max(0, Math.min(1, t));
+            const S = [[0,255,245,235],[.25,254,216,170],[.5,253,174,107],[.75,241,105,19],[1,166,54,3]];
+            for (let i = 0; i < S.length - 1; i++) {
+                if (t <= S[i+1][0]) {
+                    const f = (t - S[i][0]) / (S[i+1][0] - S[i][0]);
+                    return `rgb(${Math.round(S[i][1]+f*(S[i+1][1]-S[i][1]))},${Math.round(S[i][2]+f*(S[i+1][2]-S[i][2]))},${Math.round(S[i][3]+f*(S[i+1][3]-S[i][3]))})`;
+                }
+            }
+            return 'rgb(166,54,3)';
+        }
+
+        function getLevelBand(z) {
+            for (let k = 0; k < levels.length - 1; k++) {
+                if (z <= levels[k + 1]) return k;
+            }
+            return levels.length - 2;
+        }
+
+        // ========== Marching squares ==========
+        const MS_TABLE = [
+            [],[[3,0]],[[0,1]],[[3,1]],[[1,2]],[[3,0],[1,2]],[[0,2]],[[3,2]],
+            [[2,3]],[[0,2]],[[0,3],[2,1]],[[1,2]],[[1,3]],[[0,1]],[[0,3]],[]
+        ];
+
+        function edgePt(edge, x0, y0, x1, y1, z0, z1, z2, z3, lv) {
+            switch(edge) {
+                case 0: { const t=(lv-z0)/(z1-z0); return [x0+t*(x1-x0), y0]; }
+                case 1: { const t=(lv-z1)/(z2-z1); return [x1, y0+t*(y1-y0)]; }
+                case 2: { const t=(lv-z2)/(z3-z2); return [x1+t*(x0-x1), y1]; }
+                case 3: { const t=(lv-z3)/(z0-z3); return [x0, y1+t*(y0-y1)]; }
+            }
+        }
+
+        // ========== Pre-render background ==========
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = cssW * dpr;
+        bgCanvas.height = cssH * dpr;
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCtx.scale(dpr, dpr);
+
+        (function renderBackground() {
+            bgCtx.clearRect(0, 0, cssW, cssH);
+            const cellW = plotW / (NG - 1);
+            const cellH = plotH / (NG - 1);
+
+            // Filled contours (allowed region)
+            for (let j = i1; j < i2; j++) {
+                for (let i = 0; i < NG - 1; i++) {
+                    const avgZ = (zG[j][i] + zG[j][i+1] + zG[j+1][i+1] + zG[j+1][i]) / 4;
+                    const band = getLevelBand(avgZ);
+                    bgCtx.fillStyle = orangeColor((band + 0.5) / (levels.length - 1));
+                    bgCtx.fillRect(txf(xG[i]), tyf(yG[j+1]), cellW + 0.5, cellH + 0.5);
+                }
+            }
+
+            // Contour lines (full domain)
+            bgCtx.strokeStyle = '#000';
+            bgCtx.lineWidth = 1;
+            for (let lIdx = 0; lIdx < levels.length; lIdx++) {
+                const lv = levels[lIdx];
+                bgCtx.beginPath();
+                for (let j = 0; j < NG - 1; j++) {
+                    for (let i = 0; i < NG - 1; i++) {
+                        const z0 = zG[j][i], z1 = zG[j][i+1];
+                        const z2 = zG[j+1][i+1], z3 = zG[j+1][i];
+                        const idx = (z0>=lv?1:0)+(z1>=lv?2:0)+(z2>=lv?4:0)+(z3>=lv?8:0);
+                        if (idx === 0 || idx === 15) continue;
+                        const segs = MS_TABLE[idx];
+                        const x0 = xG[i], x1 = xG[i+1], y0 = yG[j], y1 = yG[j+1];
+                        for (const [e1, e2] of segs) {
+                            const p1 = edgePt(e1, x0, y0, x1, y1, z0, z1, z2, z3, lv);
+                            const p2 = edgePt(e2, x0, y0, x1, y1, z0, z1, z2, z3, lv);
+                            bgCtx.moveTo(txf(p1[0]), tyf(p1[1]));
+                            bgCtx.lineTo(txf(p2[0]), tyf(p2[1]));
+                        }
+                    }
+                }
+                bgCtx.stroke();
+            }
+        })();
+
+        // ========== Drawing ==========
+        function drawArrow(cx, x1, y1, x2, y2, hl, hw) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if (len < 1e-6) return;
+            const ux = dx/len, uy = dy/len;
+            // Shaft
+            cx.beginPath();
+            cx.moveTo(x1, y1);
+            cx.lineTo(x2 - ux*hl, y2 - uy*hl);
+            cx.stroke();
+            // Head
+            cx.beginPath();
+            cx.moveTo(x2, y2);
+            cx.lineTo(x2 - ux*hl - uy*hw/2, y2 - uy*hl + ux*hw/2);
+            cx.lineTo(x2 - ux*hl + uy*hw/2, y2 - uy*hl - ux*hw/2);
+            cx.closePath();
+            cx.fill();
+        }
+
+        function draw() {
+            const ic = parseInt(document.getElementById('cSlider').value);
+            const ik = parseInt(document.getElementById('kSlider').value);
+            const N = parseInt(document.getElementById('nSlider').value);
+            const alpha = parseFloat(document.getElementById('aSlider').value);
+
+            document.getElementById('nValue').textContent = N;
+            document.getElementById('aValue').textContent = alpha.toFixed(2);
+
+            // Copy background
+            ctx.clearRect(0, 0, cssW, cssH);
+            ctx.drawImage(bgCanvas, 0, 0, cssW * dpr, cssH * dpr, 0, 0, cssW, cssH);
+
+            let xi = ic / 20;
+            let yi = ik / 20;
+            const startPx = txf(xi), startPy = tyf(yi);
+
+            // Dotted projection lines from start
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(txf(0), startPy);
+            ctx.lineTo(startPx, startPy);
+            ctx.lineTo(startPx, tyf(0));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Starting tick marks
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.beginPath();
+            ctx.moveTo(startPx, margin.top + plotH);
+            ctx.lineTo(startPx, margin.top + plotH + 6);
+            ctx.stroke();
+            ctx.fillText(xi.toFixed(2), startPx, margin.top + plotH + 8);
+
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.beginPath();
+            ctx.moveTo(margin.left - 6, startPy);
+            ctx.lineTo(margin.left, startPy);
+            ctx.stroke();
+            ctx.fillText((yi * 2).toFixed(1), margin.left - 10, startPy);
+
+            // Starting X marker
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2.5;
+            const ms = 8;
+            ctx.beginPath();
+            ctx.moveTo(startPx - ms, startPy - ms); ctx.lineTo(startPx + ms, startPy + ms);
+            ctx.moveTo(startPx + ms, startPy - ms); ctx.lineTo(startPx - ms, startPy + ms);
+            ctx.stroke();
+
+            // Gradient descent steps
+            ctx.strokeStyle = '#000';
+            ctx.fillStyle = '#000';
+            ctx.lineWidth = 1.5;
+            for (let step = 0; step < N; step++) {
+                const dx = 0.01;
+                const zi = rFunc(xi, yi);
+                const dSdx = (rFunc(xi + dx, yi) - zi) / dx;
+                const dSdy = (rFunc(xi, yi + dx) - zi) / dx;
+                const mag = Math.sqrt(dSdx*dSdx + dSdy*dSdy);
+                if (mag < 1e-10) break;
+                const sx = -dSdx / mag;
+                const sy = -dSdy / mag;
+                const xi1 = xi + alpha * sx;
+                const yi1 = yi + alpha * sy;
+
+                drawArrow(ctx, txf(xi), tyf(yi), txf(xi1), tyf(yi1), 8, 8);
+
+                xi = xi1;
+                yi = yi1;
+            }
+
+            // Axes border
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(margin.left, margin.top, plotW, plotH);
+
+            // Axis labels
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('c', margin.left + plotW / 2, cssH - 20);
+            ctx.save();
+            ctx.translate(18, margin.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('k', 0, 0);
+            ctx.restore();
+
+            // Axis limits text
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('0', txf(0), margin.top + plotH + 8);
+            ctx.fillText('1', txf(1), margin.top + plotH + 8);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('0', margin.left - 10, tyf(0));
+            ctx.fillText('1', margin.left - 10, tyf(1));
+        }
+
+        document.getElementById('cSlider').addEventListener('input', draw);
+        document.getElementById('kSlider').addEventListener('input', draw);
+        document.getElementById('nSlider').addEventListener('input', draw);
+        document.getElementById('aSlider').addEventListener('input', draw);
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration - Suspension Model</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p {
+            margin: 1em 0;
+        }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 60px;
+        }
+        .control-group input[type="range"] {
+            width: 200px;
+        }
+        .control-group .value {
+            min-width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+        }
+        #rollBtn {
+            display: block;
+            margin: 15px auto 0;
+            padding: 10px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            background: #4a90d9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #rollBtn:hover {
+            background: #357abd;
+        }
+        #rollBtn:active {
+            background: #2a5f9e;
+        }
+        #equationDisplay {
+            text-align: center;
+            font-size: 18px;
+            margin: 10px 0 5px;
+            min-height: 30px;
+        }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p {
+            margin: 0.8em 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calibrating Mathematical Models</h1>
+
+    <div class="explainer">
+        <p>
+            Generally, the first time a model is "run" (i.e., <em>inputs</em> are passed to a <em>simulator</em> and
+            an <em>output</em> obtained) the results bear little semblance to reality. This is because most mathematical
+            models require as an input a vector of parameter values, \(\boldsymbol{\theta}\), and, often, the values
+            of some of those parameters are known only to within some uncertain range, or not at all.
+        </p>
+        <p>
+            Recall the example of a car's vertical motion with damped shock absorption. The parameter \(c\), which
+            characterizes the viscous response of the shock absorber, is unknown, and the spring stiffness, \(k\), is
+            known to lie somewhere in a range. Unfortunately, we cannot get on to the business of predicting the car's
+            behaviour until we have, at least approximate, values for \(c\) and \(k\).
+        </p>
+        <p><strong>Press the ROLL THE DICE button and answer the questions below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div id="equationDisplay"></div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="450"></canvas>
+        </div>
+        <button id="rollBtn">ROLL THE DICE</button>
+    </div>
+
+    <div class="questions">
+        <p>Press the ROLL THE DICE button. What changes each time? What stays the same?</p>
+        <p>Is the model above a good representation of reality?</p>
+        <p>How could you quantify "representation of reality"?</p>
+        <p>What could you do to improve the model?</p>
+        <p>Explain the difference between: (1) Creating a model. (2) Modifying a model so that it is a good representation of reality.</p>
+    </div>
+
+    <script>
+        // ========== Complex number arithmetic ==========
+        function cAdd(a, b) { return [a[0]+b[0], a[1]+b[1]]; }
+        function cSub(a, b) { return [a[0]-b[0], a[1]-b[1]]; }
+        function cMul(a, b) { return [a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]]; }
+        function cDiv(a, b) {
+            const d = b[0]*b[0] + b[1]*b[1];
+            return [(a[0]*b[0]+a[1]*b[1])/d, (a[1]*b[0]-a[0]*b[1])/d];
+        }
+        function cSqrt(a) {
+            const r = Math.sqrt(a[0]*a[0] + a[1]*a[1]);
+            const theta = Math.atan2(a[1], a[0]) / 2;
+            const sr = Math.sqrt(r);
+            return [sr * Math.cos(theta), sr * Math.sin(theta)];
+        }
+        function cExp(a) {
+            const ea = Math.exp(a[0]);
+            return [ea * Math.cos(a[1]), ea * Math.sin(a[1])];
+        }
+
+        // ========== Suspension model ==========
+        function suspension(tArr, c, k, m, x0, dxdt0) {
+            const halfCoverM = -c / (2 * m);
+            const disc = [c*c/(m*m) - 4*k/m, 0];
+            const sqrtDisc = cSqrt(disc);
+
+            const rt1 = cSub([halfCoverM, 0], sqrtDisc);
+            const rt2 = cAdd([halfCoverM, 0], sqrtDisc);
+
+            const A = cDiv(
+                cSub([dxdt0, 0], cMul([x0, 0], rt2)),
+                cSub(rt1, rt2)
+            );
+            const B = cSub([x0, 0], A);
+
+            return tArr.map(t => {
+                const term1 = cMul(A, cExp([rt1[0]*t, rt1[1]*t]));
+                const term2 = cMul(B, cExp([rt2[0]*t, rt2[1]*t]));
+                return cAdd(term1, term2)[0]; // real part
+            });
+        }
+
+        function linspace(start, end, n) {
+            const arr = [];
+            const step = (end - start) / (n - 1);
+            for (let i = 0; i < n; i++) arr.push(start + i * step);
+            return arr;
+        }
+
+        // ========== Data generation ==========
+        const M = 1000, X0 = 1, DXDT0 = 0.1;
+        const C_TRUE = 24, K_TRUE = 9;
+        const tData = linspace(0, 100, 33);
+        const xData = suspension(tData, C_TRUE, K_TRUE, M, X0, DXDT0);
+
+        // ========== Canvas plotting ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        // Scale canvas for high-DPI
+        const cssW = canvas.width;
+        const cssH = canvas.height;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const margin = { top: 35, right: 30, bottom: 55, left: 75 };
+        const plotW = cssW - margin.left - margin.right;
+        const plotH = cssH - margin.top - margin.bottom;
+
+        const xLim = [0, 100];
+        const yLim = [-1.5, 1.5];
+
+        function tx(x) { return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * plotW; }
+        function ty(y) { return margin.top + (yLim[1] - y) / (yLim[1] - yLim[0]) * plotH; }
+
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#333';
+
+            // Plot border
+            ctx.strokeRect(margin.left, margin.top, plotW, plotH);
+
+            // X-axis ticks and labels
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let v = 0; v <= 100; v += 20) {
+                const px = tx(v);
+                ctx.beginPath();
+                ctx.moveTo(px, margin.top + plotH);
+                ctx.lineTo(px, margin.top + plotH + 6);
+                ctx.stroke();
+                ctx.fillText(v.toString(), px, margin.top + plotH + 8);
+            }
+
+            // Y-axis ticks and labels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let v = -1.5; v <= 1.5; v += 0.5) {
+                const py = ty(v);
+                ctx.beginPath();
+                ctx.moveTo(margin.left - 6, py);
+                ctx.lineTo(margin.left, py);
+                ctx.stroke();
+                ctx.fillText(v.toFixed(1), margin.left - 10, py);
+            }
+
+            // X-axis label
+            ctx.font = '16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('time [s]', margin.left + plotW / 2, cssH - 15);
+
+            // Y-axis label
+            ctx.save();
+            ctx.translate(18, margin.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('displacement [m]', 0, 0);
+            ctx.restore();
+        }
+
+        function drawData() {
+            for (let i = 0; i < tData.length; i++) {
+                const px = tx(tData[i]);
+                const py = ty(xData[i]);
+                ctx.beginPath();
+                ctx.arc(px, py, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.strokeStyle = '#1f77b4';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+
+        function drawModel(cm, km) {
+            const tModel = linspace(0, 100, 201);
+            const xModel = suspension(tModel, cm, km, M, X0, DXDT0);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < tModel.length; i++) {
+                const px = tx(tModel[i]);
+                const py = ty(xModel[i]);
+                // Clip to plot area
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+        }
+
+        function drawLegend() {
+            const lx = margin.left + plotW - 150;
+            const ly = margin.top + plotH - 70;
+            const lw = 140, lh = 55;
+
+            // Background
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.fillRect(lx, ly, lw, lh);
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(lx, ly, lw, lh);
+
+            // Data entry
+            ctx.beginPath();
+            ctx.arc(lx + 20, ly + 18, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = '#1f77b4';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('data', lx + 35, ly + 18);
+
+            // Model entry
+            ctx.beginPath();
+            ctx.moveTo(lx + 10, ly + 40);
+            ctx.lineTo(lx + 30, ly + 40);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = '#333';
+            ctx.fillText('model', lx + 35, ly + 40);
+        }
+
+        function draw(cm, km) {
+            // Clear
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // Clip to plot area for data/model drawing
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(margin.left, margin.top, plotW, plotH);
+            ctx.clip();
+
+            drawModel(cm, km);
+            drawData();
+
+            ctx.restore();
+
+            drawAxes();
+            drawLegend();
+
+            // Update equation display
+            const cmDisplay = cm.toFixed(1);
+            const kmDisplay = km.toFixed(1);
+            document.getElementById('equationDisplay').innerHTML =
+                '\\(m\\ddot{x}+c\\dot{x}+kx=0\\), &nbsp; \\(m=10^3\\), &nbsp; \\(c=' + cmDisplay + '\\), &nbsp; \\(k=' + kmDisplay + '\\)';
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([document.getElementById('equationDisplay')]);
+            }
+        }
+
+        // ========== Button handler ==========
+        let currentCm, currentKm;
+
+        function rollDice() {
+            currentCm = Math.random() * 100;
+            currentKm = Math.random() * 25 + 2;
+            draw(currentCm, currentKm);
+        }
+
+        document.getElementById('rollBtn').addEventListener('click', rollDice);
+
+        // Initial draw
+        rollDice();
+    </script>
+</body>
+</html>

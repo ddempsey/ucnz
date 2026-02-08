@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration - Sum of Squares</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 20px;
+        }
+        .control-group input[type="range"] {
+            width: 180px;
+        }
+        .control-group .value {
+            min-width: 35px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 15px;
+        }
+        .control-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .checkbox-label {
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+        }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Calibration Formalised</h1>
+
+    <div class="explainer">
+        <p>
+            We can improve the model by reducing the overall misfit to <em>all</em> observations. For \(N\) observations
+            we could minimise the <strong>sum of squared residuals</strong>
+        </p>
+        <p style="text-align:center;">
+            \[S = \sum_{i=1}^{N}\left(\tilde{y}_i - y_i\right)^2\]
+        </p>
+        <p>
+            Sometimes we might choose to prioritise the model fit with some particular observations over others &mdash;
+            for instance, if some measurements have more uncertainty or error. In this case, we can use the
+            <strong>weighted</strong> sum-of-squares criterion:
+        </p>
+        <p style="text-align:center;">
+            \[S(\boldsymbol{\theta}) = \sum_{i=1}^{N} w_i\left(\tilde{y}_i - f(x_i;\boldsymbol{\theta})\right)^2\]
+        </p>
+        <p>
+            By <em>modifying</em> \(\boldsymbol{\theta}\) we can improve or worsen the fit of the model to the data.
+            Calibration amounts to finding the parameter set, \(\boldsymbol{\theta}_{min}\), that minimises \(S\).
+        </p>
+        <p><strong>Use the sliders below and answer the questions.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(c\):</label>
+                <input type="range" id="cSlider" min="10" max="100" step="10" value="50">
+                <span class="value" id="cValue">50</span>
+            </div>
+            <div class="control-group">
+                <label>\(k\):</label>
+                <input type="range" id="kSlider" min="2" max="27" step="2" value="14">
+                <span class="value" id="kValue">14</span>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="weightsCheck">
+                <label class="checkbox-label" for="weightsCheck">downweight bad measurements</label>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="450"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>The plot above compares a model to data. Some of the data have errors. A sum-of-squares residual is calculated and plotted in the top right.</p>
+        <p>Move the slider bars for \(c\) and \(k\). What values give the lowest value for \(S\)?</p>
+        <p>Click the check box to "downweight bad measurements" (by a factor of 10). Move the slider bars for \(c\) and \(k\) again. What values now give the lowest value for \(S\)?</p>
+        <p>Has your estimate of \(k\) changed?</p>
+        <p>Has your estimate of \(c\) changed?</p>
+    </div>
+
+    <script>
+        // ========== Complex number arithmetic ==========
+        function cAdd(a, b) { return [a[0]+b[0], a[1]+b[1]]; }
+        function cSub(a, b) { return [a[0]-b[0], a[1]-b[1]]; }
+        function cMul(a, b) { return [a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]]; }
+        function cDiv(a, b) {
+            const d = b[0]*b[0] + b[1]*b[1];
+            return [(a[0]*b[0]+a[1]*b[1])/d, (a[1]*b[0]-a[0]*b[1])/d];
+        }
+        function cSqrt(a) {
+            const r = Math.sqrt(a[0]*a[0] + a[1]*a[1]);
+            const theta = Math.atan2(a[1], a[0]) / 2;
+            const sr = Math.sqrt(r);
+            return [sr * Math.cos(theta), sr * Math.sin(theta)];
+        }
+        function cExp(a) {
+            const ea = Math.exp(a[0]);
+            return [ea * Math.cos(a[1]), ea * Math.sin(a[1])];
+        }
+
+        // ========== Suspension model ==========
+        function suspension(tArr, c, k, m, x0, dxdt0) {
+            const halfCoverM = -c / (2 * m);
+            const disc = [c*c/(m*m) - 4*k/m, 0];
+            const sqrtDisc = cSqrt(disc);
+            const rt1 = cSub([halfCoverM, 0], sqrtDisc);
+            const rt2 = cAdd([halfCoverM, 0], sqrtDisc);
+            const A = cDiv(cSub([dxdt0, 0], cMul([x0, 0], rt2)), cSub(rt1, rt2));
+            const B = cSub([x0, 0], A);
+            return tArr.map(t => {
+                const term1 = cMul(A, cExp([rt1[0]*t, rt1[1]*t]));
+                const term2 = cMul(B, cExp([rt2[0]*t, rt2[1]*t]));
+                return cAdd(term1, term2)[0];
+            });
+        }
+
+        function linspace(start, end, n) {
+            const arr = [];
+            const step = (end - start) / (n - 1);
+            for (let i = 0; i < n; i++) arr.push(start + i * step);
+            return arr;
+        }
+
+        // ========== Noisy data (pre-computed with numpy seed=1) ==========
+        const M = 1000, X0 = 1, DXDT0 = 0.1;
+        const tData = [0.0000000000, 3.1250000000, 6.2500000000, 9.3750000000, 12.5000000000, 15.6250000000, 18.7500000000, 21.8750000000, 25.0000000000, 28.1250000000, 31.2500000000, 34.3750000000, 37.5000000000, 40.6250000000, 43.7500000000, 46.8750000000, 50.0000000000, 53.1250000000, 56.2500000000, 59.3750000000, 62.5000000000, 65.6250000000, 68.7500000000, 71.8750000000, 75.0000000000, 78.1250000000, 81.2500000000, 84.3750000000, 87.5000000000, 90.6250000000, 93.7500000000, 96.8750000000, 100.0000000000];
+        const xData = [1.0000000000, 1.1193542067, 0.8662223974, 0.3498031834, -0.2430098447, -0.7139944874, -0.9188534276, -1.0591576743, 0.2149049802, -1.4628819045, -0.1202266496, -0.3361423192, -0.5019159577, -0.4568840686, -0.3560500141, -0.5871205979, -0.4276869542, -0.8571164458, 0.0753112184, -1.0862020157, 0.1258103492, 0.3867729942, 0.5031533628, 0.4475673835, 0.2505097529, -0.0137409143, -0.2544310713, -0.3950233827, -0.3970490532, -0.2698619522, -0.0641425080, 0.1475627947, 0.2960036393];
+
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = canvas.width, cssH = canvas.height;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const margin = { top: 35, right: 30, bottom: 55, left: 75 };
+        const plotW = cssW - margin.left - margin.right;
+        const plotH = cssH - margin.top - margin.bottom;
+        const xLim = [0, 100], yLim = [-1.5, 1.5];
+
+        function tx(x) { return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * plotW; }
+        function ty(y) { return margin.top + (yLim[1] - y) / (yLim[1] - yLim[0]) * plotH; }
+
+        // ========== Drawing functions ==========
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#333';
+            ctx.strokeRect(margin.left, margin.top, plotW, plotH);
+
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let v = 0; v <= 100; v += 20) {
+                const px = tx(v);
+                ctx.beginPath(); ctx.moveTo(px, margin.top + plotH); ctx.lineTo(px, margin.top + plotH + 6); ctx.stroke();
+                ctx.fillText(v.toString(), px, margin.top + plotH + 8);
+            }
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let v = -1.5; v <= 1.5; v += 0.5) {
+                const py = ty(v);
+                ctx.beginPath(); ctx.moveTo(margin.left - 6, py); ctx.lineTo(margin.left, py); ctx.stroke();
+                ctx.fillText(v.toFixed(1), margin.left - 10, py);
+            }
+            ctx.font = '16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('time [s]', margin.left + plotW / 2, cssH - 15);
+            ctx.save();
+            ctx.translate(18, margin.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('displacement [m]', 0, 0);
+            ctx.restore();
+        }
+
+        function drawArrow(x1, y1, x2, y2, headLen, headW) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const ux = dx/len, uy = dy/len;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2 - ux*headLen, y2 - uy*headLen);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - ux*headLen - uy*headW/2, y2 - uy*headLen + ux*headW/2);
+            ctx.lineTo(x2 - ux*headLen + uy*headW/2, y2 - uy*headLen - ux*headW/2);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function draw() {
+            const cm = parseInt(document.getElementById('cSlider').value);
+            const km = parseInt(document.getElementById('kSlider').value);
+            const weights = document.getElementById('weightsCheck').checked;
+
+            document.getElementById('cValue').textContent = cm;
+            document.getElementById('kValue').textContent = km;
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // Compute model at data points and on fine grid
+            const xModel = suspension(tData, cm, km, M, X0, DXDT0);
+            const tFine = linspace(0, 100, 201);
+            const xFine = suspension(tFine, cm, km, M, X0, DXDT0);
+
+            // Clip to plot area
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(margin.left, margin.top, plotW, plotH);
+            ctx.clip();
+
+            // Gray shaded region (malfunctioning recording zone)
+            ctx.fillStyle = 'rgba(230, 230, 230, 1)';
+            ctx.fillRect(tx(20), margin.top, tx(60) - tx(20), plotH);
+
+            // Draw residual lines
+            for (let i = 0; i < tData.length; i++) {
+                const tdi = tData[i], xdi = xData[i], xmi = xModel[i];
+                const px = tx(tdi);
+                if (weights && tdi > 20 && tdi < 60) {
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.lineWidth = 1;
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 1)';
+                    ctx.lineWidth = 2;
+                }
+                ctx.beginPath();
+                ctx.moveTo(px, ty(xdi));
+                ctx.lineTo(px, ty(xmi));
+                ctx.stroke();
+            }
+
+            // Draw model curve
+            ctx.beginPath();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < tFine.length; i++) {
+                const px = tx(tFine[i]), py = ty(xFine[i]);
+                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Draw data points
+            for (let i = 0; i < tData.length; i++) {
+                const px = tx(tData[i]), py = ty(xData[i]);
+                ctx.beginPath();
+                ctx.arc(px, py, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.strokeStyle = '#1f77b4';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // "malfunctioning recording" arrows
+            ctx.strokeStyle = '#000';
+            ctx.fillStyle = '#000';
+            ctx.lineWidth = 1.5;
+            const arrowY = ty(1.1);
+            const headLenPx = Math.abs(tx(1.5) - tx(0));
+            const headWPx = Math.abs(ty(1.1) - ty(1.1 + 0.07)) * 2;
+            drawArrow(tx(20), arrowY, tx(60), arrowY, headLenPx, headWPx);
+            drawArrow(tx(60), arrowY, tx(20), arrowY, headLenPx, headWPx);
+
+            // "malfunctioning recording" text
+            ctx.fillStyle = '#000';
+            ctx.font = '16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('malfunctioning recording', tx(40), arrowY - 6);
+
+            ctx.restore();
+
+            // Compute S
+            const sigma = new Array(tData.length).fill(1);
+            if (weights) {
+                for (let i = 0; i < tData.length; i++) {
+                    if (tData[i] > 20 && tData[i] < 60) sigma[i] = 100;
+                }
+            }
+            let sumInvSq = 0;
+            for (let i = 0; i < sigma.length; i++) sumInvSq += 1 / (sigma[i] * sigma[i]);
+            for (let i = 0; i < sigma.length; i++) sigma[i] /= sumInvSq;
+
+            let S = 0;
+            for (let i = 0; i < tData.length; i++) {
+                const resid = (xModel[i] - xData[i]) / sigma[i];
+                S += resid * resid;
+            }
+
+            // Draw S text on canvas (top-right area, outside clip)
+            ctx.fillStyle = 'red';
+            ctx.font = '16px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const sText = 'S(' + cm + ',' + km + ') = ' + S.toExponential(2);
+            ctx.fillText(sText, margin.left + plotW * 0.62, margin.top + 8);
+
+            drawAxes();
+            drawLegend();
+        }
+
+        function drawLegend() {
+            const lx = margin.left + plotW - 130;
+            const ly = margin.top + plotH - 85;
+            const lw = 120, lh = 75;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(lx, ly, lw, lh);
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(lx, ly, lw, lh);
+
+            const entries = [
+                { y: ly + 18, type: 'circle', color: '#1f77b4', label: 'data' },
+                { y: ly + 40, type: 'line', color: '#000', label: 'model' },
+                { y: ly + 62, type: 'line', color: 'red', label: 'misfit' },
+            ];
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            for (const e of entries) {
+                if (e.type === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(lx + 20, e.y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(lx + 10, e.y);
+                    ctx.lineTo(lx + 30, e.y);
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                ctx.fillStyle = '#333';
+                ctx.fillText(e.label, lx + 38, e.y);
+            }
+        }
+
+        // ========== Event listeners ==========
+        document.getElementById('cSlider').addEventListener('input', draw);
+        document.getElementById('kSlider').addEventListener('input', draw);
+        document.getElementById('weightsCheck').addEventListener('change', draw);
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

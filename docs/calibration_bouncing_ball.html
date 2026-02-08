@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration - Bouncing Ball</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        h2 { color: #333; margin-top: 0; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 500;
+            min-width: 20px;
+        }
+        .control-group input[type="range"] {
+            width: 200px;
+        }
+        .control-group .value {
+            min-width: 35px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 15px;
+        }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .section-label {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ad-hoc Calibration: Bouncing Balls</h1>
+
+    <div class="explainer">
+        <p>
+            Consider a tennis ball dropped from an initial height \(h_0 = 10\) m. The coefficient of restitution,
+            \(e\), describes how much energy is lost during each bounce. The velocity immediately following the
+            \(i^{th}\) impact is \(v_i = \sqrt{2gh_0 e^i}\).
+        </p>
+        <p>Between the \(i\) and \(i+1\) bounce, the vertical position is</p>
+        <p style="text-align:center;">
+            \[u = -\frac{g}{2}t^2 + (gt_i + v_i)t - v_i t_i - \frac{g}{2}t_i^2\]
+        </p>
+        <p><strong>Change the coefficient of restitution below to see its effect on the bouncing ball.</strong></p>
+    </div>
+
+    <!-- Section 1: Model exploration -->
+    <div class="widget-container">
+        <div class="section-label">Model exploration</div>
+        <div class="controls">
+            <div class="control-group">
+                <label>\(e\):</label>
+                <input type="range" id="eSlider" min="0" max="1" step="0.1" value="0.5">
+                <span class="value" id="eValue">0.5</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvasModel" width="900" height="400"></canvas>
+        </div>
+    </div>
+
+    <!-- Section 2: Ad-hoc calibration (Earth) -->
+    <div class="explainer">
+        <p>
+            Suppose we did an experiment where a tennis ball was dropped and its vertical position was recorded
+            with a (not very good) camera, giving us the data below. Unfortunately, the camera broke halfway through
+            the experiment.
+        </p>
+        <p>
+            The goal was to determine <strong>at what time the maximum bounce is less than 1.5 m</strong>.
+            To achieve this, fit a model to the data, and then extrapolate it into the future.
+            Try to get the objective function less than 12.
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="section-label">Ad-hoc calibration &mdash; Earth experiment</div>
+        <div class="controls">
+            <div class="control-group">
+                <label>\(g\):</label>
+                <input type="range" id="gSlider" min="5" max="15" step="0.01" value="9.81">
+                <span class="value" id="gValue">9.81</span>
+            </div>
+            <div class="control-group">
+                <label>\(h_0\):</label>
+                <input type="range" id="h0Slider" min="5" max="12" step="0.05" value="8.00">
+                <span class="value" id="h0Value">8.00</span>
+            </div>
+            <div class="control-group">
+                <label>\(e\):</label>
+                <input type="range" id="eSlider2" min="0" max="1" step="0.01" value="0.80">
+                <span class="value" id="eValue2">0.80</span>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <label>t max:</label>
+                <input type="range" id="tmaxSlider" min="12" max="30" step="1" value="12">
+                <span class="value" id="tmaxValue">12</span>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="thresholdCheck" style="width:18px;height:18px;cursor:pointer;">
+                <label for="thresholdCheck" style="cursor:pointer;user-select:none;font-weight:500;">show 1.5 m threshold</label>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvasEarth" width="900" height="400"></canvas>
+        </div>
+    </div>
+
+    <!-- Section 3: Mars experiment -->
+    <div class="explainer">
+        <p>
+            <strong>You have been stranded on Mars!</strong> To complete your astronavigational computations, you need
+            a value for acceleration due to gravity at the surface of Mars, \(g_{\text{MARS}}\). Use your calibrated
+            coefficient of restitution from the Earth experiment, and calibrate the gravity term to fit the Mars data
+            (ball dropped from 2.5 m).
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="section-label">Inverse modelling &mdash; Mars experiment</div>
+        <div class="controls">
+            <div class="control-group">
+                <label>\(g\):</label>
+                <input type="range" id="gSliderM" min="0.5" max="5" step="0.01" value="3.70">
+                <span class="value" id="gValueM">3.70</span>
+            </div>
+            <div class="control-group">
+                <label>\(h_0\):</label>
+                <input type="range" id="h0SliderM" min="1" max="4" step="0.05" value="2.50">
+                <span class="value" id="h0ValueM">2.50</span>
+            </div>
+            <div class="control-group">
+                <label>\(e\):</label>
+                <input type="range" id="eSliderM" min="0" max="1" step="0.01" value="0.80">
+                <span class="value" id="eValueM">0.80</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvasMars" width="900" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ========== Bouncing ball model ==========
+        function vi(h0, g, e, i) {
+            return Math.sqrt(2 * g * h0 * Math.pow(e, i));
+        }
+        function uPos(t, ti, v, g) {
+            return -g/2*t*t + (g*ti + v)*t - v*ti - g/2*ti*ti;
+        }
+        function ti1(ti, v, g) {
+            return ti + 2*v/g;
+        }
+
+        function computeBounce(g, h0, e, Nbounces) {
+            if (e <= 0) e = 1e-12;
+            const v0 = vi(h0, g, e, 0);
+            const t0 = -v0 / g;
+            let tv = [], uv = [];
+
+            // First half bounce (drop from h0)
+            for (let j = 0; j <= 100; j++) {
+                const t = j / 100 * (-t0);
+                tv.push(t);
+                uv.push(uPos(t, t0, v0, g));
+            }
+            let tBounce = ti1(t0, v0, g);
+
+            // Subsequent bounces
+            for (let i = 1; i <= Nbounces; i++) {
+                const vv = vi(h0, g, e, i);
+                if (vv < 1e-10) break;
+                const tStart = tv[tv.length - 1];
+                tBounce = ti1(tStart, vv, g);
+                for (let j = 1; j <= 100; j++) {
+                    const t = tStart + j / 100 * (tBounce - tStart);
+                    tv.push(t);
+                    uv.push(uPos(t, tStart, vv, g));
+                }
+            }
+            return { tv, uv };
+        }
+
+        // ========== Experiment data ==========
+        const earthData = {
+            t: [0.0000,0.3153,0.6305,0.9458,1.2610,1.2610,1.5132,1.7655,2.0177,2.2699,2.5221,2.7743,3.0265,3.2787,3.5309,3.5309,3.7579,3.9849,4.2119,4.4388,4.6658,4.8928,5.1198,5.3468,5.5738,5.5738,5.7781,5.9824,6.1866,6.3909,6.5952,6.7995,7.0038,7.2081,7.4124,7.4124,7.5962,7.7801,7.9640,8.1478,8.3317,8.5155,8.6994,8.8832,9.0671,9.0671,9.2326,9.3981,9.5635,9.7290,9.8945,10.0599,10.2254,10.3909,10.5564],
+            u: [7.5926,7.5516,5.8908,2.7805,0.0000,0.0000,1.7668,4.2459,5.8660,6.3043,5.8212,5.3834,4.6618,2.3079,0.0000,-0.0000,1.5765,3.6734,5.1359,5.3478,5.3381,4.3316,3.3567,2.6413,0.0000,0.0000,1.1464,2.8683,4.1249,3.8189,3.7336,3.5552,2.9541,1.3994,0.0000,-0.0000,1.1517,2.1245,2.0580,3.9417,3.2553,2.5022,2.5454,0.8447,-0.0000,-0.0000,0.6284,2.5666,2.5592,2.8110,2.8212,2.5886,1.3337,0.8843,0.0000]
+        };
+        // Skip leading columns (the file has time,height with first 3 columns dropped for earth)
+        // Actually re-reading: `np.genfromtxt('bounce_experiment.txt', delimiter=',', skip_header=1).T[:,3:]`
+        // This transposes then takes columns from index 3 onward. The file has 2 columns (time, height),
+        // transposed gives 2 rows, [:, 3:] takes data points from index 3 onward.
+        // So the first 3 data points are skipped.
+        const earthT = earthData.t.slice(3);
+        const earthU = earthData.u.slice(3);
+
+        const marsData = {
+            t: [0.0000,0.4564,0.9129,1.3693,1.8257,1.8257,2.1909,2.5560,2.9212,3.2863,3.6515,4.0166,4.3818,4.7469,5.1121,5.1121,5.4407,5.7693,6.0980,6.4266,6.7552,7.0839,7.4125,7.7411,8.0698,8.0698,8.3655,8.6613,8.9571,9.2529,9.5486,9.8444,10.1402,10.4359,10.7317,10.7317,10.9979,11.2641,11.5303,11.7965,12.0627,12.3289,12.5951,12.8613,13.1274,13.1274,13.3670,13.6066,13.8462,14.0857,14.3253,14.5649,14.8045,15.0440,15.2836],
+            u: [2.6038,2.6623,2.0539,0.9048,0.1329,0.2054,1.0271,1.4288,1.6999,2.0206,2.3349,1.9007,1.3512,0.6005,0.0000,0.0303,0.9215,0.9784,1.3519,1.4217,1.5875,1.4721,0.9774,0.8570,0.0000,0.0270,0.4804,0.9888,1.1710,1.4755,1.3823,1.0970,0.9443,0.2166,0.0000,0.1273,0.3567,0.6915,0.8700,1.2751,1.0185,1.1169,0.6976,0.5702,0.2707,0.0000,0.5864,0.4892,0.8651,1.0413,1.0327,0.7371,0.7063,0.4185,0.0000]
+        };
+        const marsT = marsData.t;
+        const marsU = marsData.u;
+
+        // ========== Generic canvas plotting ==========
+        function setupCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const cssW = 900, cssH = 400;
+            canvas.width = cssW * dpr;
+            canvas.height = cssH * dpr;
+            canvas.style.width = cssW + 'px';
+            canvas.style.height = cssH + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            return { canvas, ctx, cssW, cssH };
+        }
+
+        const margin = { top: 30, right: 30, bottom: 55, left: 65 };
+
+        function plotBounce(canvasInfo, tv, uv, xLim, yLim, data, threshold, objFunc) {
+            const { ctx, cssW, cssH } = canvasInfo;
+            const pw = cssW - margin.left - margin.right;
+            const ph = cssH - margin.top - margin.bottom;
+            function txf(x) { return margin.left + (x - xLim[0]) / (xLim[1] - xLim[0]) * pw; }
+            function tyf(y) { return margin.top + (yLim[1] - y) / (yLim[1] - yLim[0]) * ph; }
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // Clip region
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(margin.left, margin.top, pw, ph);
+            ctx.clip();
+
+            // Threshold line
+            if (threshold !== null && threshold !== undefined) {
+                ctx.setLineDash([8, 5]);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(txf(xLim[0]), tyf(threshold));
+                ctx.lineTo(txf(xLim[1]), tyf(threshold));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Model curve
+            if (tv && tv.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#1f77b4';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < tv.length; i++) {
+                    const px = txf(tv[i]), py = tyf(uv[i]);
+                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            }
+
+            // Data points
+            if (data) {
+                for (let i = 0; i < data.t.length; i++) {
+                    const px = txf(data.t[i]), py = tyf(data.u[i]);
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+
+            // Objective function text
+            if (objFunc !== null && objFunc !== undefined) {
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Segoe UI';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'top';
+                ctx.fillText('objective function = ' + objFunc.toFixed(1), margin.left + pw - 10, margin.top + 8);
+            }
+
+            // Axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(margin.left, margin.top, pw, ph);
+
+            // X ticks
+            ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const xStep = xLim[1] <= 15 ? 2 : xLim[1] <= 20 ? 5 : 5;
+            for (let v = xLim[0]; v <= xLim[1]; v += xStep) {
+                const px = txf(v);
+                ctx.beginPath(); ctx.moveTo(px, margin.top + ph); ctx.lineTo(px, margin.top + ph + 6); ctx.stroke();
+                ctx.fillText(v.toString(), px, margin.top + ph + 8);
+            }
+
+            // Y ticks
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            const yStep = yLim[1] <= 5 ? 0.5 : yLim[1] <= 8 ? 1 : 2;
+            for (let v = yLim[0]; v <= yLim[1] + 0.01; v += yStep) {
+                const py = tyf(v);
+                ctx.beginPath(); ctx.moveTo(margin.left - 6, py); ctx.lineTo(margin.left, py); ctx.stroke();
+                ctx.fillText(v % 1 === 0 ? v.toString() : v.toFixed(1), margin.left - 10, py);
+            }
+
+            // Axis labels
+            ctx.font = '16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const xLabel = data ? 'time' : 't';
+            ctx.fillText(xLabel, margin.left + pw / 2, cssH - 15);
+            ctx.save();
+            ctx.translate(15, margin.top + ph / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(data ? 'height [m]' : 'u', 0, 0);
+            ctx.restore();
+        }
+
+        // ========== Section 1: Model exploration ==========
+        const canvasModel = setupCanvas('canvasModel');
+
+        function updateModel() {
+            const e = parseFloat(document.getElementById('eSlider').value);
+            document.getElementById('eValue').textContent = e.toFixed(1);
+            const { tv, uv } = computeBounce(9.81, 10.0, e, 5);
+            plotBounce(canvasModel, tv, uv, [0, 10], [0, 10], null, null, null);
+        }
+        document.getElementById('eSlider').addEventListener('input', updateModel);
+        updateModel();
+
+        // ========== Section 2: Earth experiment ==========
+        const canvasEarth = setupCanvas('canvasEarth');
+
+        function updateEarth() {
+            const g = parseFloat(document.getElementById('gSlider').value);
+            const h0 = parseFloat(document.getElementById('h0Slider').value);
+            const e = parseFloat(document.getElementById('eSlider2').value);
+            const tmax = parseInt(document.getElementById('tmaxSlider').value);
+            const showThreshold = document.getElementById('thresholdCheck').checked;
+
+            document.getElementById('gValue').textContent = g.toFixed(2);
+            document.getElementById('h0Value').textContent = h0.toFixed(2);
+            document.getElementById('eValue2').textContent = e.toFixed(2);
+            document.getElementById('tmaxValue').textContent = tmax;
+
+            const { tv, uv } = computeBounce(g, h0, e, 10);
+
+            // Compute objective function: interpolate model at data times
+            let S = 0;
+            for (let i = 0; i < earthT.length; i++) {
+                const td = earthT[i];
+                // Linear interpolation in tv/uv
+                let uInterp = 0;
+                for (let j = 0; j < tv.length - 1; j++) {
+                    if (tv[j] <= td && tv[j+1] >= td) {
+                        const frac = (td - tv[j]) / (tv[j+1] - tv[j] || 1e-12);
+                        uInterp = uv[j] + frac * (uv[j+1] - uv[j]);
+                        break;
+                    }
+                }
+                S += (uInterp - earthU[i]) * (uInterp - earthU[i]);
+            }
+
+            plotBounce(canvasEarth, tv, uv, [0, tmax], [0, 10],
+                { t: earthT, u: earthU },
+                showThreshold ? 1.5 : null,
+                S);
+        }
+        document.getElementById('gSlider').addEventListener('input', updateEarth);
+        document.getElementById('h0Slider').addEventListener('input', updateEarth);
+        document.getElementById('eSlider2').addEventListener('input', updateEarth);
+        document.getElementById('tmaxSlider').addEventListener('input', updateEarth);
+        document.getElementById('thresholdCheck').addEventListener('change', updateEarth);
+        updateEarth();
+
+        // ========== Section 3: Mars experiment ==========
+        const canvasMars = setupCanvas('canvasMars');
+
+        function updateMars() {
+            const g = parseFloat(document.getElementById('gSliderM').value);
+            const h0 = parseFloat(document.getElementById('h0SliderM').value);
+            const e = parseFloat(document.getElementById('eSliderM').value);
+
+            document.getElementById('gValueM').textContent = g.toFixed(2);
+            document.getElementById('h0ValueM').textContent = h0.toFixed(2);
+            document.getElementById('eValueM').textContent = e.toFixed(2);
+
+            const { tv, uv } = computeBounce(g, h0, e, 10);
+
+            // Compute objective function
+            let S = 0;
+            for (let i = 0; i < marsT.length; i++) {
+                const td = marsT[i];
+                let uInterp = 0;
+                for (let j = 0; j < tv.length - 1; j++) {
+                    if (tv[j] <= td && tv[j+1] >= td) {
+                        const frac = (td - tv[j]) / (tv[j+1] - tv[j] || 1e-12);
+                        uInterp = uv[j] + frac * (uv[j+1] - uv[j]);
+                        break;
+                    }
+                }
+                S += (uInterp - marsU[i]) * (uInterp - marsU[i]);
+            }
+
+            plotBounce(canvasMars, tv, uv, [0, 16], [0, 3],
+                { t: marsT, u: marsU },
+                null, S);
+        }
+        document.getElementById('gSliderM').addEventListener('input', updateMars);
+        document.getElementById('h0SliderM').addEventListener('input', updateMars);
+        document.getElementById('eSliderM').addEventListener('input', updateMars);
+        updateMars();
+    </script>
+</body>
+</html>

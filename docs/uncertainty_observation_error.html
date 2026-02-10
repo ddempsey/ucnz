@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - Observation Error</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label { font-weight: 500; }
+        .control-group input[type="range"] { width: 150px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        button.dice {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button.dice:hover { background: #45a049; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Observation Error</h1>
+
+    <div class="explainer">
+        <p><em>We shall return to this example throughout the uncertainty exercises.</em></p>
+        <p>
+            Consider some physical process that happens to be well-described by a linear model.
+            Linear models have two parameters: a gradient, \(m\), and \(y\)-intercept, \(c\), i.e.,
+            \(y_i = f(x_i; m, c) = mx_i + c\). For the purposes of demonstration, we shall cast
+            ourselves in the role of <strong>Omniscient Supreme Being</strong>, in which case we
+            are able to "know" the true parameter values: \(m_0 = 2\) and \(c_0 = 3\), i.e.,
+            \(\boldsymbol{\theta}_0 = [2.0, 3.0]\). However, the less-enlightened humans on the
+            ground don't have access to this information, and must instead satisfy themselves by
+            making measurements and developing a model.
+        </p>
+        <p>
+            Being government employees, their instruments are not wildly sensitive
+            (\(\sigma_i^2 = 0.1\)) and there is only budget to make ten observations,
+            \(\tilde{y}_i\). The measurement process is expressed:
+        </p>
+        <p style="text-align:center;">
+            \(\tilde{y}_i = f(x_i; \boldsymbol{\theta}) + \epsilon\), &nbsp; where
+            \(\epsilon \sim \mathcal{N}(0, \sigma_i^2)\).
+        </p>
+        <p>
+            Remember: as almighty overlords, we can see both the true model (blue line) and the
+            observations (open circles), but the poor humans can only see the latter.
+        </p>
+        <p><strong>Move the sliders and answer the questions below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(N_{obs}\):</label>
+                <input type="range" id="nobsSlider" min="2" max="10" step="1" value="5">
+                <span id="nobsVal" style="min-width:20px; text-align:center;">5</span>
+            </div>
+            <div class="control-group">
+                <label>\(\sigma_i^2\):</label>
+                <input type="range" id="varSlider" min="-2" max="0" step="1" value="-1">
+                <span id="varVal" style="min-width:30px; text-align:center;">0.1</span>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="trueCheck"> True Process</label>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="bestCheck"> Best (LSQ) Model</label>
+            </div>
+            <button class="dice" id="rollBtn">ROLL THE DICE</button>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="800" height="450"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>Move the slider \(N_{obs}\) to show more or fewer observations.</p>
+        <p>What do the plotted normal distributions represent?</p>
+        <p>Click the "True Process" checkbox. What does the centre of each normal distribution correspond to?</p>
+        <p>Click the "Best Model" checkbox. Do the Best and True models agree? Why or why not?</p>
+        <p>Click "ROLL THE DICE" and consider (i) the observations, (ii) the Best Model, and (iii) the True Process.
+           Which ones have changed and which ones have stayed the same?</p>
+        <p>Move the variance slider.
+           How does agreement between Best and True models change as the variance decreases?</p>
+        <p>Move the \(N_{obs}\) slider.
+           How does agreement between Best and True models change as more observations are taken?</p>
+    </div>
+
+    <script>
+        // ========== Seeded PRNG (Mulberry32) ==========
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        // Box-Muller transform for standard normal
+        function randn(rng) {
+            let u1, u2;
+            do { u1 = rng(); } while (u1 === 0);
+            u2 = rng();
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        }
+
+        // ========== Linear model ==========
+        const m0 = 2, c0 = 3;
+        function fModel(x, m, c) { return m * x + c; }
+
+        // Closed-form linear least squares: y = mx + c
+        function leastSquares(xo, yo) {
+            const n = xo.length;
+            let sx = 0, sy = 0, sxx = 0, sxy = 0;
+            for (let i = 0; i < n; i++) {
+                sx += xo[i]; sy += yo[i];
+                sxx += xo[i] * xo[i]; sxy += xo[i] * yo[i];
+            }
+            const denom = n * sxx - sx * sx;
+            return [(n * sxy - sx * sy) / denom, (sy * sxx - sx * sxy) / denom];
+        }
+
+        // ========== Observation generation ==========
+        // Always generate 10 observations at fixed x locations (matching Python: linspace(0,1,12)[1:-1])
+        const xoAll = [];
+        for (let i = 1; i <= 10; i++) xoAll.push(i / 11);
+
+        // Standard normal draws from Python numpy (seed=13, MT19937)
+        const Z_SEED13 = [-0.712390662050588, 0.753766378659703, -0.044503078338053, 0.451812338745790, 1.345101708451010, 0.532337888294546, 1.350187899722527, 0.861211374169321, 1.478685737435897, -1.045377130538534];
+
+        let seed = 13;
+
+        function generateObservations(sd, variance) {
+            if (sd === 13) {
+                // Use Python-generated z values for reproducibility
+                const yo = [];
+                for (let i = 0; i < 10; i++) {
+                    yo.push(fModel(xoAll[i], m0, c0) + Z_SEED13[i] * Math.sqrt(variance));
+                }
+                return yo;
+            }
+            const rng = mulberry32(sd);
+            const yo = [];
+            for (let i = 0; i < 10; i++) {
+                yo.push(fModel(xoAll[i], m0, c0) + randn(rng) * Math.sqrt(variance));
+            }
+            return yo;
+        }
+
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 800, cssH = 450;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Plot area
+        const mg = { left: 65, right: 25, top: 25, bottom: 50 };
+        const pW = cssW - mg.left - mg.right;
+        const pH = cssH - mg.top - mg.bottom;
+
+        const xMin = 0, xMax = 1, yMin = 1, yMax = 7;
+        function tx(x) { return mg.left + (x - xMin) / (xMax - xMin) * pW; }
+        function ty(y) { return mg.top + (yMax - y) / (yMax - yMin) * pH; }
+
+        // ========== Drawing ==========
+        function draw() {
+            const nObs = parseInt(document.getElementById('nobsSlider').value);
+            const varExp = parseInt(document.getElementById('varSlider').value);
+            const variance = Math.pow(10, varExp);
+            const showTrue = document.getElementById('trueCheck').checked;
+            const showBest = document.getElementById('bestCheck').checked;
+
+            document.getElementById('nobsVal').textContent = nObs;
+            document.getElementById('varVal').textContent = variance;
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const yo = generateObservations(seed, variance);
+
+            // Clip to plot area
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(mg.left, mg.top, pW, pH);
+            ctx.clip();
+
+            // --- Normal distributions (background, zorder 0) ---
+            const sqrtVar = Math.sqrt(variance);
+            const yRange = 3.0 * sqrtVar;
+            const yRange2 = 3.75 * sqrtVar;
+            const nPts = 101;
+
+            for (let k = 0; k < nObs; k++) {
+                const xi = xoAll[k];
+                const trueY = fModel(xi, m0, c0);
+
+                // Gray vertical support line
+                ctx.strokeStyle = 'rgba(128,128,128,0.5)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(tx(xi), ty(trueY - yRange2));
+                ctx.lineTo(tx(xi), ty(trueY + yRange2));
+                ctx.stroke();
+
+                // Sideways Gaussian bell curve
+                ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                for (let j = 0; j < nPts; j++) {
+                    const ye = -yRange + j * 2 * yRange / (nPts - 1);
+                    const gx = 0.05 * Math.exp(-ye * ye / variance) + xi;
+                    const gy = ye + trueY;
+                    if (j === 0) ctx.moveTo(tx(gx), ty(gy));
+                    else ctx.lineTo(tx(gx), ty(gy));
+                }
+                ctx.stroke();
+            }
+
+            // --- Best-fit model (red, zorder 1) ---
+            if (showBest && nObs >= 2) {
+                const xSlice = xoAll.slice(0, nObs);
+                const ySlice = yo.slice(0, nObs);
+                const [bm, bc] = leastSquares(xSlice, ySlice);
+                ctx.strokeStyle = '#FF0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i <= 200; i++) {
+                    const x = xMin + i * (xMax - xMin) / 200;
+                    if (i === 0) ctx.moveTo(tx(x), ty(fModel(x, bm, bc)));
+                    else ctx.lineTo(tx(x), ty(fModel(x, bm, bc)));
+                }
+                ctx.stroke();
+            }
+
+            // --- True model (blue, zorder 10) ---
+            if (showTrue) {
+                ctx.strokeStyle = '#0000FF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i <= 200; i++) {
+                    const x = xMin + i * (xMax - xMin) / 200;
+                    if (i === 0) ctx.moveTo(tx(x), ty(fModel(x, m0, c0)));
+                    else ctx.lineTo(tx(x), ty(fModel(x, m0, c0)));
+                }
+                ctx.stroke();
+            }
+
+            // --- Observations (white circles, black edge, zorder 10) ---
+            for (let k = 0; k < nObs; k++) {
+                const cx = tx(xoAll[k]);
+                const cy = ty(yo[k]);
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // --- Axes ---
+            drawAxes();
+
+            // --- Legend ---
+            const items = [{ type: 'circle', label: 'observations' }];
+            if (showBest) items.push({ type: 'line', color: '#FF0000', label: 'best model' });
+            if (showTrue) items.push({ type: 'line', color: '#0000FF', label: 'true process' });
+            drawLegend(items);
+        }
+
+        function drawAxes() {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(mg.left, mg.top, pW, pH);
+
+            ctx.fillStyle = '#000';
+            // X ticks
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let x = 0; x <= 1.001; x += 0.2) {
+                const cx = tx(x);
+                ctx.beginPath(); ctx.moveTo(cx, mg.top + pH); ctx.lineTo(cx, mg.top + pH + 5); ctx.stroke();
+                ctx.fillText(x.toFixed(1), cx, mg.top + pH + 8);
+            }
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.fillText('x', mg.left + pW / 2, cssH - 10);
+
+            // Y ticks
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let y = 1; y <= 7; y += 1) {
+                const cy = ty(y);
+                ctx.beginPath(); ctx.moveTo(mg.left - 5, cy); ctx.lineTo(mg.left, cy); ctx.stroke();
+                ctx.fillText(y.toString(), mg.left - 8, cy);
+            }
+            ctx.save();
+            ctx.translate(18, mg.top + pH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.font = 'italic 16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('y', 0, 0);
+            ctx.restore();
+        }
+
+        function drawLegend(items) {
+            const lx = mg.left + 10, ly = mg.top + 10;
+            const lineH = 22;
+            const legendW = 150, legendH = items.length * lineH + 10;
+
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.fillRect(lx, ly, legendW, legendH);
+            ctx.strokeRect(lx, ly, legendW, legendH);
+
+            ctx.font = '13px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const iy = ly + 12 + i * lineH;
+                if (item.type === 'circle') {
+                    ctx.fillStyle = 'white';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(lx + 15, iy, 4, 0, 2 * Math.PI);
+                    ctx.fill(); ctx.stroke();
+                } else {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(lx + 5, iy); ctx.lineTo(lx + 25, iy); ctx.stroke();
+                }
+                ctx.fillStyle = '#000';
+                ctx.fillText(item.label, lx + 35, iy);
+            }
+        }
+
+        // ========== Events ==========
+        document.getElementById('nobsSlider').addEventListener('input', draw);
+        document.getElementById('varSlider').addEventListener('input', draw);
+        document.getElementById('trueCheck').addEventListener('change', draw);
+        document.getElementById('bestCheck').addEventListener('change', draw);
+        document.getElementById('rollBtn').addEventListener('click', function() {
+            seed = Date.now();
+            draw();
+        });
+
+        draw();
+    </script>
+</body>
+</html>

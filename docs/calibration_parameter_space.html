@@ -62,15 +62,25 @@
 
     <div class="explainer">
         <p>
-            Any particular choice of parameters corresponds to a point in \(N\)-dimensional space.
-            For the car with damped shock absorption, the unknown parameters are
-            \(\boldsymbol{\theta}=[c,k]\). The allowed parameter combinations define a 2D plane in
-            \(c\)-\(k\) parameter space with the objective function, \(S(\boldsymbol{\theta})\),
-            a surface over that space.
+            We have expressed the input parameters to the model as a vector, \(\boldsymbol{\theta}\).
+            Therefore, any particular choice of parameters (called a unique parameterisation of the model)
+            corresponds to a point in \(N\)-dimensional space with a set of axes for each of the \(N\) parameters.
         </p>
         <p>
-            Model calibration is the process of searching through parameter space to find the
+            Take, for example, the car with damped shock absorption and assume that we know precisely the values
+            of \(m\) and \(g\). In this case, the unknown parameters to be chosen in order to calibrate the model
+            are \(\boldsymbol{\theta}=[c,k]\). The allowed parameter combinations define a 2D plane in
+            \(c\)-\(k\) parameter space with both the model prediction, \(f(x_i;\boldsymbol{\theta})\), and
+            the objective function, \(S(\boldsymbol{\theta})\), surfaces over that space. In this geometric
+            interpretation, model calibration is the process of searching through parameter space to find the
             value(s), \(\boldsymbol{\theta}_{min}\), that minimize \(S(\boldsymbol{\theta})\).
+        </p>
+        <p>
+            As we saw in the previous section, <em>ad-hoc</em> calibration is a sort of "feeling your way around
+            in the dark" approach to determining this minimum. We will now consider <em>gradient descent</em>, an
+            automated, numerical approach to calibration. One way to conceptualize gradient descent is to consider
+            the question "<em>if we placed a ball on the surface of the plot below and allowed it to roll, what
+            path would it follow? Where would it come to rest?</em>"
         </p>
         <p><strong>Move the sliders and answer the questions below.</strong></p>
     </div>
@@ -97,7 +107,7 @@
         <p>For each value of \(\theta\), there is a unique value \(S(\theta)\). True or False?</p>
         <p>For each value \(S(\theta)\), there is a unique value of \(\theta\). True or False?</p>
         <p>What is the goal of calibration, in terms of navigating the plotted surface?</p>
-        <p>If \(S(\theta)\) is the objective function, what would you expect to the plot above if different weights were used for the observations?</p>
+        <p>If \(S(\theta)\) is the objective function, what would you expect to change about the plot above if different weights were applied to certain observations?</p>
     </div>
 
     <script>

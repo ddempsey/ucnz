@@ -90,6 +90,17 @@
 
     <div class="explainer">
         <p>
+            Recall the algebraic definition of a model with independent variables, \(\mathbf{x}\), accepting
+            input parameters, \(\boldsymbol{\theta}\), and yielding, via the operator, \(f(\cdot)\), the
+            output (dependent variable), \(y\), i.e., \(y=f(x;\boldsymbol{\theta})\).
+        </p>
+        <p>
+            Imagine also that we have a set of observations, \(\tilde{y}_i\), corresponding to \(\mathbf{x}_i\).
+            For a particular set of parameter values, \(\boldsymbol{\theta}\), the model <em>prediction</em>
+            of the observation is \(y_i=f(\mathbf{x}_i;\boldsymbol{\theta})\). But the model prediction
+            will probably be <em>wrong</em>. The misfit is \(\tilde{y}_i - y_i\).
+        </p>
+        <p>
             We can improve the model by reducing the overall misfit to <em>all</em> observations. For \(N\) observations
             we could minimise the <strong>sum of squared residuals</strong>
         </p>
@@ -97,16 +108,21 @@
             \[S = \sum_{i=1}^{N}\left(\tilde{y}_i - y_i\right)^2\]
         </p>
         <p>
-            Sometimes we might choose to prioritise the model fit with some particular observations over others &mdash;
-            for instance, if some measurements have more uncertainty or error. In this case, we can use the
-            <strong>weighted</strong> sum-of-squares criterion:
+            Sometimes we might choose to prioritise the model fit with some particular observations over others.
+            For instance: if we should <em>prefer</em> that the model fits one type of observation better than
+            another; or if some measurements have more uncertainty or error than others. In this case, we can use
+            the <strong>weighted</strong> sum-of-squares criterion:
         </p>
         <p style="text-align:center;">
             \[S(\boldsymbol{\theta}) = \sum_{i=1}^{N} w_i\left(\tilde{y}_i - f(x_i;\boldsymbol{\theta})\right)^2\]
         </p>
         <p>
-            By <em>modifying</em> \(\boldsymbol{\theta}\) we can improve or worsen the fit of the model to the data.
-            Calibration amounts to finding the parameter set, \(\boldsymbol{\theta}_{min}\), that minimises \(S\).
+            where \(w_i\) are the weights associated with observations and we have made the dependence of
+            \(S\) on \(\boldsymbol{\theta}\) explicit. In this form, \(S(\boldsymbol{\theta})\) is sometimes
+            called the <em>objective function</em>. It should also be clear that by <em>modifying</em>
+            \(\boldsymbol{\theta}\) we can improve or worsen the fit of the model to the data (change the value
+            of \(S\)). Calibration amounts to finding the parameter set, \(\boldsymbol{\theta}_{min}\), that
+            minimises \(S\).
         </p>
         <p><strong>Use the sliders below and answer the questions.</strong></p>
     </div>

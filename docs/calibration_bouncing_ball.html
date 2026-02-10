@@ -71,13 +71,40 @@
 
     <div class="explainer">
         <p>
-            Consider a tennis ball dropped from an initial height \(h_0 = 10\) m. The coefficient of restitution,
-            \(e\), describes how much energy is lost during each bounce. The velocity immediately following the
-            \(i^{th}\) impact is \(v_i = \sqrt{2gh_0 e^i}\).
+            Consider a tennis ball, dropped from an initial height, \(h_0\), of 10 m. The ball impacts
+            the ground and then bounces. If the collision is perfectly elastic, the ball will travel upward
+            to a peak height of 10 m (and, if we can neglect air resistance, continue bouncing like this
+            for ever and ever).
         </p>
-        <p>Between the \(i\) and \(i+1\) bounce, the vertical position is</p>
+        <p>
+            In practice, when bouncing, the ball loses some proportion of its energy. The coefficient of
+            restitution, \(e\), is an empirical factor between 0 and 1 that describes how much energy
+            is lost during the bounce.
+        </p>
+        <p>
+            The energy prior to being dropped is gravitational potential, \(mgh_0\), and this is the same,
+            but in a kinetic form, prior to the first impact. After impact, the energy is \(e \times mgh_0\).
+        </p>
+        <p>
+            The velocity immediately prior to the first impact is \(-v_0=-\sqrt{2gh_0}\). Immediately
+            after impact it is \(v_1=\sqrt{2gh_0e}\), where we have taken upward velocity as positive.
+            The velocity immediately following the \(i^{th}\) impact is \(v_i=\sqrt{2gh_0e^i}\).
+        </p>
+        <p>
+            We can use this information to compute the equation of motion for the ball's vertical position,
+            \(u\), between the \(i\) and \(i+1\) bounce. Starting with the 2nd order differential equation,
+            and two initial conditions:
+        </p>
+        <p style="text-align:center;">
+            \[\frac{d^2u}{dt^2}=-g,\qquad \frac{du}{dt}(t_i)=v_i, \qquad u(t_i)=0\]
+        </p>
+        <p>we obtain</p>
         <p style="text-align:center;">
             \[u = -\frac{g}{2}t^2 + (gt_i + v_i)t - v_i t_i - \frac{g}{2}t_i^2\]
+        </p>
+        <p>
+            which is a quadratic with roots at \(t_i\) (the time immediately after bounce \(i\)) and
+            \(t_i+2v_i/g\) (the time immediately prior to bounce \(i+1\), i.e., \(t_{i+1}=t_i+2v_i/g\)).
         </p>
         <p><strong>Change the coefficient of restitution below to see its effect on the bouncing ball.</strong></p>
     </div>
@@ -121,13 +148,13 @@
             </div>
             <div class="control-group">
                 <label>\(h_0\):</label>
-                <input type="range" id="h0Slider" min="5" max="12" step="0.05" value="8.00">
-                <span class="value" id="h0Value">8.00</span>
+                <input type="range" id="h0Slider" min="5" max="12" step="0.05" value="10.00">
+                <span class="value" id="h0Value">10.00</span>
             </div>
             <div class="control-group">
                 <label>\(e\):</label>
-                <input type="range" id="eSlider2" min="0" max="1" step="0.01" value="0.80">
-                <span class="value" id="eValue2">0.80</span>
+                <input type="range" id="eSlider2" min="0" max="1" step="0.01" value="0.60">
+                <span class="value" id="eValue2">0.60</span>
             </div>
         </div>
         <div class="controls">

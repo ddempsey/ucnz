@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - Prediction</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-group label { font-weight: 500; font-size: 14px; }
+        .control-group input[type="range"] { width: 130px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Prediction Uncertainty</h1>
+
+    <div class="explainer">
+        <p>
+            The humans wish to use their calibrated model and understanding of the posterior to
+            make a prediction. For this rather contrived scenario, they will attempt to predict
+            the physical process at \(x_f = 3.0\), which might be regarded as "about twice as far
+            into the future as the period we have data for, [0&ndash;1]". The true future outcome
+            is \(y_{f,0} = f(x_f; \boldsymbol{\theta}_0) = 9\), but this is only learned long
+            after the prediction is made. The prediction made using just the best-fit model is
+            \(y_f = f(x_f; \hat{\boldsymbol{\theta}}_0) = 9.75\). Not bad for mere humans! But
+            also wrong.
+        </p>
+        <p>
+            To be more rigorous, it is desirable to develop some sort of confidence in the
+            prediction. Sample parameter sets are chosen from the posterior distribution, and a
+            prediction is computed for each. The collection of predictions &mdash; the
+            <strong>forecast</strong> &mdash; approximates a probability distribution,
+            \(P(y_f|\tilde{y}_i)\), which can be interrogated for its statistical properties.
+            Of particular interest are the median outcome and an interval centred on it that
+            encloses some substantial proportion of the outcomes (90% is a good number).
+        </p>
+        <p><strong>Adjust the controls and answer the questions below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label><input type="checkbox" id="zoomCheck"> zoom</label>
+            </div>
+            <div class="control-group">
+                <label>samples:</label>
+                <input type="range" id="nSlider" min="0" max="5" step="1" value="2">
+                <span id="nVal">16</span>
+            </div>
+            <div class="control-group">
+                <label>\(x_f\):</label>
+                <input type="range" id="xfSlider" min="20" max="50" step="5" value="30">
+                <span id="xfVal">3.0</span>
+            </div>
+            <div class="control-group">
+                <label>\(\sigma_i^2\):</label>
+                <input type="range" id="varSlider" min="-2" max="0" step="1" value="-1">
+                <span id="varVal">0.1</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="950" height="380"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>Add some more samples using the slider. How does the forecast change (width and shape) as you add more samples?</p>
+        <p>Extend the forecast using the slider for \(x_f\). How does the forecast change as you consider more distant futures?</p>
+        <p>Increase the variance. How do the posterior and forecast change as you increase the observation error?</p>
+    </div>
+
+    <script>
+        // ========== PRNG ==========
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+        function randn(rng) {
+            let u1; do { u1 = rng(); } while (u1 === 0);
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * rng());
+        }
+
+        // ========== Model ==========
+        const m0 = 2, c0 = 3;
+        function fModel(x, m, c) { return m * x + c; }
+        function lsq(x, y) {
+            const n = x.length; let sx=0,sy=0,sxx=0,sxy=0;
+            for (let i=0;i<n;i++){sx+=x[i];sy+=y[i];sxx+=x[i]*x[i];sxy+=x[i]*y[i];}
+            const d=n*sxx-sx*sx;
+            return [(n*sxy-sx*sy)/d,(sy*sxx-sx*sxy)/d];
+        }
+
+        const xoAll = []; for (let i = 1; i <= 10; i++) xoAll.push(i / 11);
+
+        // Standard normal draws from Python numpy (seed=13, MT19937)
+        const Z_SEED13 = [-0.712390662050588, 0.753766378659703, -0.044503078338053, 0.451812338745790, 1.345101708451010, 0.532337888294546, 1.350187899722527, 0.861211374169321, 1.478685737435897, -1.045377130538534];
+
+        function genObs(seed, variance) {
+            const yo = [];
+            for (let i = 0; i < 10; i++) yo.push(m0 * xoAll[i] + c0 + Z_SEED13[i] * Math.sqrt(variance));
+            return yo;
+        }
+
+        // ========== Posterior computation ==========
+        function computePosterior(variance) {
+            const yo = genObs(13, variance);
+            const [mf, cf] = lsq(xoAll, yo);
+            const Nm = 81, Nc = 81;
+            const mmin = 0.3, mmax = 4.9, cmin = 1.55, cmax = 4.55;
+            const mArr = [], cArr = [];
+            for (let i = 0; i < Nm; i++) mArr.push(mmin + i * (mmax - mmin) / (Nm - 1));
+            for (let j = 0; j < Nc; j++) cArr.push(cmin + j * (cmax - cmin) / (Nc - 1));
+            const dm = mArr[1] - mArr[0], dc = cArr[1] - cArr[0];
+
+            const P = [];
+            for (let j = 0; j < Nc; j++) {
+                P[j] = [];
+                for (let i = 0; i < Nm; i++) {
+                    let S = 0;
+                    for (let k = 0; k < 10; k++) {
+                        const r = yo[k] - (mArr[i] * xoAll[k] + cArr[j]);
+                        S += r * r / variance;
+                    }
+                    P[j][i] = Math.exp(-S / 2);
+                }
+            }
+            let sumP = 0;
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) sumP += P[j][i];
+            sumP *= dm * dc;
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) P[j][i] /= sumP;
+
+            // Fit MVN: compute means and covariance
+            let m1 = 0, c1 = 0;
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) {
+                m1 += P[j][i] * mArr[i]; c1 += P[j][i] * cArr[j];
+            }
+            m1 *= dm * dc; c1 *= dm * dc;
+
+            let smm = 0, scc = 0, scm = 0;
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) {
+                smm += P[j][i] * (mArr[i] - m1) ** 2;
+                scc += P[j][i] * (cArr[j] - c1) ** 2;
+                scm += P[j][i] * (mArr[i] - m1) * (cArr[j] - c1);
+            }
+            smm *= dm * dc; scc *= dm * dc; scm *= dm * dc;
+
+            // Pre-render heatmap
+            let maxP = 0;
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) maxP = Math.max(maxP, P[j][i]);
+            const hmC = document.createElement('canvas');
+            hmC.width = Nm; hmC.height = Nc;
+            const hmX = hmC.getContext('2d');
+            const hd = hmX.createImageData(Nm, Nc);
+            for (let j = 0; j < Nc; j++) for (let i = 0; i < Nm; i++) {
+                const t = P[j][i] / maxP;
+                const [r, g, b] = jetRGB(t);
+                const idx = ((Nc - 1 - j) * Nm + i) * 4;
+                hd.data[idx] = r; hd.data[idx+1] = g; hd.data[idx+2] = b; hd.data[idx+3] = 255;
+            }
+            hmX.putImageData(hd, 0, 0);
+
+            return { yo, mf, cf, P, mArr, cArr, Nm, Nc, mmin, mmax, cmin, cmax, m1, c1, smm, scc, scm, hmCanvas: hmC };
+        }
+
+        function jetRGB(t) {
+            t = Math.max(0, Math.min(1, t));
+            let r, g, b;
+            if (t < 0.125)      { r = 0; g = 0; b = 0.5 + t/0.125*0.5; }
+            else if (t < 0.375) { r = 0; g = (t-0.125)/0.25; b = 1; }
+            else if (t < 0.625) { r = (t-0.375)/0.25; g = 1; b = 1-(t-0.375)/0.25; }
+            else if (t < 0.875) { r = 1; g = 1-(t-0.625)/0.25; b = 0; }
+            else                { r = 1-(t-0.875)/0.125*0.5; g = 0; b = 0; }
+            return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+        }
+
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 950, cssH = 380;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Panel layout
+        const P1 = { x: 55, y: 30, w: 250, h: 290 };
+        const P2 = { x: 370, y: 30, w: 220, h: 290 };
+        const P3 = { x: 660, y: 30, w: 230, h: 290 };
+
+        let cachedVar = null, post = null;
+
+        function draw() {
+            const zoom = document.getElementById('zoomCheck').checked;
+            const nExp = parseInt(document.getElementById('nSlider').value);
+            const N = Math.pow(4, nExp);
+            const xf = parseInt(document.getElementById('xfSlider').value) / 10;
+            const varExp = parseInt(document.getElementById('varSlider').value);
+            const variance = Math.pow(10, varExp);
+
+            document.getElementById('nVal').textContent = N;
+            document.getElementById('xfVal').textContent = xf.toFixed(1);
+            document.getElementById('varVal').textContent = variance;
+
+            // Recompute posterior if variance changed
+            if (variance !== cachedVar) {
+                post = computePosterior(variance);
+                cachedVar = variance;
+            }
+
+            // Cholesky of 2x2 covariance
+            const L11 = Math.sqrt(post.smm);
+            const L21 = post.scm / L11;
+            const L22 = Math.sqrt(post.scc - L21 * L21);
+
+            // Sample from MVN
+            const rng = mulberry32(13);
+            const samples = [];
+            for (let i = 0; i < N; i++) {
+                const z1 = randn(rng), z2 = randn(rng);
+                samples.push([post.m1 + L11 * z1, post.c1 + L21 * z1 + L22 * z2]);
+            }
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // ===== Left panel: model lines =====
+            const xMinL = zoom ? 0 : 0, xMaxL = zoom ? 1 : 5.5;
+            const yMinL = zoom ? 1 : 0, yMaxL = zoom ? 7 : 15;
+            function tx1(x) { return P1.x + (x - xMinL) / (xMaxL - xMinL) * P1.w; }
+            function ty1(y) { return P1.y + (yMaxL - y) / (yMaxL - yMinL) * P1.h; }
+
+            ctx.save();
+            ctx.beginPath(); ctx.rect(P1.x, P1.y, P1.w, P1.h); ctx.clip();
+
+            // Ensemble lines
+            const alpha = Math.min(0.5, 10 / N);
+            const yfs = [];
+            for (const s of samples) {
+                ctx.strokeStyle = `rgba(0,0,0,${alpha})`; ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(tx1(xMinL), ty1(fModel(xMinL, s[0], s[1])));
+                ctx.lineTo(tx1(xMaxL), ty1(fModel(xMaxL, s[0], s[1])));
+                ctx.stroke();
+                yfs.push(fModel(xf, s[0], s[1]));
+            }
+
+            // True process (blue)
+            ctx.strokeStyle = '#0000FF'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(tx1(xMinL), ty1(fModel(xMinL,m0,c0))); ctx.lineTo(tx1(xMaxL), ty1(fModel(xMaxL,m0,c0))); ctx.stroke();
+            // Best model (red)
+            ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(tx1(xMinL), ty1(fModel(xMinL,post.mf,post.cf))); ctx.lineTo(tx1(xMaxL), ty1(fModel(xMaxL,post.mf,post.cf))); ctx.stroke();
+            // xf line
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+            ctx.beginPath(); ctx.moveTo(tx1(xf), P1.y); ctx.lineTo(tx1(xf), P1.y+P1.h); ctx.stroke();
+            ctx.setLineDash([]);
+            // Observations
+            for (let k = 0; k < 10; k++) {
+                ctx.fillStyle = 'white'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(tx1(xoAll[k]), ty1(post.yo[k]), 5, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+            }
+            ctx.restore();
+
+            // Left axes
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(P1.x, P1.y, P1.w, P1.h);
+            ctx.fillStyle = '#000'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const xStep = zoom ? 0.5 : 1;
+            for (let x = Math.ceil(xMinL/xStep)*xStep; x <= xMaxL; x += xStep) {
+                ctx.beginPath(); ctx.moveTo(tx1(x), P1.y+P1.h); ctx.lineTo(tx1(x), P1.y+P1.h+4); ctx.stroke();
+                ctx.fillText(x%1===0?x.toFixed(0):x.toFixed(1), tx1(x), P1.y+P1.h+6);
+            }
+            ctx.font = 'italic 13px Segoe UI'; ctx.fillText('x', P1.x+P1.w/2, P1.y+P1.h+20);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = '12px Segoe UI';
+            const yStep = zoom ? 1 : 5;
+            for (let y = Math.ceil(yMinL/yStep)*yStep; y <= yMaxL; y += yStep) {
+                ctx.beginPath(); ctx.moveTo(P1.x-4, ty1(y)); ctx.lineTo(P1.x, ty1(y)); ctx.stroke();
+                ctx.fillText(y.toString(), P1.x-6, ty1(y));
+            }
+            ctx.save(); ctx.translate(P1.x-32, P1.y+P1.h/2); ctx.rotate(-Math.PI/2);
+            ctx.font = 'italic 13px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('y', 0, 0); ctx.restore();
+
+            // Left legend
+            drawLegendLeft(P1);
+
+            // ===== Middle panel: posterior heatmap =====
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(post.hmCanvas, P2.x, P2.y, P2.w, P2.h);
+            ctx.imageSmoothingEnabled = true;
+
+            function tx2(m) { return P2.x + (m - post.mmin) / (post.mmax - post.mmin) * P2.w; }
+            function ty2(c) { return P2.y + (post.cmax - c) / (post.cmax - post.cmin) * P2.h; }
+
+            // Sample markers
+            for (const s of samples) {
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+                const ms = 5;
+                ctx.beginPath();
+                ctx.moveTo(tx2(s[0])-ms, ty2(s[1])-ms); ctx.lineTo(tx2(s[0])+ms, ty2(s[1])+ms);
+                ctx.moveTo(tx2(s[0])+ms, ty2(s[1])-ms); ctx.lineTo(tx2(s[0])-ms, ty2(s[1])+ms);
+                ctx.stroke();
+            }
+            // True (blue) and best (red) markers
+            for (const [mv,cv,col] of [[m0,c0,'#0000FF'],[post.mf,post.cf,'#FF0000']]) {
+                ctx.fillStyle = col; ctx.strokeStyle = 'white'; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.arc(tx2(mv), ty2(cv), 7, 0, 2*Math.PI); ctx.stroke(); ctx.fill();
+            }
+
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(P2.x, P2.y, P2.w, P2.h);
+            ctx.fillStyle = '#000'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let m = 1; m <= 4; m++) {
+                ctx.beginPath(); ctx.moveTo(tx2(m), P2.y+P2.h); ctx.lineTo(tx2(m), P2.y+P2.h+4); ctx.stroke();
+                ctx.fillText(m.toString(), tx2(m), P2.y+P2.h+6);
+            }
+            ctx.font = 'italic 13px Segoe UI'; ctx.fillText('m', P2.x+P2.w/2, P2.y+P2.h+20);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = '12px Segoe UI';
+            for (let c = 2; c <= 4; c += 0.5) {
+                ctx.beginPath(); ctx.moveTo(P2.x-4, ty2(c)); ctx.lineTo(P2.x, ty2(c)); ctx.stroke();
+                ctx.fillText(c.toFixed(1), P2.x-6, ty2(c));
+            }
+            ctx.save(); ctx.translate(P2.x-28, P2.y+P2.h/2); ctx.rotate(-Math.PI/2);
+            ctx.font = 'italic 13px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('c', 0, 0); ctx.restore();
+
+            // Mid legend
+            const lx2 = P2.x+4, ly2 = P2.y+P2.h-60;
+            ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.fillRect(lx2, ly2, 78, 55); ctx.strokeRect(lx2, ly2, 78, 55);
+            ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            for (const [idx, col, lbl] of [[0,'#0000FF','\u03B8\u2080'],[1,'#FF0000','\u03B8\u0302\u2080'],[2,'#000','sample']]) {
+                const iy = ly2 + 12 + idx * 16;
+                if (idx < 2) {
+                    ctx.fillStyle = col; ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.arc(lx2+10, iy, 4, 0, 2*Math.PI); ctx.stroke(); ctx.fill();
+                } else {
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(lx2+5, iy-4); ctx.lineTo(lx2+15, iy+4);
+                    ctx.moveTo(lx2+15, iy-4); ctx.lineTo(lx2+5, iy+4); ctx.stroke();
+                }
+                ctx.fillStyle = '#000'; ctx.fillText(lbl, lx2+22, iy);
+            }
+
+            // ===== Right panel: forecast histogram =====
+            const hMin = 4, hMax = 20, pMinH = 0, pMaxH = 1;
+            function tx3(v) { return P3.x + (v - hMin) / (hMax - hMin) * P3.w; }
+            function ty3(v) { return P3.y + (pMaxH - v) / (pMaxH - pMinH) * P3.h; }
+
+            ctx.save();
+            ctx.beginPath(); ctx.rect(P3.x, P3.y, P3.w, P3.h); ctx.clip();
+
+            if (yfs.length > 0) {
+                const nBins = Math.max(3, Math.floor(Math.sqrt(N)));
+                const fMin = Math.min(...yfs) * 0.999;
+                const fMax = Math.max(...yfs) * 1.001;
+                const binsArr = [];
+                for (let i = 0; i <= nBins; i++) binsArr.push(fMin + i * (fMax - fMin) / nBins);
+                const counts = new Array(nBins).fill(0);
+                for (const v of yfs) {
+                    const idx = Math.min(nBins - 1, Math.floor((v - fMin) / (fMax - fMin) * nBins));
+                    counts[idx]++;
+                }
+                const binW = binsArr[1] - binsArr[0];
+                const total = yfs.length * binW;
+                for (let i = 0; i < nBins; i++) {
+                    const h = counts[i] / total;
+                    ctx.fillStyle = 'rgba(128,128,128,0.7)';
+                    ctx.fillRect(tx3(binsArr[i]), ty3(h), tx3(binsArr[i+1]) - tx3(binsArr[i]), ty3(0) - ty3(h));
+                }
+
+                if (N > 10) {
+                    // Best model prediction
+                    const yfBest = fModel(xf, post.mf, post.cf);
+                    ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(tx3(yfBest), P3.y); ctx.lineTo(tx3(yfBest), P3.y+P3.h); ctx.stroke();
+                    // True prediction
+                    const yfTrue = fModel(xf, m0, c0);
+                    ctx.strokeStyle = '#0000FF'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(tx3(yfTrue), P3.y); ctx.lineTo(tx3(yfTrue), P3.y+P3.h); ctx.stroke();
+                    // 90% interval
+                    const sorted = [...yfs].sort((a,b) => a-b);
+                    const p5 = sorted[Math.floor(0.05 * sorted.length)];
+                    const p95 = sorted[Math.floor(0.95 * sorted.length)];
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+                    ctx.beginPath(); ctx.moveTo(tx3(p5), P3.y); ctx.lineTo(tx3(p5), P3.y+P3.h); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(tx3(p95), P3.y); ctx.lineTo(tx3(p95), P3.y+P3.h); ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            ctx.restore();
+
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(P3.x, P3.y, P3.w, P3.h);
+            ctx.fillStyle = '#000'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let v = 5; v <= 20; v += 5) {
+                ctx.beginPath(); ctx.moveTo(tx3(v), P3.y+P3.h); ctx.lineTo(tx3(v), P3.y+P3.h+4); ctx.stroke();
+                ctx.fillText(v.toString(), tx3(v), P3.y+P3.h+6);
+            }
+            ctx.font = 'italic 13px Segoe UI'; ctx.fillText('y_f', P3.x+P3.w/2, P3.y+P3.h+20);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = '12px Segoe UI';
+            for (let v = 0; v <= 1; v += 0.5) {
+                ctx.beginPath(); ctx.moveTo(P3.x-4, ty3(v)); ctx.lineTo(P3.x, ty3(v)); ctx.stroke();
+                ctx.fillText(v.toFixed(1), P3.x-6, ty3(v));
+            }
+            ctx.save(); ctx.translate(P3.x-28, P3.y+P3.h/2); ctx.rotate(-Math.PI/2);
+            ctx.font = 'italic 13px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('P(y_f)', 0, 0); ctx.restore();
+
+            // Right legend
+            if (N > 10) {
+                const lx3 = P3.x+P3.w-110, ly3 = P3.y+8;
+                ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+                ctx.fillRect(lx3, ly3, 102, 68); ctx.strokeRect(lx3, ly3, 102, 68);
+                ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                const items = [['#FF0000','-','best model'],['#0000FF','-','true process'],['#000','--','90% interval']];
+                for (let i = 0; i < items.length; i++) {
+                    const iy = ly3 + 12 + i * 18;
+                    ctx.strokeStyle = items[i][0]; ctx.lineWidth = 1.5;
+                    if (items[i][1] === '--') ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(lx3+4, iy); ctx.lineTo(lx3+20, iy); ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = '#000'; ctx.fillText(items[i][2], lx3+24, iy);
+                }
+            }
+        }
+
+        function drawLegendLeft(P1) {
+            const lx = P1.x+P1.w-115, ly = P1.y+P1.h-76;
+            ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.fillRect(lx, ly, 108, 68); ctx.strokeRect(lx, ly, 108, 68);
+            ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            const items = [
+                {t:'circle',label:'obs.'},
+                {t:'line',c:'#FF0000',label:'best model'},
+                {t:'line',c:'#0000FF',label:'true process'},
+                {t:'line',c:'rgba(0,0,0,0.5)',label:'sample'}
+            ];
+            for (let i = 0; i < items.length; i++) {
+                const iy = ly + 10 + i * 14;
+                if (items[i].t === 'circle') {
+                    ctx.fillStyle = 'white'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(lx+10, iy, 3, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+                } else {
+                    ctx.strokeStyle = items[i].c; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(lx+3, iy); ctx.lineTo(lx+17, iy); ctx.stroke();
+                }
+                ctx.fillStyle = '#000'; ctx.fillText(items[i].label, lx+22, iy);
+            }
+        }
+
+        document.getElementById('zoomCheck').addEventListener('change', draw);
+        document.getElementById('nSlider').addEventListener('input', draw);
+        document.getElementById('xfSlider').addEventListener('input', draw);
+        document.getElementById('varSlider').addEventListener('input', draw);
+        draw();
+    </script>
+</body>
+</html>

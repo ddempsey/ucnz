@@ -71,6 +71,27 @@
         <p style="text-align:center;">
             \[\mathbf{s}'=\left[\frac{\partial S}{\partial c},\frac{\partial S}{\partial k}\right]\]
         </p>
+        <p>
+            In practice we rarely have an analytical expression for these partial derivatives. Instead, we approximate
+            them using a <strong>finite difference</strong>. For a parameter vector \(\boldsymbol{\theta}=[\theta_1,\theta_2,\dots]\),
+            the \(i\)-th component of the sensitivity is:
+        </p>
+        <p style="text-align:center;">
+            \[\frac{\partial S}{\partial \theta_i}\approx\frac{S(\boldsymbol{\theta}+\delta\,\boldsymbol{\varepsilon}_i)-S(\boldsymbol{\theta})}{\delta}\]
+        </p>
+        <p>
+            Here \(\delta\) is a small perturbation (one slider step in this widget) and \(\boldsymbol{\varepsilon}_i\) is
+            the <strong>unit vector in the \(i\)-th parameter direction</strong> &mdash; a vector of zeros with a 1 in position \(i\).
+            For example, with two parameters \(\boldsymbol{\theta}=[c,k]\):
+        </p>
+        <p style="text-align:center;">
+            \[\boldsymbol{\varepsilon}_1=[1,0],\qquad \boldsymbol{\varepsilon}_2=[0,1]\]
+        </p>
+        <p>
+            So \(\boldsymbol{\theta}+\delta\,\boldsymbol{\varepsilon}_1\) means "perturb \(c\) by \(\delta\) while keeping \(k\) fixed",
+            and likewise \(\boldsymbol{\varepsilon}_2\) perturbs only \(k\). This ensures each partial derivative measures the effect
+            of changing <em>one parameter at a time</em>.
+        </p>
         <p><strong>Use the sliders to set a position, compute the sensitivity vector by hand, then check your answer.</strong></p>
     </div>
 
@@ -99,6 +120,7 @@
         <p style="padding-left:20px;">Record \(S\). Increment \(c\) by 1 step, record new \(S\) and the increment \(\Delta c\). Compute \(\partial S/\partial c\). Reset \(c\). Increment \(k\) by 1 step, record new \(S\) and \(\Delta k\). Compute \(\partial S/\partial k\). Normalise. Check your answer.</p>
         <p>Leave "check my answer" checked and move the sliders. Describe the orientation of the arrow relative to the contours.</p>
         <p>What does it mean if the sensitivity vector is zero?</p>
+        <p>If you had three parameters \(\boldsymbol{\theta}=[a,b,c]\) and wanted \(\partial S/\partial b\), what is \(\boldsymbol{\varepsilon}_i\) and what calculation would you perform?</p>
     </div>
 
     <script>

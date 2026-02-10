@@ -31,25 +31,35 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .controls {
+        .path-controls {
             display: flex;
             gap: 25px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
         }
+        .path-label {
+            font-weight: 600;
+            font-size: 13px;
+            min-width: 50px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        .path-label-1 { background: #c0392b; }
+        .path-label-2 { background: #27ae60; }
         .control-group {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .control-group label { font-weight: 500; }
-        .control-group input[type="range"] { width: 160px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 140px; }
         .control-group .value {
             min-width: 35px;
             text-align: right;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
         }
         .canvas-container { display: flex; justify-content: center; }
         canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
@@ -68,38 +78,63 @@
 
     <div class="explainer">
         <p>
-            <strong>Gradient descent</strong> (the method of steepest descent) iteratively updates the parameter
-            estimate by stepping in the direction of steepest descent:
+            Returning now to the question "<em>if we placed a ball on the objective function surface and allowed it to roll, what path would it follow?</em>" We understand intuitively that the ball would initially accelerate in the direction of the steepest descent, i.e., \(-\hat{\mathbf{s}}'\). Furthermore, if the ball continued to follow the path of steepest descent then it should eventually end up at the minimum. This concept serves as the basis for <strong>gradient descent</strong> (also called the <em>method of steepest descent</em>). The steps are:
         </p>
-        <p style="text-align:center;">
-            \[\boldsymbol{\theta}_{i+1} = \boldsymbol{\theta}_i - \alpha\,\hat{\mathbf{s}}'(\boldsymbol{\theta}_i)\]
-        </p>
-        <p>
-            Providing the step size \(\alpha\) is small enough, each update yields a better estimate
-            (\(S(\boldsymbol{\theta}_{i+1}) < S(\boldsymbol{\theta}_i)\)).
-        </p>
-        <p><strong>Use the sliders to explore gradient descent and answer the questions below.</strong></p>
+        <ol>
+            <li>Choose \(\boldsymbol{\theta}_0\), an initial guess of the parameter set that minimizes the objective function, \(\boldsymbol{\theta}_{min}\).</li>
+            <li>Compute the direction of steepest descent at \(\boldsymbol{\theta}_0\), i.e., \(-\hat{\mathbf{s}}'(\boldsymbol{\theta}_0)\).</li>
+            <li>Update the estimate of \(\boldsymbol{\theta}_{min}\) by incrementing in the direction of steepest descent, i.e., \(\boldsymbol{\theta}_1=\boldsymbol{\theta}_0-\alpha\,\hat{\mathbf{s}}'(\boldsymbol{\theta}_0)\).</li>
+            <li>Repeat steps 2 and 3 to improve the estimate of \(\boldsymbol{\theta}_{min}\), i.e.,
+                <p style="text-align:center;">
+                    \[\boldsymbol{\theta}_{i+1} = \boldsymbol{\theta}_i - \alpha\,\hat{\mathbf{s}}'(\boldsymbol{\theta}_i)\]
+                </p>
+                Providing the step size \(\alpha\) is small enough, this algorithm will satisfy \(S(\boldsymbol{\theta}_{i+1}) < S(\boldsymbol{\theta}_i)\), i.e., each update is a better estimate (the residual is smaller) than the previous.
+            </li>
+        </ol>
+        <p><strong>Use the sliders to explore gradient descent. Two paths can be compared simultaneously.</strong></p>
     </div>
 
     <div class="widget-container">
-        <div class="controls">
+        <div class="path-controls">
+            <span class="path-label path-label-1">Path 1</span>
             <div class="control-group">
-                <label>\(c\):</label>
-                <input type="range" id="cSlider" min="0" max="20" step="1" value="10">
+                <label>\(c_1\):</label>
+                <input type="range" id="c1Slider" min="0" max="20" step="1" value="15">
             </div>
             <div class="control-group">
-                <label>\(k\):</label>
-                <input type="range" id="kSlider" min="3" max="17" step="1" value="10">
+                <label>\(k_1\):</label>
+                <input type="range" id="k1Slider" min="3" max="17" step="1" value="13">
             </div>
             <div class="control-group">
                 <label>steps:</label>
-                <input type="range" id="nSlider" min="0" max="10" step="1" value="0">
-                <span class="value" id="nValue">0</span>
+                <input type="range" id="n1Slider" min="0" max="30" step="1" value="0">
+                <span class="value" id="n1Value">0</span>
             </div>
             <div class="control-group">
                 <label>\(\alpha\):</label>
-                <input type="range" id="aSlider" min="0" max="0.10" step="0.02" value="0.04">
-                <span class="value" id="aValue">0.04</span>
+                <input type="range" id="a1Slider" min="0" max="0.10" step="0.02" value="0.04">
+                <span class="value" id="a1Value">0.04</span>
+            </div>
+        </div>
+        <div class="path-controls">
+            <span class="path-label path-label-2">Path 2</span>
+            <div class="control-group">
+                <label>\(c_2\):</label>
+                <input type="range" id="c2Slider" min="0" max="20" step="1" value="16">
+            </div>
+            <div class="control-group">
+                <label>\(k_2\):</label>
+                <input type="range" id="k2Slider" min="3" max="17" step="1" value="13">
+            </div>
+            <div class="control-group">
+                <label>steps:</label>
+                <input type="range" id="n2Slider" min="0" max="30" step="1" value="0">
+                <span class="value" id="n2Value">0</span>
+            </div>
+            <div class="control-group">
+                <label>\(\alpha\):</label>
+                <input type="range" id="a2Slider" min="0" max="0.10" step="0.02" value="0.04">
+                <span class="value" id="a2Value">0.04</span>
             </div>
         </div>
         <div class="canvas-container">
@@ -108,11 +143,9 @@
     </div>
 
     <div class="questions">
-        <p>Set the initial path position to \(c = 0.75\) and \(k = 1.3\).</p>
-        <p>Increase the number of gradient descent steps. Describe the trajectory of the path.</p>
-        <p>Increase \(\alpha\). Will it take MORE or LESS computation to find the minimum?</p>
-        <p>Are there any disadvantages to increasing \(\alpha\)?</p>
-        <p>Change the initial path position to \(c = 0.8\) and \(k = 1.3\). Describe the outcome of gradient descent.</p>
+        <p>Set both paths to start at \(c = 0.75\), \(k = 1.3\). Increase the steps. Describe the trajectory.</p>
+        <p>Increase \(\alpha\) for Path 1 only. Will it take MORE or LESS computation to find the minimum? Are there any disadvantages?</p>
+        <p>Now set Path 1 to \(c = 0.75\), \(k = 1.3\) and Path 2 to \(c = 0.8\), \(k = 1.3\). Increase steps for both. Do both paths arrive at the same minimum?</p>
     </div>
 
     <script>
@@ -169,17 +202,23 @@
         function txf(x) { return margin.left + x * plotW; }
         function tyf(y) { return margin.top + (1 - y) * plotH; }
 
-        // ========== Colormap ==========
+        // ========== Oranges colormap ==========
         function orangeColor(t) {
             t = Math.max(0, Math.min(1, t));
-            const S = [[0,255,245,235],[.25,254,216,170],[.5,253,174,107],[.75,241,105,19],[1,166,54,3]];
+            const S = [
+                [0, 255, 245, 235],
+                [0.25, 253, 208, 162],
+                [0.5, 253, 141, 60],
+                [0.75, 230, 85, 13],
+                [1, 127, 39, 4]
+            ];
             for (let i = 0; i < S.length - 1; i++) {
                 if (t <= S[i+1][0]) {
                     const f = (t - S[i][0]) / (S[i+1][0] - S[i][0]);
                     return `rgb(${Math.round(S[i][1]+f*(S[i+1][1]-S[i][1]))},${Math.round(S[i][2]+f*(S[i+1][2]-S[i][2]))},${Math.round(S[i][3]+f*(S[i+1][3]-S[i][3]))})`;
                 }
             }
-            return 'rgb(166,54,3)';
+            return 'rgb(127,39,4)';
         }
 
         function getLevelBand(z) {
@@ -227,7 +266,7 @@
             }
 
             // Contour lines (full domain)
-            bgCtx.strokeStyle = '#000';
+            bgCtx.strokeStyle = 'rgba(0,0,0,0.5)';
             bgCtx.lineWidth = 1;
             for (let lIdx = 0; lIdx < levels.length; lIdx++) {
                 const lv = levels[lIdx];
@@ -258,12 +297,10 @@
             const len = Math.sqrt(dx*dx + dy*dy);
             if (len < 1e-6) return;
             const ux = dx/len, uy = dy/len;
-            // Shaft
             cx.beginPath();
             cx.moveTo(x1, y1);
             cx.lineTo(x2 - ux*hl, y2 - uy*hl);
             cx.stroke();
-            // Head
             cx.beginPath();
             cx.moveTo(x2, y2);
             cx.lineTo(x2 - ux*hl - uy*hw/2, y2 - uy*hl + ux*hw/2);
@@ -272,27 +309,15 @@
             cx.fill();
         }
 
-        function draw() {
-            const ic = parseInt(document.getElementById('cSlider').value);
-            const ik = parseInt(document.getElementById('kSlider').value);
-            const N = parseInt(document.getElementById('nSlider').value);
-            const alpha = parseFloat(document.getElementById('aSlider').value);
-
-            document.getElementById('nValue').textContent = N;
-            document.getElementById('aValue').textContent = alpha.toFixed(2);
-
-            // Copy background
-            ctx.clearRect(0, 0, cssW, cssH);
-            ctx.drawImage(bgCanvas, 0, 0, cssW * dpr, cssH * dpr, 0, 0, cssW, cssH);
-
+        function drawPath(ic, ik, N, alpha, color) {
             let xi = ic / 20;
             let yi = ik / 20;
             const startPx = txf(xi), startPy = tyf(yi);
 
             // Dotted projection lines from start
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 0.7;
             ctx.beginPath();
             ctx.moveTo(txf(0), startPy);
             ctx.lineTo(startPx, startPy);
@@ -300,29 +325,8 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Starting tick marks
-            ctx.font = '14px Segoe UI';
-            ctx.fillStyle = '#333';
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.beginPath();
-            ctx.moveTo(startPx, margin.top + plotH);
-            ctx.lineTo(startPx, margin.top + plotH + 6);
-            ctx.stroke();
-            ctx.fillText(xi.toFixed(2), startPx, margin.top + plotH + 8);
-
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            ctx.beginPath();
-            ctx.moveTo(margin.left - 6, startPy);
-            ctx.lineTo(margin.left, startPy);
-            ctx.stroke();
-            ctx.fillText((yi * 2).toFixed(1), margin.left - 10, startPy);
-
             // Starting X marker
-            ctx.strokeStyle = '#000';
+            ctx.strokeStyle = color;
             ctx.lineWidth = 2.5;
             const ms = 8;
             ctx.beginPath();
@@ -331,9 +335,9 @@
             ctx.stroke();
 
             // Gradient descent steps
-            ctx.strokeStyle = '#000';
-            ctx.fillStyle = '#000';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.8;
             for (let step = 0; step < N; step++) {
                 const dx = 0.01;
                 const zi = rFunc(xi, yi);
@@ -346,11 +350,35 @@
                 const xi1 = xi + alpha * sx;
                 const yi1 = yi + alpha * sy;
 
-                drawArrow(ctx, txf(xi), tyf(yi), txf(xi1), tyf(yi1), 8, 8);
+                drawArrow(ctx, txf(xi), tyf(yi), txf(xi1), tyf(yi1), 7, 7);
 
                 xi = xi1;
                 yi = yi1;
             }
+        }
+
+        function draw() {
+            const ic1 = parseInt(document.getElementById('c1Slider').value);
+            const ik1 = parseInt(document.getElementById('k1Slider').value);
+            const N1 = parseInt(document.getElementById('n1Slider').value);
+            const a1 = parseFloat(document.getElementById('a1Slider').value);
+            const ic2 = parseInt(document.getElementById('c2Slider').value);
+            const ik2 = parseInt(document.getElementById('k2Slider').value);
+            const N2 = parseInt(document.getElementById('n2Slider').value);
+            const a2 = parseFloat(document.getElementById('a2Slider').value);
+
+            document.getElementById('n1Value').textContent = N1;
+            document.getElementById('a1Value').textContent = a1.toFixed(2);
+            document.getElementById('n2Value').textContent = N2;
+            document.getElementById('a2Value').textContent = a2.toFixed(2);
+
+            // Copy background
+            ctx.clearRect(0, 0, cssW, cssH);
+            ctx.drawImage(bgCanvas, 0, 0, cssW * dpr, cssH * dpr, 0, 0, cssW, cssH);
+
+            // Draw both paths
+            drawPath(ic1, ik1, N1, a1, '#c0392b');
+            drawPath(ic2, ik2, N2, a2, '#27ae60');
 
             // Axes border
             ctx.strokeStyle = '#333';
@@ -369,8 +397,9 @@
             ctx.fillText('k', 0, 0);
             ctx.restore();
 
-            // Axis limits text
+            // Axis tick labels
             ctx.font = '14px Segoe UI';
+            ctx.fillStyle = '#333';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             ctx.fillText('0', txf(0), margin.top + plotH + 8);
@@ -379,12 +408,42 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('0', margin.left - 10, tyf(0));
             ctx.fillText('1', margin.left - 10, tyf(1));
+
+            // Starting point labels
+            ctx.font = '13px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const x1 = ic1/20, y1 = ik1/20;
+            const x2 = ic2/20, y2 = ik2/20;
+
+            // Path 1 tick
+            ctx.fillStyle = '#c0392b';
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 1;
+            const px1 = txf(x1);
+            ctx.beginPath(); ctx.moveTo(px1, margin.top + plotH); ctx.lineTo(px1, margin.top + plotH + 5); ctx.stroke();
+            ctx.fillText(x1.toFixed(2), px1, margin.top + plotH + 7);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            const py1 = tyf(y1);
+            ctx.beginPath(); ctx.moveTo(margin.left - 5, py1); ctx.lineTo(margin.left, py1); ctx.stroke();
+            ctx.fillText((y1*2).toFixed(1), margin.left - 8, py1);
+
+            // Path 2 tick
+            ctx.fillStyle = '#27ae60';
+            ctx.strokeStyle = '#27ae60';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const px2 = txf(x2);
+            ctx.beginPath(); ctx.moveTo(px2, margin.top + plotH); ctx.lineTo(px2, margin.top + plotH + 5); ctx.stroke();
+            ctx.fillText(x2.toFixed(2), px2, margin.top + plotH + 20);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            const py2 = tyf(y2);
+            ctx.beginPath(); ctx.moveTo(margin.left - 5, py2); ctx.lineTo(margin.left, py2); ctx.stroke();
+            ctx.fillText((y2*2).toFixed(1), margin.left - 8, py2);
         }
 
-        document.getElementById('cSlider').addEventListener('input', draw);
-        document.getElementById('kSlider').addEventListener('input', draw);
-        document.getElementById('nSlider').addEventListener('input', draw);
-        document.getElementById('aSlider').addEventListener('input', draw);
+        ['c1Slider','k1Slider','n1Slider','a1Slider',
+         'c2Slider','k2Slider','n2Slider','a2Slider'].forEach(id =>
+            document.getElementById(id).addEventListener('input', draw));
         draw();
     </script>
 </body>

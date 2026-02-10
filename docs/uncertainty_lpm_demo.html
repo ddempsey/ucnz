@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - Lumped Parameter Model</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label { font-weight: 500; }
+        .control-group input[type="range"] { width: 300px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { background: white; max-width: 100%; }
+        #equation {
+            text-align: center;
+            font-size: 22px;
+            margin: 10px 0;
+            min-height: 36px;
+        }
+        #description {
+            text-align: center;
+            font-size: 18px;
+            font-style: italic;
+            margin: 10px 0;
+            min-height: 30px;
+        }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Lumped Parameter Model</h1>
+
+    <div class="explainer">
+        <p>
+            A geothermal reservoir can be conceptualised as a <strong>cylindrical</strong> volume.
+            A <strong>lumped parameter model</strong> (LPM) describes the average pressure evolution
+            of the reservoir as a whole. As an ODE:
+        </p>
+        <p style="text-align:center;">
+            \(\displaystyle \frac{dP}{dt} = -a\,q - b\,P - c\,\frac{dq}{dt}\)
+        </p>
+        <p>
+            where \(P\) is the pressure change from the initial value, \(q\) is the extraction rate,
+            and \(a\), \(b\) and \(c\) are unknown parameters that depend on the reservoir.
+        </p>
+        <p><strong>Slide through the four stages below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>slide me!</label>
+                <input type="range" id="stageSlider" min="0" max="3" step="1" value="0">
+            </div>
+        </div>
+        <div id="equation"></div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="700" height="380"></canvas>
+        </div>
+        <div id="description"></div>
+    </div>
+
+    <div class="questions">
+        <p>Coefficient \(a\) must always be positive (for positive production, \(q\)). Why?</p>
+        <p>Coefficient \(b\) must always be positive. Why?</p>
+        <p>If the production rate is constant, this ODE has only two parameters. Why?</p>
+        <p>Solve the ODE analytically for constant production, \(q_0\).
+           How does the solution behave? What does the characteristic time depend on?</p>
+    </div>
+
+    <script>
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 700, cssH = 380;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Coordinate mapping: [0,1]x[0,1] -> canvas
+        function tx(x) { return 20 + x * (cssW - 40); }
+        function ty(y) { return cssH - 20 - y * (cssH - 40); }
+
+        // ========== Drawing helpers ==========
+        function drawEllipse(cx, cy, rx, ry, style, dash) {
+            ctx.strokeStyle = style.color || '#FF0000';
+            ctx.lineWidth = style.lw || 1.5;
+            ctx.setLineDash(dash || []);
+            ctx.beginPath();
+            ctx.ellipse(tx(cx), ty(cy), rx * (cssW - 40), ry * (cssH - 40), 0, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawArrow(x1, y1, x2, y2, color, headSize) {
+            const cx1 = tx(x1), cy1 = ty(y1), cx2 = tx(x2), cy2 = ty(y2);
+            const dx = cx2 - cx1, dy = cy2 - cy1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) return;
+            const ux = dx / len, uy = dy / len;
+            const px = -uy, py = ux;
+            const hs = headSize || 8;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx2, cy2);
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(cx2, cy2);
+            ctx.lineTo(cx2 - ux * hs * 2 + px * hs, cy2 - uy * hs * 2 + py * hs);
+            ctx.lineTo(cx2 - ux * hs * 2 - px * hs, cy2 - uy * hs * 2 - py * hs);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawCube(x0, y0, dx, col) {
+            const dy = dx * 2;
+            const s2 = 2;
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1;
+            // Front face outline
+            ctx.beginPath();
+            ctx.moveTo(tx(x0 + dx / s2), ty(y0 + dy / s2));
+            ctx.lineTo(tx(x0), ty(y0));
+            ctx.lineTo(tx(x0 - dx), ty(y0));
+            ctx.lineTo(tx(x0 - dx), ty(y0 - dy));
+            ctx.lineTo(tx(x0), ty(y0 - dy));
+            ctx.lineTo(tx(x0), ty(y0));
+            ctx.stroke();
+            // Side + top outline
+            ctx.beginPath();
+            ctx.moveTo(tx(x0 - dx), ty(y0));
+            ctx.lineTo(tx(x0 - dx + dx / s2), ty(y0 + dy / s2));
+            ctx.lineTo(tx(x0 + dx / s2), ty(y0 + dy / s2));
+            ctx.lineTo(tx(x0 + dx / s2), ty(y0 + dy / s2 - dy));
+            ctx.lineTo(tx(x0), ty(y0 - dy));
+            ctx.stroke();
+            // Fill
+            ctx.fillStyle = col;
+            ctx.globalAlpha = 0.1;
+            ctx.beginPath();
+            ctx.moveTo(tx(x0 - dx), ty(y0 - dy));
+            ctx.lineTo(tx(x0 - dx), ty(y0));
+            ctx.lineTo(tx(x0 - dx + dx / s2), ty(y0 + dy / s2));
+            ctx.lineTo(tx(x0 + dx / s2), ty(y0 + dy / s2));
+            ctx.lineTo(tx(x0 + dx / s2), ty(y0 + dy / s2 - dy));
+            ctx.lineTo(tx(x0), ty(y0 - dy));
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // ========== Main draw ==========
+        function draw() {
+            const i = parseInt(document.getElementById('stageSlider').value);
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const r = 0.3, cxC = 0.5, cyC = 0.35, h = 0.3;
+            const dh = -0.13, dh2 = 0.05, e = 4;
+            const currentH = h + (i > 0 ? dh : 0) + (i > 1 ? dh2 : 0);
+
+            // Light blue background (surrounding rock)
+            ctx.fillStyle = 'rgba(0,0,128,0.07)';
+            ctx.fillRect(tx(0), ty(1), tx(1) - tx(0), ty(0) - ty(1));
+
+            // Fill cylinder body (light red)
+            const th = [];
+            for (let j = 0; j <= 100; j++) th.push(j * Math.PI / 100);
+
+            ctx.fillStyle = 'rgba(255,0,0,0.1)';
+            ctx.beginPath();
+            // Top ellipse (going left to right)
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC + r * Math.sin(th[j]) / e + currentH);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            // Right side down
+            ctx.lineTo(tx(cxC - r), ty(cyC));
+            // Bottom ellipse (going right to left, bottom half)
+            for (let j = 100; j >= 0; j--) {
+                ctx.lineTo(tx(cxC + r * Math.cos(th[j])), ty(cyC - r * Math.sin(th[j]) / e));
+            }
+            ctx.lineTo(tx(cxC + r), ty(cyC + currentH));
+            ctx.closePath();
+            ctx.fill();
+
+            // Base ellipses (solid red)
+            const col = '#CC0000';
+            // Bottom of base
+            ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC - r * Math.sin(th[j]) / e);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // Top of base
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC + r * Math.sin(th[j]) / e);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Initial level (dashed)
+            ctx.setLineDash([6, 4]);
+            // Top cap top
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC + r * Math.sin(th[j]) / e + h);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // Top cap bottom
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC - r * Math.sin(th[j]) / e + h);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // Dashed sides to initial level
+            ctx.beginPath();
+            ctx.moveTo(tx(cxC + r), ty(cyC)); ctx.lineTo(tx(cxC + r), ty(cyC + h));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tx(cxC - r), ty(cyC)); ctx.lineTo(tx(cxC - r), ty(cyC + h));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Current level (solid)
+            // Top ellipse top
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC + r * Math.sin(th[j]) / e + currentH);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // Top ellipse bottom
+            ctx.beginPath();
+            for (let j = 0; j <= 100; j++) {
+                const px = tx(cxC + r * Math.cos(th[j]));
+                const py = ty(cyC - r * Math.sin(th[j]) / e + currentH);
+                if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // Solid sides to current level
+            ctx.beginPath();
+            ctx.moveTo(tx(cxC + r), ty(cyC)); ctx.lineTo(tx(cxC + r), ty(cyC + currentH));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tx(cxC - r), ty(cyC)); ctx.lineTo(tx(cxC - r), ty(cyC + currentH));
+            ctx.stroke();
+
+            // Stage 1+: extraction
+            if (i > 0) {
+                drawCube(0.90, 0.8, 0.025, '#CC0000');
+                drawArrow(cxC + 1.05 * r, cyC + 1.2 * (h + dh) + 0.05,
+                          cxC + 1.05 * r + 0.05, cyC + 1.2 * (h + dh) + 0.05 + 0.14,
+                          '#CC0000', 8);
+            }
+
+            // Stage 2+: recharge
+            if (i > 1) {
+                // Blue cubes at sides and bottom
+                drawCube(0.85, 0.5, 0.015, '#0000CC');
+                drawCube(0.15, 0.5, 0.015, '#0000CC');
+                drawCube(0.85, 0.35, 0.015, '#0000CC');
+                drawCube(0.15, 0.35, 0.015, '#0000CC');
+                drawCube(0.25, 0.23, 0.015, '#0000CC');
+                drawCube(0.50, 0.18, 0.015, '#0000CC');
+                drawCube(0.75, 0.23, 0.015, '#0000CC');
+
+                // Blue arrows pointing inward
+                drawArrow(0.17, 0.5, 0.19, 0.5, '#0000CC', 6);
+                drawArrow(0.83, 0.5, 0.81, 0.5, '#0000CC', 6);
+                drawArrow(0.17, 0.35, 0.19, 0.35, '#0000CC', 6);
+                drawArrow(0.83, 0.35, 0.81, 0.35, '#0000CC', 6);
+                drawArrow(0.50, 0.21, 0.50, 0.25, '#0000CC', 6);
+                drawArrow(0.26, 0.25, 0.275, 0.275, '#0000CC', 5);
+                drawArrow(0.74, 0.25, 0.725, 0.275, '#0000CC', 5);
+            }
+
+            // Stage 3: slow drainage dashed lines
+            if (i > 2) {
+                const totalDrop = dh + dh2; // negative value
+                ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                for (const fr of [0.35, 0.70, 0.90]) {
+                    const levelY = cyC + h + fr * totalDrop;
+                    // Top half ellipse
+                    ctx.beginPath();
+                    for (let j = 0; j <= 100; j++) {
+                        const px = tx(cxC + r * Math.cos(th[j]));
+                        const py = ty(levelY + r * Math.sin(th[j]) / e);
+                        if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                    // Bottom half ellipse
+                    ctx.beginPath();
+                    for (let j = 0; j <= 100; j++) {
+                        const px = tx(cxC + r * Math.cos(th[j]));
+                        const py = ty(levelY - r * Math.sin(th[j]) / e);
+                        if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+
+                    // Fill band
+                    ctx.fillStyle = 'rgba(0,0,0,0.07)';
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    for (let j = 0; j <= 100; j++) {
+                        ctx.lineTo(tx(cxC + r * Math.cos(th[j])), ty(levelY + r * Math.sin(th[j]) / e));
+                    }
+                    for (let j = 100; j >= 0; j--) {
+                        ctx.lineTo(tx(cxC + r * Math.cos(th[j])), ty(levelY - r * Math.sin(th[j]) / e));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.setLineDash([5, 3]);
+                }
+                ctx.setLineDash([]);
+
+                // Down arrow showing "lowers over time"
+                drawArrow(0.18, cyC + h, 0.18, cyC + h + totalDrop, '#000', 6);
+                ctx.fillStyle = '#000';
+                ctx.font = 'italic 14px Segoe UI';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                const midY = cyC + h + 0.5 * totalDrop;
+                ctx.fillText('lowers', tx(0.17) - 2, ty(midY) - 8);
+                ctx.fillText('over time', tx(0.17) - 2, ty(midY) + 8);
+            }
+
+            // ---- Update equation and description ----
+            updateText(i);
+        }
+
+        function updateText(i) {
+            const eqEl = document.getElementById('equation');
+            const descEl = document.getElementById('description');
+
+            let eqHTML = '\\(\\dot{P} = \\)';
+            if (i === 0) eqHTML += '\\(0\\)';
+            if (i >= 1) eqHTML += '<span style="color:red;">\\(-a\\,q\\)</span>';
+            if (i >= 2) eqHTML += '<span style="color:blue;">\\(-b\\,P\\)</span>';
+            if (i >= 3) eqHTML += '\\(-c\\,\\dot{q}\\)';
+            eqEl.innerHTML = eqHTML;
+
+            const descs = [
+                'reservoir initially at pressure equilibrium',
+                'extraction from reservoir at rate, <i>q</i>',
+                'recharge from surrounding rock, proportional to <i>P</i>',
+                'response to extraction not instantaneous: "slow drainage", <i>dq/dt</i>'
+            ];
+            descEl.innerHTML = descs[i];
+
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([eqEl]);
+            }
+        }
+
+        // ========== Events ==========
+        document.getElementById('stageSlider').addEventListener('input', draw);
+        draw();
+    </script>
+</body>
+</html>

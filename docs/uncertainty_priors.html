@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - Prior Distributions</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-group label { font-weight: 500; }
+        .control-group input[type="range"] { width: 130px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Prior Distributions</h1>
+
+    <div class="explainer">
+        <p>
+            To make a prediction with a model, a conscious choice must first be made about the
+            values of <strong>parameters</strong> used as model inputs. However, parameter values
+            are never known with absolute certainty. Instead, they are better characterised by
+            a <strong>distribution</strong>, which expresses our belief about the true value for
+            that parameter.
+        </p>
+        <p>
+            The <strong>uniform</strong> distribution bounds the parameter between
+            \([\theta_{min}, \theta_{max}]\) and expresses: "<em>the true parameter value is
+            somewhere in this range, but I have no idea where</em>".
+        </p>
+        <p>
+            The <strong>normal</strong> distribution goes further, expressing what we think is the
+            most likely value of the parameter (the mean) but also attaching a degree of
+            uncertainty (the variance). Rarely, though, will the true parameter value turn out to
+            be exactly the mean.
+        </p>
+        <p>
+            When a parameter distribution is presented by the modeller based on their own expert
+            knowledge or consultation of the literature, then it is called a <strong>prior</strong>.
+            In Bayesian terms, the prior is a quantitative statement of belief (or ignorance) about
+            a parameter's value.
+        </p>
+        <p><strong>Move the sliders and answer the questions below.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(\theta_{min}\):</label>
+                <input type="range" id="thminSlider" min="-1" max="499" step="100" value="99">
+            </div>
+            <div class="control-group">
+                <label>\(\theta_{max}\):</label>
+                <input type="range" id="thmaxSlider" min="501" max="1001" step="100" value="901">
+            </div>
+            <div class="control-group">
+                <label>\(\bar{\theta}\):</label>
+                <input type="range" id="meanSlider" min="300" max="700" step="100" value="500">
+            </div>
+            <div class="control-group">
+                <label>\(\sigma_\theta\):</label>
+                <input type="range" id="stdSlider" min="30" max="70" step="20" value="50">
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="880" height="340"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>What is the area under the uniform distribution (left)?</p>
+        <p>How does the height of the uniform distribution change as you slide the limits left and right?</p>
+        <p>What is the area under the normal distribution (right)?</p>
+        <p>Does a uniform distribution categorically rule out any parameter values? What about the normal distribution?</p>
+    </div>
+
+    <script>
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 880, cssH = 340;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Panel layout
+        const PL = { x: 70, y: 25, w: 320, h: 260 };   // left: uniform
+        const PR = { x: 520, y: 25, w: 320, h: 260 };   // right: normal
+
+        function draw() {
+            const thmin = parseInt(document.getElementById('thminSlider').value) / 1000;
+            const thmax = parseInt(document.getElementById('thmaxSlider').value) / 1000;
+            const thmean = parseInt(document.getElementById('meanSlider').value) / 1000;
+            const thstd = parseInt(document.getElementById('stdSlider').value) / 1000;
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // ===== Left panel: Uniform distribution =====
+            const yUnif = 1 / (thmax - thmin);
+            const yMaxL = 2.5;  // fixed y range so height visibly changes with width
+
+            function txL(x) { return PL.x + (x - (-0.05)) / (1.05 - (-0.05)) * PL.w; }
+            function tyL(y) { return PL.y + (yMaxL - y) / (yMaxL - 0) * PL.h; }
+
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PL.x, PL.y, PL.w, PL.h); ctx.clip();
+
+            // Draw uniform step function
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(txL(-0.01), tyL(0));
+            ctx.lineTo(txL(thmin), tyL(0));
+            ctx.lineTo(txL(thmin), tyL(yUnif));
+            ctx.lineTo(txL(thmax), tyL(yUnif));
+            ctx.lineTo(txL(thmax), tyL(0));
+            ctx.lineTo(txL(1.01), tyL(0));
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Left axes
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PL.x, PL.y, PL.w, PL.h);
+            ctx.fillStyle = '#000'; ctx.font = '13px Segoe UI';
+
+            // X ticks
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            var cxL = txL(thmin);
+            ctx.beginPath(); ctx.moveTo(cxL, PL.y + PL.h); ctx.lineTo(cxL, PL.y + PL.h + 5); ctx.stroke();
+            ctx.fillText('\u03B8min', cxL, PL.y + PL.h + 8);
+            cxL = txL(thmax);
+            ctx.beginPath(); ctx.moveTo(cxL, PL.y + PL.h); ctx.lineTo(cxL, PL.y + PL.h + 5); ctx.stroke();
+            ctx.fillText('\u03B8max', cxL, PL.y + PL.h + 8);
+
+            // X axis label
+            ctx.font = 'italic 14px Segoe UI';
+            ctx.fillText('\u03B8', PL.x + PL.w / 2, PL.y + PL.h + 26);
+
+            // Y tick
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            var cyL = tyL(yUnif);
+            ctx.beginPath(); ctx.moveTo(PL.x - 5, cyL); ctx.lineTo(PL.x, cyL); ctx.stroke();
+            ctx.fillText('(\u03B8max\u2212\u03B8min)\u207B\u00B9', PL.x - 8, cyL);
+
+            // Y=0 label
+            cyL = tyL(0);
+            ctx.beginPath(); ctx.moveTo(PL.x - 5, cyL); ctx.lineTo(PL.x, cyL); ctx.stroke();
+            ctx.fillText('0', PL.x - 8, cyL);
+
+            // Y axis label
+            ctx.save(); ctx.translate(PL.x - 58, PL.y + PL.h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.font = 'italic 14px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('P(\u03B8)', 0, 0); ctx.restore();
+
+            // Panel title
+            ctx.font = 'bold 14px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText('Uniform Prior', PL.x + PL.w / 2, PL.y - 5);
+
+            // ===== Right panel: Normal distribution =====
+            const yPeak = 1 / Math.sqrt(2 * Math.PI * thstd * thstd);
+            const yMaxR = 15;  // fixed y range so height visibly changes with std
+
+            function txR(x) { return PR.x + (x - 0.2) / (0.8 - 0.2) * PR.w; }
+            function tyR(y) { return PR.y + (yMaxR - y) / (yMaxR - 0) * PR.h; }
+
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PR.x, PR.y, PR.w, PR.h); ctx.clip();
+
+            // Draw normal curve
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const N = 501;
+            for (let i = 0; i < N; i++) {
+                const x = 0.2 + i * 0.6 / (N - 1);
+                const y = Math.exp(-(x - thmean) * (x - thmean) / (2 * thstd * thstd)) / Math.sqrt(2 * Math.PI * thstd * thstd);
+                if (i === 0) ctx.moveTo(txR(x), tyR(y));
+                else ctx.lineTo(txR(x), tyR(y));
+            }
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Right axes
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PR.x, PR.y, PR.w, PR.h);
+            ctx.fillStyle = '#000'; ctx.font = '13px Segoe UI';
+
+            // X tick at mean
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            var cxR = txR(thmean);
+            ctx.beginPath(); ctx.moveTo(cxR, PR.y + PR.h); ctx.lineTo(cxR, PR.y + PR.h + 5); ctx.stroke();
+            ctx.fillText('\u03B8\u0304', cxR, PR.y + PR.h + 8);
+
+            // X axis label
+            ctx.font = 'italic 14px Segoe UI';
+            ctx.fillText('\u03B8', PR.x + PR.w / 2, PR.y + PR.h + 26);
+
+            // Y tick at peak
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            var cyR = tyR(yPeak);
+            ctx.beginPath(); ctx.moveTo(PR.x - 5, cyR); ctx.lineTo(PR.x, cyR); ctx.stroke();
+            ctx.fillText('(2\u03C0\u03C3\u00B2)\u207B\u00BD', PR.x - 8, cyR);
+
+            // Y=0 label
+            cyR = tyR(0);
+            ctx.beginPath(); ctx.moveTo(PR.x - 5, cyR); ctx.lineTo(PR.x, cyR); ctx.stroke();
+            ctx.fillText('0', PR.x - 8, cyR);
+
+            // Y axis label
+            ctx.save(); ctx.translate(PR.x - 58, PR.y + PR.h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.font = 'italic 14px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('P(\u03B8)', 0, 0); ctx.restore();
+
+            // Panel title
+            ctx.font = 'bold 14px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText('Normal Prior', PR.x + PR.w / 2, PR.y - 5);
+        }
+
+        document.getElementById('thminSlider').addEventListener('input', draw);
+        document.getElementById('thmaxSlider').addEventListener('input', draw);
+        document.getElementById('meanSlider').addEventListener('input', draw);
+        document.getElementById('stdSlider').addEventListener('input', draw);
+        draw();
+    </script>
+</body>
+</html>

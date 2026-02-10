@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - LPM Posterior</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-group label { font-weight: 500; font-size: 14px; }
+        .control-group input[type="range"] { width: 120px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>LPM Prior Distributions</h1>
+
+    <div class="explainer">
+        <p>
+            Earlier we estimated the best-fit values of \(a\), \(b\), and \(c\) that parameterise
+            a lumped parameter model of the Wairakei geothermal system. However, because the
+            pressure data used to calibrate the model are uncertain, so too must be our estimates
+            of the parameters.
+        </p>
+        <p>
+            We proceed by proposing a <strong>prior distribution</strong> for each parameter. As
+            we have some information about the parameters &mdash; an idea of which values fit the
+            data quite well &mdash; we consider a normally distributed prior for each, centred on
+            the best-fit value. We then sample from these priors and run the model for each sample
+            to build an ensemble of possible models.
+        </p>
+        <p>
+            An implicit assumption of this approach is that \(a\), \(b\), and \(c\) are
+            <strong>uncorrelated</strong>. As more model samples are generated, the histograms on
+            the right start to approximate the theoretical distribution.
+        </p>
+        <p><strong>Adjust the prior widths and number of samples.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(\sigma_a\):</label>
+                <input type="range" id="saSlider" min="0" max="10" step="1" value="5">
+            </div>
+            <div class="control-group">
+                <label>\(\sigma_b\):</label>
+                <input type="range" id="sbSlider" min="0" max="10" step="1" value="5">
+            </div>
+            <div class="control-group">
+                <label>\(\sigma_c\):</label>
+                <input type="range" id="scSlider" min="0" max="10" step="1" value="5">
+            </div>
+            <div class="control-group">
+                <label>samples:</label>
+                <input type="range" id="nSlider" min="0" max="8" step="1" value="2">
+                <span id="nVal">4</span>
+            </div>
+        </div>
+        <div id="titleText" style="text-align:center; font-size:15px; margin-bottom:8px;"></div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="850" height="430"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>Move the deviation sliders to widen or narrow priors of \(a\), \(b\) and \(c\).</p>
+        <p>Add additional model samples by moving the "samples" slider.</p>
+        <p>Obtain defensible posterior distributions for \(a\), \(b\), and \(c\).</p>
+        <p>An implicit assumption of this approach is that \(a\), \(b\), and \(c\) are uncorrelated.
+           What does this mean?</p>
+        <p>As more model samples are generated, the histograms on the RHS start to approximate the
+           theoretical distribution.</p>
+    </div>
+
+    <script>
+        // ========== Seeded PRNG ==========
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+        function randn(rng) {
+            let u1; do { u1 = rng(); } while (u1 === 0);
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * rng());
+        }
+
+        // ========== Data (first 28 points: 1953-1980) ==========
+        const tq = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980];
+        const qArr = [0,91.97,142.23,243.53,369.64,435.35,386.3,799.44,1001.33,853.13,1279.4,1680.92,1734.78,1651.72,1611.03,1473.87,1342.67,1486.49,1445.96,1440.69,1372.32,1305.38,1256.35,1246.42,1221.76,1465.79,1371.32,1293.33];
+        const tp = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980];
+        const pArr = [56.26,55.69,55.5,54.73,52.76,52.15,51.48,47.71,46.87,45.55,41.84,38.51,36.28,35.1,34.16,34.42,33.56,33.03,32.5,32,31.7,31.64,31.73,31.69,31.83,31.02,30.7,30.84];
+
+        const dqdt = new Array(tq.length).fill(0);
+        dqdt[0] = (qArr[1] - qArr[0]) / (tq[1] - tq[0]);
+        for (let i = 1; i < tq.length - 1; i++) dqdt[i] = (qArr[i+1] - qArr[i-1]) / (tq[i+1] - tq[i-1]);
+        dqdt[tq.length-1] = (qArr[tq.length-1] - qArr[tq.length-2]) / (tq[tq.length-1] - tq[tq.length-2]);
+
+        function interp(t, xs, ys) {
+            if (t <= xs[0]) return ys[0];
+            if (t >= xs[xs.length-1]) return ys[ys.length-1];
+            for (let i = 0; i < xs.length-1; i++) {
+                if (t >= xs[i] && t <= xs[i+1]) {
+                    return ys[i] + (t - xs[i]) / (xs[i+1] - xs[i]) * (ys[i+1] - ys[i]);
+                }
+            }
+            return ys[ys.length-1];
+        }
+
+        function solveLPM(a, b, c) {
+            const pm = [pArr[0]];
+            for (let i = 0; i < tp.length - 1; i++) {
+                const t0 = tp[i], t1 = tp[i+1], dt = t1 - t0;
+                const pi1 = pm[i] - pArr[0];
+                const dpdt1 = -a * interp(t0, tq, qArr) - b * pi1 - c * interp(t0, tq, dqdt);
+                const pp = pm[i] + dpdt1 * dt;
+                const pi2 = pp - pArr[0];
+                const dpdt2 = -a * interp(t1, tq, qArr) - b * pi2 - c * interp(t1, tq, dqdt);
+                pm.push(pm[i] + 0.5 * dt * (dpdt1 + dpdt2));
+            }
+            return pm;
+        }
+
+        // ========== Best-fit parameters ==========
+        const a0 = 2.2e-3, b0 = 1.1e-1, c0 = 6.8e-3;
+
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 850, cssH = 430;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Layout
+        const M = { left: 80, top: 40, w: 420, h: 340 };
+        const histX = 570, histW = 200, histH = 80;
+        const histYs = [40, 170, 300];
+
+        const tMin = 1952, tMax = 1981, pMin = 25, pMax = 60;
+        function txM(t) { return M.left + (t - tMin) / (tMax - tMin) * M.w; }
+        function tyM(v) { return M.top + (pMax - v) / (pMax - pMin) * M.h; }
+
+        // ========== Draw ==========
+        function draw() {
+            const saIdx = parseInt(document.getElementById('saSlider').value);
+            const sbIdx = parseInt(document.getElementById('sbSlider').value);
+            const scIdx = parseInt(document.getElementById('scSlider').value);
+            const nExp = parseInt(document.getElementById('nSlider').value);
+            const Nmods = Math.pow(2, nExp);
+
+            const sa = saIdx * 2.2e-5;
+            const sb = sbIdx * 1.1e-3;
+            const sc = scIdx * 3.4e-4;
+
+            document.getElementById('nVal').textContent = Nmods;
+            document.getElementById('titleText').innerHTML =
+                '\u03C3<sub>a</sub>=' + sa.toExponential(1) +
+                ', &nbsp; \u03C3<sub>b</sub>=' + sb.toExponential(1) +
+                ', &nbsp; \u03C3<sub>c</sub>=' + sc.toExponential(1);
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // Generate samples
+            const rng = mulberry32(42);
+            const aVals = [], bVals = [], cVals = [];
+            for (let i = 0; i < Nmods; i++) {
+                aVals.push(randn(rng) * sa + a0);
+                bVals.push(randn(rng) * sb + b0);
+                cVals.push(randn(rng) * sc + c0);
+            }
+
+            // Clip main plot
+            ctx.save();
+            ctx.beginPath(); ctx.rect(M.left, M.top, M.w, M.h); ctx.clip();
+
+            // Observations + error bars
+            const v = 2;
+            for (let i = 0; i < tp.length; i++) {
+                ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(txM(tp[i]), tyM(pArr[i]-v)); ctx.lineTo(txM(tp[i]), tyM(pArr[i]+v)); ctx.stroke();
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath(); ctx.arc(txM(tp[i]), tyM(pArr[i]), 4, 0, 2*Math.PI); ctx.fill();
+            }
+
+            // Ensemble models
+            const alpha = Math.min(0.5, 10 / Nmods);
+            ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+            ctx.lineWidth = 0.5;
+            for (let k = 0; k < Nmods; k++) {
+                const pm = solveLPM(aVals[k], bVals[k], cVals[k]);
+                ctx.beginPath();
+                for (let i = 0; i < tp.length; i++) {
+                    if (i === 0) ctx.moveTo(txM(tp[i]), tyM(pm[i]));
+                    else ctx.lineTo(txM(tp[i]), tyM(pm[i]));
+                }
+                ctx.stroke();
+            }
+
+            // Best model
+            const pmBest = solveLPM(a0, b0, c0);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < tp.length; i++) {
+                if (i === 0) ctx.moveTo(txM(tp[i]), tyM(pmBest[i]));
+                else ctx.lineTo(txM(tp[i]), tyM(pmBest[i]));
+            }
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Main plot axes
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(M.left, M.top, M.w, M.h);
+            ctx.fillStyle = '#000'; ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let t = 1955; t <= 1980; t += 5) {
+                ctx.beginPath(); ctx.moveTo(txM(t), M.top+M.h); ctx.lineTo(txM(t), M.top+M.h+5); ctx.stroke();
+                ctx.fillText(t.toString(), txM(t), M.top+M.h+8);
+            }
+            ctx.fillText('time [yr]', M.left+M.w/2, M.top+M.h+26);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let v = 30; v <= 60; v += 10) {
+                ctx.beginPath(); ctx.moveTo(M.left-5, tyM(v)); ctx.lineTo(M.left, tyM(v)); ctx.stroke();
+                ctx.fillText(v.toString(), M.left-8, tyM(v));
+            }
+            ctx.save(); ctx.translate(22, M.top+M.h/2); ctx.rotate(-Math.PI/2);
+            ctx.font = '14px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('pressure [bar]', 0, 0); ctx.restore();
+
+            // Legend
+            const lx = M.left+M.w-180, ly = M.top+10;
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.fillRect(lx, ly, 170, 72); ctx.strokeRect(lx, ly, 170, 72);
+            ctx.font = '13px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.arc(lx+12, ly+14, 4, 0, 2*Math.PI); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.fillText('observations', lx+25, ly+14);
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 0.5;
+            ctx.beginPath(); ctx.moveTo(lx+4, ly+36); ctx.lineTo(lx+20, ly+36); ctx.stroke();
+            ctx.fillText('possible models', lx+25, ly+36);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(lx+4, ly+56); ctx.lineTo(lx+20, ly+56); ctx.stroke();
+            ctx.fillText('best model', lx+25, ly+56);
+
+            // Histograms
+            const params = [
+                { vals: aVals, m0: a0, sm: sa, dlog: 0.1, label: 'a' },
+                { vals: bVals, m0: b0, sm: sb, dlog: 0.1, label: 'b' },
+                { vals: cVals, m0: c0, sm: sc, dlog: 0.5, label: 'c' }
+            ];
+
+            for (let h = 0; h < 3; h++) {
+                const par = params[h];
+                const hx = histX, hy = histYs[h], hw = histW, hh = histH;
+                const rangeW = 3 * par.dlog * par.m0;
+                const binMin = par.m0 - rangeW, binMax = par.m0 + rangeW;
+                const nBins = Math.max(3, Math.floor(4 * Math.sqrt(Nmods)));
+                const binW = (binMax - binMin) / nBins;
+
+                // Compute histogram
+                const bins = new Array(nBins).fill(0);
+                for (const v of par.vals) {
+                    const idx = Math.floor((v - binMin) / binW);
+                    if (idx >= 0 && idx < nBins) bins[idx]++;
+                }
+                const totalArea = par.vals.length * binW;
+                let maxH = 0;
+                for (let i = 0; i < nBins; i++) { bins[i] /= totalArea; maxH = Math.max(maxH, bins[i]); }
+
+                // Theoretical distribution peak
+                let theoMax = 0;
+                if (par.sm > 1e-10) theoMax = 1 / Math.sqrt(2 * Math.PI * par.sm * par.sm);
+                else theoMax = 1;
+                const yMaxHist = Math.max(maxH, theoMax) * 1.2 || 1;
+
+                function txh(v) { return hx + (v - binMin) / (binMax - binMin) * hw; }
+                function tyh(v) { return hy + hh - v / yMaxHist * hh; }
+
+                // Clip
+                ctx.save();
+                ctx.beginPath(); ctx.rect(hx, hy, hw, hh); ctx.clip();
+
+                // Histogram bars
+                ctx.fillStyle = 'rgba(128,128,128,0.6)';
+                for (let i = 0; i < nBins; i++) {
+                    const bx = txh(binMin + i * binW);
+                    const bw = txh(binMin + (i+1) * binW) - bx;
+                    const bh = bins[i] / yMaxHist * hh;
+                    ctx.fillRect(bx, hy + hh - bh, bw, bh);
+                }
+
+                // Theoretical curve (red)
+                ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                if (par.sm > 1e-10) {
+                    for (let j = 0; j <= 100; j++) {
+                        const x = binMin + j * (binMax - binMin) / 100;
+                        const y = Math.exp(-((x - par.m0)**2) / (2 * par.sm**2)) / Math.sqrt(2 * Math.PI * par.sm**2);
+                        if (j === 0) ctx.moveTo(txh(x), tyh(y)); else ctx.lineTo(txh(x), tyh(y));
+                    }
+                } else {
+                    // Delta function
+                    ctx.moveTo(txh(binMin), tyh(0));
+                    ctx.lineTo(txh(par.m0), tyh(0));
+                    ctx.lineTo(txh(par.m0), tyh(yMaxHist * 0.8));
+                    ctx.lineTo(txh(par.m0), tyh(0));
+                    ctx.lineTo(txh(binMax), tyh(0));
+                }
+                ctx.stroke();
+
+                ctx.restore();
+
+                // Border + label
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.strokeRect(hx, hy, hw, hh);
+                ctx.fillStyle = '#000'; ctx.font = 'italic 14px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                ctx.fillText(par.label, hx + hw / 2, hy + hh + 4);
+            }
+        }
+
+        document.getElementById('saSlider').addEventListener('input', draw);
+        document.getElementById('sbSlider').addEventListener('input', draw);
+        document.getElementById('scSlider').addEventListener('input', draw);
+        document.getElementById('nSlider').addEventListener('input', draw);
+        draw();
+    </script>
+</body>
+</html>

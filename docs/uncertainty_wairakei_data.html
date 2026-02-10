@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - Wairakei Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Wairakei Geothermal Data</h1>
+
+    <div class="explainer">
+        <p>
+            Hot water and steam have been extracted from the Wairakei geothermal system for
+            the last 60 years, used to produce clean, renewable electricity. As water was extracted,
+            pressure in the reservoir started to drop, eventually stabilizing.
+        </p>
+        <p>
+            The error bars on the pressure data indicate an estimated measurement uncertainty
+            of \(\pm 2\) bar.
+        </p>
+    </div>
+
+    <div class="widget-container">
+        <div class="canvas-container">
+            <canvas id="canvas" width="850" height="450"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>From 1965, the production rate declines but is still quite high.</p>
+        <p>Suggest a reason why the pressure eventually stops declining.
+           (Think about supplying heat to the centre of a metal plate &mdash;
+           the temperature can't keep going up forever...)</p>
+        <p>Does one of these curves 'cause' the other?</p>
+        <p>If we were to build a model of the reservoir, would 'production' be an input or an output?
+           What about 'pressure'?</p>
+    </div>
+
+    <script>
+        // ========== Data ==========
+        const tq = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012];
+        const q  = [0,91.97,142.23,243.53,369.64,435.35,386.3,799.44,1001.33,853.13,1279.4,1680.92,1734.78,1651.72,1611.03,1473.87,1342.67,1486.49,1445.96,1440.69,1372.32,1305.38,1256.35,1246.42,1221.76,1465.79,1371.32,1293.33,1301.34,1291.3,1324.96,1285.62,1290.42,1186.84,1183.36,1199.62,1166.92,1133.06,1196.53,1082.51,1123.7,1129.39,1126.01,1123.67,1087.26,1117.1,1061.9,1001.17,890.8,919.24,989.27,1016.84,964.24,874.81,935.57,950.1,927.41,792.13,708.62,653.81];
+        const tp = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012];
+        const p  = [56.26,55.69,55.5,54.73,52.76,52.15,51.48,47.71,46.87,45.55,41.84,38.51,36.28,35.1,34.16,34.42,33.56,33.03,32.5,32,31.7,31.64,31.73,31.69,31.83,31.02,30.7,30.84,30.32,30.56,30.26,30.29,30.1,30.49,30.73,30.4,31.07,30.5,30.16,30.17,29.93,29.95,29.87,29.93,30.05,30.05,30.91,31.53,32.14,32.34,32.46,31.95,32.3,33.13,33.12,33.15,33.08,33.77,33.78,33.17];
+
+        // ========== Canvas setup ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 850, cssH = 450;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Plot area
+        const mg = { left: 85, right: 100, top: 25, bottom: 50 };
+        const plotW = cssW - mg.left - mg.right;
+        const plotH = cssH - mg.top - mg.bottom;
+
+        // Axis ranges (xlim to 1980)
+        const tMin = 1953, tMax = 1980;
+        const qMin = 0, qMax = 1800;
+        const pMin = 28, pMax = 58;
+
+        function txC(t) { return mg.left + (t - tMin) / (tMax - tMin) * plotW; }
+        function tyQ(v) { return mg.top + (qMax - v) / (qMax - qMin) * plotH; }
+        function tyP(v) { return mg.top + (pMax - v) / (pMax - pMin) * plotH; }
+
+        // ========== Draw ==========
+        function draw() {
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // Clip
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(mg.left, mg.top, plotW, plotH);
+            ctx.clip();
+
+            // Production line (blue)
+            ctx.strokeStyle = '#0000FF';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let started = false;
+            for (let i = 0; i < tq.length; i++) {
+                if (tq[i] > tMax) break;
+                const cx = txC(tq[i]), cy = tyQ(q[i]);
+                if (!started) { ctx.moveTo(cx, cy); started = true; }
+                else ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+
+            // Pressure points (red circles) with error bars
+            const v = 2;
+            for (let i = 0; i < tp.length; i++) {
+                if (tp[i] > tMax) break;
+                const cx = txC(tp[i]);
+                const cy = tyP(p[i]);
+
+                // Error bar
+                ctx.strokeStyle = '#FF0000';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(cx, tyP(p[i] - v));
+                ctx.lineTo(cx, tyP(p[i] + v));
+                ctx.stroke();
+
+                // Circle
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            ctx.restore();
+
+            // ---- Axes ----
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(mg.left, mg.top, plotW, plotH);
+
+            // X axis ticks + labels
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let t = 1955; t <= 1980; t += 5) {
+                const cx = txC(t);
+                ctx.beginPath(); ctx.moveTo(cx, mg.top + plotH); ctx.lineTo(cx, mg.top + plotH + 5); ctx.stroke();
+                ctx.fillText(t.toString(), cx, mg.top + plotH + 8);
+            }
+            ctx.font = '15px Segoe UI';
+            ctx.fillText('time [yr]', mg.left + plotW / 2, cssH - 10);
+
+            // Left Y axis (production, blue)
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let v = 0; v <= 1800; v += 300) {
+                const cy = tyQ(v);
+                ctx.beginPath(); ctx.moveTo(mg.left - 5, cy); ctx.lineTo(mg.left, cy); ctx.stroke();
+                ctx.fillText(v.toString(), mg.left - 8, cy);
+            }
+            ctx.save();
+            ctx.translate(18, mg.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.font = '15px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('production rate [kg/s]', 0, 0);
+            ctx.restore();
+
+            // Right Y axis (pressure, red)
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.font = '14px Segoe UI';
+            for (let v = 30; v <= 55; v += 5) {
+                const cy = tyP(v);
+                ctx.beginPath();
+                ctx.moveTo(mg.left + plotW, cy);
+                ctx.lineTo(mg.left + plotW + 5, cy);
+                ctx.stroke();
+                ctx.fillText(v.toString(), mg.left + plotW + 8, cy);
+            }
+            ctx.save();
+            ctx.translate(cssW - 12, mg.top + plotH / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.font = '15px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('pressure [bar]', 0, 0);
+            ctx.restore();
+
+            // Legend
+            const lx = mg.left + 10, ly = mg.top + 10;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.fillRect(lx, ly, 140, 56);
+            ctx.strokeRect(lx, ly, 140, 56);
+
+            ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            // Production legend
+            ctx.strokeStyle = '#0000FF';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(lx + 8, ly + 16); ctx.lineTo(lx + 28, ly + 16); ctx.stroke();
+            ctx.fillStyle = '#000';
+            ctx.fillText('production', lx + 35, ly + 16);
+
+            // Pressure legend
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.arc(lx + 18, ly + 40, 4, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.fillText('pressure', lx + 35, ly + 40);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

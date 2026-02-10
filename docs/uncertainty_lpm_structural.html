@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty - LPM Structural Error</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .explainer {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .explainer p { margin: 1em 0; }
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 140px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>LPM Structural Error</h1>
+
+    <div class="explainer">
+        <p>
+            Sometimes, a self-proclaimed "expert" will assert that they <strong>know</strong> the value
+            of a parameter. Maybe they do (to within some degree of accuracy). Maybe they don't and
+            they're just an overconfident blowhard. Most often, they don't, but they're a pragmatist
+            that realises not <em>everything</em> can be treated as a free parameter for calibration.
+        </p>
+        <p>
+            Nevertheless, as soon as you fix a parameter to an incorrect value, you will introduce
+            <strong>structural error</strong> into a model. Let's look at an example involving
+            calibration and prediction.
+        </p>
+        <p>
+            Suppose we "know" the value of the parameter \(c\) for the lumped parameter model. Great!
+            Now we only need to calibrate two other parameters, \(a\) and \(b\), which won't take
+            nearly as long.
+        </p>
+        <p>
+            Unfortunately, we picked the wrong value for \(c\). Which means that, during calibration,
+            values of \(a\) and \(b\) will end up <strong>taking on best-fit values that are different
+            to what they would otherwise have been</strong> had we used a different value of \(c\).
+            This will ultimately affect our ability to make a prediction of the future (and to correctly
+            characterise \(a\) and \(b\)!)
+        </p>
+        <p><strong>Execute the widget below and answer the questions.</strong></p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>\(c\):</label>
+                <input type="range" id="cSlider" min="0" max="12" step="1" value="0">
+                <span id="cVal" style="min-width:60px; font-size:12px;">0.000e+0</span>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="revealCheck"> reveal future!</label>
+            </div>
+        </div>
+        <div id="titleLine" style="text-align:center; font-size:15px; margin-bottom:8px; font-weight:500;"></div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="380"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>The code above takes a FIXED value of \(c\), and then calculates \(a\) and \(b\) that best
+           fit the data. Use the slider to change the input value of \(c\). How does the quality of the
+           calibration change?</p>
+        <p>How do the parameter values \(a\) and \(b\) change?</p>
+        <p>How does the prediction of the future change?</p>
+        <p>How does making a decision to fix a particular parameter value for \(c\) affect our ability
+           to make a prediction of the future?</p>
+        <p>We can think about calibration as an exercise in inverse modelling. That is, we are seeking
+           the "true" values of \(a\) and \(b\) because they're too difficult to measure by other
+           (more direct) means. How does making a decision to fix a particular parameter value for \(c\)
+           affect our ability to do inverse modelling?</p>
+    </div>
+
+    <script>
+        // ========== Full data (all 60 points) ==========
+        const tqAll = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012];
+        const qAll = [0,91.97,142.23,243.53,369.64,435.35,386.3,799.44,1001.33,853.13,1279.4,1680.92,1734.78,1651.72,1611.03,1473.87,1342.67,1486.49,1445.96,1440.69,1372.32,1305.38,1256.35,1246.42,1221.76,1465.79,1371.32,1293.33,1301.34,1291.3,1324.96,1285.62,1290.42,1186.84,1183.36,1199.62,1166.92,1133.06,1196.53,1082.51,1123.7,1129.39,1126.01,1123.67,1087.26,1117.1,1061.9,1001.17,890.8,919.24,989.27,1016.84,964.24,874.81,935.57,950.1,927.41,792.13,708.62,653.81];
+        const tpAll = [1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012];
+        const pAll = [56.26,55.69,55.5,54.73,52.76,52.15,51.48,47.71,46.87,45.55,41.84,38.51,36.28,35.1,34.16,34.42,33.56,33.03,32.5,32,31.7,31.64,31.73,31.69,31.83,31.02,30.7,30.84,30.32,30.56,30.26,30.29,30.1,30.49,30.73,30.4,31.07,30.5,30.16,30.17,29.93,29.95,29.87,29.93,30.05,30.05,30.91,31.53,32.14,32.34,32.46,31.95,32.3,33.13,33.12,33.15,33.08,33.77,33.78,33.17];
+
+        // dq/dt via central differences
+        const Nall = tqAll.length;
+        const dqdt = new Array(Nall).fill(0);
+        dqdt[0] = (qAll[1] - qAll[0]) / (tqAll[1] - tqAll[0]);
+        for (let i = 1; i < Nall - 1; i++) dqdt[i] = (qAll[i+1] - qAll[i-1]) / (tqAll[i+1] - tqAll[i-1]);
+        dqdt[Nall-1] = (qAll[Nall-1] - qAll[Nall-2]) / (tqAll[Nall-1] - tqAll[Nall-2]);
+
+        // Calibration cutoff: first 28 points (1953-1980)
+        const Ncal = 28;
+
+        function interp(t, xs, ys) {
+            if (t <= xs[0]) return ys[0];
+            if (t >= xs[xs.length-1]) return ys[ys.length-1];
+            for (let i = 0; i < xs.length - 1; i++) {
+                if (t >= xs[i] && t <= xs[i+1]) return ys[i] + (t - xs[i]) / (xs[i+1] - xs[i]) * (ys[i+1] - ys[i]);
+            }
+            return ys[ys.length - 1];
+        }
+
+        // Improved Euler ODE solver
+        function solveLPM(a, b, c) {
+            const pm = [pAll[0]];
+            for (let i = 0; i < tpAll.length - 1; i++) {
+                const t0 = tpAll[i], t1 = tpAll[i+1], dt = t1 - t0;
+                const pi1 = pm[i] - pAll[0];
+                const dpdt1 = -a * interp(t0, tqAll, qAll) - b * pi1 - c * interp(t0, tqAll, dqdt);
+                const pp = pm[i] + dpdt1 * dt;
+                const dpdt2 = -a * interp(t1, tqAll, qAll) - b * (pp - pAll[0]) - c * interp(t1, tqAll, dqdt);
+                pm.push(pm[i] + 0.5 * dt * (dpdt1 + dpdt2));
+            }
+            return pm;
+        }
+
+        // Pre-computed best-fit (a, b) for each c value (from Python scipy curve_fit)
+        // c = cIdx * 1e-3, cIdx = 0..12
+        const fitTable = [
+            [4.716285e-03, 2.635279e-01],  // c=0.000
+            [4.327633e-03, 2.394834e-01],  // c=0.001
+            [3.949164e-03, 2.161052e-01],  // c=0.002
+            [3.578240e-03, 1.932286e-01],  // c=0.003
+            [3.212057e-03, 1.706803e-01],  // c=0.004
+            [2.847477e-03, 1.482684e-01],  // c=0.005
+            [2.480930e-03, 1.257774e-01],  // c=0.006
+            [2.108203e-03, 1.029562e-01],  // c=0.007
+            [1.724124e-03, 7.950221e-02],  // c=0.008
+            [1.322071e-03, 5.503491e-02],  // c=0.009
+            [8.931175e-04, 2.905210e-02],  // c=0.010
+            [4.247583e-04, 8.689615e-04],  // c=0.011
+            [3.443874e-04, 5.922048e-16],  // c=0.012
+        ];
+
+        // ========== Canvas ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 900, cssH = 380;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const PL = { x: 80, y: 30, w: 740, h: 300 };
+
+        const tMin = 1952, tMax = 2013, pMin = 25, pMax = 60;
+        function tx(t) { return PL.x + (t - tMin) / (tMax - tMin) * PL.w; }
+        function ty(v) { return PL.y + (pMax - v) / (pMax - pMin) * PL.h; }
+
+        function draw() {
+            const cIdx = parseInt(document.getElementById('cSlider').value);
+            const cVal = cIdx * 1e-3;
+            const reveal = document.getElementById('revealCheck').checked;
+
+            document.getElementById('cVal').textContent = cVal.toExponential(1);
+
+            // Look up pre-computed best-fit a, b
+            const [aFit, bFit] = fitTable[cIdx];
+
+            // Update title
+            document.getElementById('titleLine').innerHTML =
+                '\\(a=' + aFit.toExponential(2) + '\\), &nbsp; ' +
+                '\\(b=' + bFit.toExponential(2) + '\\), &nbsp; ' +
+                '\\(c=' + cVal.toExponential(1) + '\\)';
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                MathJax.typesetPromise([document.getElementById('titleLine')]);
+            }
+
+            const ip = reveal ? tpAll.length : Ncal;
+
+            // Solve full model with fitted parameters
+            const pm = solveLPM(aFit, bFit, cVal);
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // ===== Plot area =====
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PL.x, PL.y, PL.w, PL.h); ctx.clip();
+
+            // Observations + error bars
+            const v = 2;
+            for (let i = 0; i < ip; i++) {
+                ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(tx(tpAll[i]), ty(pAll[i] - v));
+                ctx.lineTo(tx(tpAll[i]), ty(pAll[i] + v));
+                ctx.stroke();
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath(); ctx.arc(tx(tpAll[i]), ty(pAll[i]), 3, 0, 2 * Math.PI); ctx.fill();
+            }
+
+            // Best model line (draw full extent to show extrapolation)
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < tpAll.length; i++) {
+                if (i === 0) ctx.moveTo(tx(tpAll[i]), ty(pm[i]));
+                else ctx.lineTo(tx(tpAll[i]), ty(pm[i]));
+            }
+            ctx.stroke();
+
+            ctx.restore();
+
+            // ===== Axes =====
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PL.x, PL.y, PL.w, PL.h);
+
+            ctx.fillStyle = '#000'; ctx.font = '13px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let t = 1960; t <= 2010; t += 10) {
+                ctx.beginPath(); ctx.moveTo(tx(t), PL.y + PL.h); ctx.lineTo(tx(t), PL.y + PL.h + 4); ctx.stroke();
+                ctx.fillText(t.toString(), tx(t), PL.y + PL.h + 6);
+            }
+            ctx.fillText('time [yr]', PL.x + PL.w / 2, PL.y + PL.h + 24);
+
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let p = 30; p <= 60; p += 10) {
+                ctx.beginPath(); ctx.moveTo(PL.x - 4, ty(p)); ctx.lineTo(PL.x, ty(p)); ctx.stroke();
+                ctx.fillText(p.toString(), PL.x - 6, ty(p));
+            }
+            ctx.save(); ctx.translate(22, PL.y + PL.h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.font = '14px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('pressure [bar]', 0, 0); ctx.restore();
+
+            // Legend
+            const lx = PL.x + 8, ly = PL.y + 8;
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.fillRect(lx, ly, 120, 46); ctx.strokeRect(lx, ly, 120, 46);
+            ctx.font = '12px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+
+            // Obs legend
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.arc(lx + 10, ly + 14, 3, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.fillText('observations', lx + 22, ly + 14);
+
+            // Best model legend
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(lx + 3, ly + 32); ctx.lineTo(lx + 17, ly + 32); ctx.stroke();
+            ctx.fillText('best model', lx + 22, ly + 32);
+        }
+
+        document.getElementById('cSlider').addEventListener('input', draw);
+        document.getElementById('revealCheck').addEventListener('change', draw);
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsupervised Learning and Clustering</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 180px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Unsupervised Learning and Clustering</h1>
+
+    <!-- ==================== Section 3.1: Clustering ==================== -->
+    <div class="section">
+        <h3>3.1 Clustering</h3>
+        <p>K-means clustering iterates between two steps: (1) assign data points to the nearest centroid, and (2) move each centroid to the mean of its assigned points. Use the slider to step through the algorithm.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>step:</label>
+                <input type="range" id="clusterStep" min="0" max="5" step="1" value="0">
+                <span id="clusterStepVal">0</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="clusterCanvas" width="900" height="220"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>In step 0, how should we guess initially at the centroids?</p>
+        <p>In step 1, how is cluster membership determined?</p>
+        <p>In step 2, how is the new centroid position calculated?</p>
+        <p>In step 3, how and why does cluster membership change?</p>
+        <p>When does the algorithm stop?</p>
+    </div>
+
+    <!-- ==================== Section 3.2: K-Means ==================== -->
+    <div class="section">
+        <h3>3.2 K-Means</h3>
+        <p>K-Means clustering partitions data into k groups. But how do we choose k? The <strong>Silhouette Score</strong> measures how well each point fits its assigned cluster versus the nearest other cluster. Higher scores (closer to 1) indicate better clustering.</p>
+    </div>
+
+    <div class="explainer">
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># imports from sklearn</span>
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> make_blobs
+<span class="kw">from</span> sklearn.cluster <span class="kw">import</span> KMeans
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> silhouette_score
+
+<span class="cm"># make up some data</span>
+X, y = <span class="fn">make_blobs</span>(n_samples=<span class="num">300</span>, n_features=<span class="num">2</span>, centers=<span class="num">3</span>, random_state=<span class="num">42</span>)
+
+<span class="cm"># create and fit the Kmeans object</span>
+kmns = <span class="fn">KMeans</span>(n_clusters=<span class="num">3</span>, random_state=<span class="num">42</span>)
+kmns.<span class="fn">fit</span>(X)
+
+<span class="cm"># extract the key clustering outputs</span>
+centroids= kmns.cluster_centers_
+membership = kmns.<span class="fn">predict</span>(X)
+ss = <span class="fn">silhouette_score</span>(X, membership)
+inertia = kmns.inertia_
+
+<span class="cm"># plot the clusters</span>
+plt.<span class="fn">figure</span>(figsize=(<span class="num">6</span>,<span class="num">4</span>))
+plt.<span class="fn">scatter</span>(X[:, <span class="num">0</span>], X[:, <span class="num">1</span>], c=membership, cmap=<span class="str">'viridis'</span>, marker=<span class="str">'o'</span>, edgecolor=<span class="str">'k'</span>, s=<span class="num">50</span>)
+plt.<span class="fn">scatter</span>(kmns.cluster_centers_[:, <span class="num">0</span>], kmns.cluster_centers_[:, <span class="num">1</span>], c=<span class="str">'red'</span>, marker=<span class="str">'x'</span>, s=<span class="num">100</span>, label=<span class="str">'Cluster centers'</span>)
+plt.<span class="fn">title</span>(<span class="str">f"KMeans Clustering (k=4), inertia={inertia:3.2f}"</span>); plt.<span class="fn">xlabel</span>(<span class="str">'Feature 1'</span>); plt.<span class="fn">ylabel</span>(<span class="str">'Feature 2'</span>)
+plt.<span class="fn">show</span>()</pre>
+        </details>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>step:</label>
+                <input type="range" id="kmeansStep" min="0" max="4" step="1" value="0">
+                <span id="kmeansStepVal">0 (raw data)</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="kmeansCanvas" width="900" height="380"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>In step 0, how many clusters are there? How do you "know" this answer?</p>
+        <p>In step 1, there are two clusters. Which one has the better centroid?</p>
+        <p>In step 2, we have selected the right number of clusters. But how would an algorithm know this?</p>
+        <p>What is the effect of increasing cluster number beyond what is required by the data?</p>
+        <p>How can we use the Silhouette Score to determine the best number of clusters?</p>
+        <p>Does the centroid location, relative to the data, tell us about how good the data are?</p>
+        <p>How is the Silhouette Score calculated? Ask an AI.</p>
+    </div>
+
+    <!-- ==================== Section 3.3: DBSCAN ==================== -->
+    <div class="section">
+        <h3>3.3 DBSCAN</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> make_blobs
+<span class="kw">from</span> sklearn.cluster <span class="kw">import</span> DBSCAN
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+
+<span class="cm"># make clusters</span>
+X, y = <span class="fn">make_blobs</span>(n_samples=<span class="num">200</span>, centers=<span class="num">2</span>, cluster_std=<span class="num">1.5</span>, random_state=<span class="num">42</span>)
+
+<span class="cm"># add nosie</span>
+np.random.<span class="fn">seed</span>(<span class="num">42</span>)
+X = np.<span class="fn">vstack</span>([X, np.random.<span class="fn">rand</span>(<span class="num">50</span>, <span class="num">2</span>) * <span class="num">14</span> - <span class="num">5</span>])
+
+<span class="cm"># Apply DBSCAN algorithm</span>
+eps = <span class="num">2.0</span>
+min_samples = <span class="num">5</span>
+dbscan = <span class="fn">DBSCAN</span>(eps=eps, min_samples=min_samples)
+y_dbscan = dbscan.<span class="fn">fit_predict</span>(X)
+
+<span class="cm"># Plot the clusters</span>
+f,(ax1,ax2)=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">2</span>,figsize=(<span class="num">10</span>, <span class="num">4</span>))
+ax1.<span class="fn">plot</span>(X[:, <span class="num">0</span>], X[:, <span class="num">1</span>], <span class="str">'o'</span>, color=[<span class="num">0.7</span>,<span class="num">0.7</span>,<span class="num">0.7</span>], ms=<span class="num">7</span>, mec=<span class="str">'k'</span>)
+unique_labels = np.<span class="fn">unique</span>(y_dbscan[y_dbscan != -<span class="num">1</span>])
+<span class="kw">for</span> label,c <span class="kw">in</span> <span class="fn">zip</span>(unique_labels,[<span class="str">'y'</span>,<span class="str">'m'</span>]):
+    ax2.<span class="fn">plot</span>(X[y_dbscan == label, <span class="num">0</span>], X[y_dbscan == label, <span class="num">1</span>], c+<span class="str">'o'</span>, mec=<span class="str">'k'</span>, ms=<span class="num">7</span>, label=<span class="str">f"Cluster {label}"</span>)
+ax2.<span class="fn">scatter</span>(X[y_dbscan == -<span class="num">1</span>, <span class="num">0</span>], X[y_dbscan == -<span class="num">1</span>, <span class="num">1</span>], color=<span class="str">'gray'</span>, s=<span class="num">50</span>, label=<span class="str">"Noise"</span>)
+ax2.<span class="fn">set_title</span>(<span class="str">"DBSCAN Clustering"</span>)
+ax2.<span class="fn">set_xlabel</span>(<span class="str">"Feature 1"</span>)
+ax2.<span class="fn">set_ylabel</span>(<span class="str">"Feature 2"</span>)
+ax2.<span class="fn">legend</span>()
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+    </div>
+
+    <div class="widget-container">
+        <div class="canvas-container">
+            <canvas id="dbscanCanvas" width="1000" height="380"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== JavaScript ==================== -->
+
+    <!-- Block 1: Clustering widget -->
+    <script>
+    (function(){
+        const canvas = document.getElementById('clusterCanvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 900, cssH = 220;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // Data from Python
+        const data = [[1,6],[3,4],[4,10],[3,10],[2,8]];
+        const initCentroids = [[-1,7],[6,7]];
+
+        // Pre-compute all iterations
+        function runKmeans() {
+            let centroids = initCentroids.map(c => [...c]);
+            const history = []; // each entry: { assignments, centroidsBeforeUpdate, centroidsAfterUpdate }
+            history.push({ centroids: centroids.map(c => [...c]), assignments: null });
+
+            for (let iter = 0; iter < 4; iter++) {
+                // Assign
+                const assignments = data.map(p => {
+                    const d0 = Math.hypot(p[0]-centroids[0][0], p[1]-centroids[0][1]);
+                    const d1 = Math.hypot(p[0]-centroids[1][0], p[1]-centroids[1][1]);
+                    return d0 <= d1 ? 0 : 1;
+                });
+                // Update
+                const newCentroids = [0,1].map(k => {
+                    const pts = data.filter((_, i) => assignments[i] === k);
+                    return [pts.reduce((s,p) => s+p[0], 0)/pts.length, pts.reduce((s,p) => s+p[1], 0)/pts.length];
+                });
+                history.push({ centroids: centroids.map(c => [...c]), assignments: [...assignments], newCentroids: newCentroids.map(c => [...c]) });
+                centroids = newCentroids.map(c => [...c]);
+            }
+            return history;
+        }
+        const history = runKmeans();
+
+        const panelW = 200, panelH = 180, gap = 25, startX = 30;
+        const xMin = -2, xMax = 7, yMin = 2, yMax = 11;
+        function tx(x, px) { return px + (x - xMin) / (xMax - xMin) * panelW; }
+        function ty(y, py) { return py + panelH - (y - yMin) / (yMax - yMin) * panelH; }
+
+        function draw() {
+            const step = parseInt(document.getElementById('clusterStep').value);
+            document.getElementById('clusterStepVal').textContent = step;
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const colors = ['#e74c3c', '#27ae60'];
+            const titles = ['initialise', 'iteration 1', 'iteration 2', 'iteration 3'];
+
+            for (let panel = 0; panel < 4; panel++) {
+                const px = startX + panel * (panelW + gap);
+                const py = 25;
+
+                // Panel frame
+                ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
+                ctx.strokeRect(px, py, panelW, panelH);
+
+                // Title
+                ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                ctx.fillText(titles[panel], px + panelW/2, py - 18);
+
+                // Axes labels
+                ctx.font = '10px Segoe UI'; ctx.textBaseline = 'bottom';
+                ctx.fillText('x', px + panelW/2, py + panelH + 16);
+
+                if (panel === 0) {
+                    // Step 0: show raw data and initial centroids
+                    // Data points (blue squares)
+                    for (const p of data) {
+                        ctx.fillStyle = '#3498db';
+                        ctx.fillRect(tx(p[0], px) - 5, ty(p[1], py) - 5, 10, 10);
+                    }
+                    // Initial centroids (white circles with blue border)
+                    for (const c of initCentroids) {
+                        ctx.beginPath(); ctx.arc(tx(c[0], px), ty(c[1], py), 6, 0, 2*Math.PI);
+                        ctx.fillStyle = 'white'; ctx.fill();
+                        ctx.strokeStyle = '#3498db'; ctx.lineWidth = 1.5; ctx.stroke();
+                    }
+                    // Legend
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(px + 5, py + 5, 8, 8);
+                    ctx.fillStyle = '#333'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                    ctx.fillText('data', px + 17, py + 10);
+                    ctx.beginPath(); ctx.arc(px + 9, py + 22, 4, 0, 2*Math.PI);
+                    ctx.fillStyle = 'white'; ctx.fill(); ctx.strokeStyle = '#3498db'; ctx.lineWidth = 1; ctx.stroke();
+                    ctx.fillStyle = '#333'; ctx.fillText('centroid', px + 17, py + 22);
+
+                    if (step === 0) break;
+                } else {
+                    // Iterations 1-3
+                    const iterIdx = panel; // history index
+                    const h = history[iterIdx];
+
+                    // What to show depends on step
+                    // step 1 → panel 1 shows assignments only
+                    // step 2 → panel 1 shows assignments + arrow to new centroid
+                    // step 3 → panels 1 full, panel 2 assignments only
+                    // etc.
+
+                    const panelStep = (panel - 1) * 2 + 1; // step at which this panel's assignments appear
+                    const panelStep2 = panelStep + 1; // step at which this panel's centroid updates appear
+
+                    if (step < panelStep) break;
+
+                    const showArrow = step >= panelStep2;
+
+                    if (h.assignments) {
+                        // Draw colored data points
+                        for (let i = 0; i < data.length; i++) {
+                            ctx.fillStyle = colors[h.assignments[i]];
+                            ctx.fillRect(tx(data[i][0], px) - 5, ty(data[i][1], py) - 5, 10, 10);
+                        }
+                        // Draw old centroids
+                        for (let k = 0; k < 2; k++) {
+                            ctx.beginPath(); ctx.arc(tx(h.centroids[k][0], px), ty(h.centroids[k][1], py), 6, 0, 2*Math.PI);
+                            ctx.fillStyle = 'white'; ctx.fill();
+                            ctx.strokeStyle = colors[k]; ctx.lineWidth = 1.5; ctx.stroke();
+                        }
+                        // Arrow to new centroid
+                        if (showArrow && h.newCentroids) {
+                            for (let k = 0; k < 2; k++) {
+                                const x0 = tx(h.centroids[k][0], px), y0 = ty(h.centroids[k][1], py);
+                                const x1 = tx(h.newCentroids[k][0], px), y1 = ty(h.newCentroids[k][1], py);
+                                // New centroid marker
+                                ctx.beginPath(); ctx.arc(x1, y1, 6, 0, 2*Math.PI);
+                                ctx.fillStyle = 'white'; ctx.fill();
+                                ctx.strokeStyle = colors[k]; ctx.lineWidth = 1.5; ctx.stroke();
+                                // Arrow
+                                const dx = x1 - x0, dy = y1 - y0;
+                                const len = Math.hypot(dx, dy);
+                                if (len > 2) {
+                                    const ndx = dx/len, ndy = dy/len;
+                                    const ax = x0 + dx*0.85, ay = y0 + dy*0.85;
+                                    ctx.strokeStyle = colors[k]; ctx.lineWidth = 1.5;
+                                    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(ax, ay); ctx.stroke();
+                                    // Arrowhead
+                                    ctx.fillStyle = colors[k];
+                                    ctx.beginPath();
+                                    ctx.moveTo(ax + ndx*8, ay + ndy*8);
+                                    ctx.lineTo(ax - ndy*4, ay + ndx*4);
+                                    ctx.lineTo(ax + ndy*4, ay - ndx*4);
+                                    ctx.closePath(); ctx.fill();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        document.getElementById('clusterStep').addEventListener('input', draw);
+        draw();
+    })();
+    </script>
+
+    <!-- Block 2: K-Means widget -->
+    <script>
+    (function(){
+        const canvas = document.getElementById('kmeansCanvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 900, cssH = 380;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        // sklearn make_blobs(n_samples=300, centers=3, random_state=42) data
+        const X = [[-7.339,-7.73],[-7.74,-7.265],[-1.687,7.793],[4.422,3.072],[-8.918,-7.888],[5.498,1.813],[-2.336,9.4],[5.053,1.409],[-2.988,8.829],[-3.701,9.671],[-3.111,10.867],[4.997,1.28],[-2.3,7.055],[-3.925,8.594],[-7.53,-7.367],[-3.211,8.687],[-8.507,-6.832],[2.615,2.16],[-2.412,9.983],[-1.922,11.205],[-1.351,8.194],[-2.67,9.418],[5.615,1.826],[-6.992,-7.101],[-2.973,8.549],[-6.35,-5.439],[-7.456,-6.125],[3.822,4.066],[4.628,1.076],[-3.399,8.198],[-3.5,8.448],[-3.58,9.497],[-6.049,-7.736],[-2.295,7.769],[-8.395,-5.513],[-2.282,10.321],[-6.123,-7.802],[4.885,1.466],[-6.987,-7.915],[4.982,3.849],[5.907,1.266],[-2.252,8.94],[-7.367,-7.313],[4.525,3.211],[-2.544,7.846],[-2.148,10.552],[-6.808,-7.358],[4.155,2.055],[-6.542,-7.292],[6.226,0.735],[4.716,1.296],[-6.888,-5.4],[-6.513,-7.82],[-1.031,8.496],[-5.7,-6.813],[5.155,5.826],[-6.485,-7.301],[-1.546,9.427],[4.753,2.635],[-2.97,10.071],[-6.644,-6.109],[6.773,0.021],[5.539,2.28],[-3.801,-5.761],[-7.129,-5.909],[3.741,2.465],[3.921,1.76],[-6.168,-8.005],[-8.583,-6.936],[-3.572,9.488],[5.945,1.994],[-5.821,-8.639],[-7.579,-6.666],[-2.036,8.941],[-2.901,7.551],[-6.609,-6.93],[-8.947,-6.969],[3.881,2.124],[-3.11,8.723],[5.819,1.504],[-3.522,9.329],[-2.581,10.018],[-6.379,-7.858],[-2.178,9.99],[5.59,1.396],[-6.044,-8.01],[-5.712,-6.626],[-0.643,9.488],[6.405,2.378],[-3.887,8.076],[-8.549,-6.337],[-2.545,10.579],[-6.401,-6.546],[-1.594,9.343],[-3.039,9.528],[-7.433,-8.078],[-7.947,-7.022],[-2.249,9.796],[-7.643,-8.685],[-6.466,-5.003],[4.165,1.32],[-2.151,9.575],[4.432,1.48],[-1.718,8.105],[-3.348,8.705],[-2.267,7.101],[-2.166,7.251],[-2.259,9.361],[6.793,1.206],[-8.278,-6.317],[5.326,0.36],[-3.292,8.692],[-3.318,8.513],[-2.442,7.59],[-2.523,7.957],[4.839,1.373],[-7.917,-7.07],[2.927,3.327],[-8.75,-7.232],[3.634,0.759],[5.159,3.506],[4.864,1.986],[-1.106,7.612],[-6.303,-6.569],[-6.547,-7.629],[-7.008,-7.836],[-6.265,-6.123],[-3.186,9.626],[-5.842,-7.39],[-7.41,-7.673],[-1.426,10.068],[-4.428,8.988],[-2.417,7.027],[-4.234,8.452],[-3.988,8.294],[5.145,2.839],[4.387,0.725],[-7.15,-7.859],[-2.504,8.78],[-7.393,-7.939],[-2.979,9.557],[-2.755,8.261],[-4.819,-5.125],[-2.422,8.715],[3.121,1.489],[3.925,2.653],[5.453,2.603],[-2.233,9.841],[5.918,1.382],[-3.189,9.247],[-3.417,7.602],[-4.915,-6.845],[4.921,1.35],[-8.414,-5.602],[-2.213,9.275],[3.44,1.639],[4.621,1.685],[-7.41,-7.456],[-6.241,-8.542],[-3.393,9.168],[-5.129,9.836],[-7.755,-8.263],[-5.328,-6.764],[-5.678,-7.288],[-2.451,7.871],[-6.009,-7.206],[4.169,2.205],[-2.449,11.478],[-1.987,9.311],[-1.696,7.783],[-1.366,9.766],[-3.429,10.564],[3.8,1.374],[-2.956,9.871],[3.658,2.435],[4.664,2.471],[5.512,2.157],[-2.774,11.734],[6.762,3.006],[5.264,2.602],[-6.793,-7.036],[-3.054,9.125],[-7.542,-6.31],[6.272,0.543],[5.211,3.109],[-9.351,-7.677],[4.964,1.843],[-1.044,8.789],[1.399,0.949],[4.2,2.104],[-6.942,-5.925],[-5.251,-8.26],[3.814,1.652],[-8.486,-6.677],[3.91,2.19],[3.32,3.805],[4.621,0.971],[6.784,2.607],[-3.484,9.801],[-6.698,-6.632],[-1.771,9.186],[-2.625,8.713],[3.818,2.217],[4.051,2.823],[-1.697,10.371],[4.951,3.449],[-7.865,-6.376],[-7.526,-7.962],[4.737,2.568],[-2.148,8.369],[-2.41,8.511],[-7.845,-6.194],[6.091,2.932],[3.379,2.891],[-6.831,-7.711],[-5.377,-6.806],[-6.247,-4.609],[-6.303,-7.083],[-3.746,7.694],[-7.155,-9.182],[-6.05,-9.091],[2.516,1.447],[-7.636,-8.302],[-8.184,-6.21],[-2.496,10.468],[3.847,1.858],[-7.324,-6.503],[-5.192,-5.998],[4.325,2.732],[-2.586,9.355],[-1.687,10.911],[-5.953,-4.971],[-2.852,8.212],[-8.063,-8.919],[4.685,1.322],[5.322,1.663],[-7.531,-6.833],[4.619,2.09],[-5.235,-7.129],[-6.946,-8.091],[-6.59,-4.805],[4.963,1.146],[5.798,2.765],[-1.884,8.157],[-5.357,-6.341],[3.045,1.374],[5.33,1.572],[4.645,2.02],[-6.62,-7.784],[5.187,1.771],[-6.508,-7.484],[4.531,2.375],[-7.472,-7.744],[6.955,0.106],[6.83,1.165],[-6.553,-7.099],[3.713,1.914],[-3.837,9.211],[-8.358,-5.736],[-2.216,8.3],[-2.733,9.728],[-1.478,9.946],[-6.802,-7.741],[-4.06,9.083],[5.465,2.787],[3.978,2.826],[-6.759,-6.366],[4.71,1.588],[5.387,2.584],[-2.702,9.316],[-0.93,9.782],[4.738,1.2],[4.168,3.062],[5.155,2.487],[-6.78,-6.129],[-5.873,-7.457],[-7.149,-6.163],[-3.616,7.818],[-0.623,9.189],[-3.356,7.499],[3.867,1.736],[5.084,2.748],[6.081,0.537],[3.192,0.566],[-6.541,-7.295],[4.704,0.895],[-6.234,-5.511],[5.594,2.625],[4.488,2.561],[-6.496,-6.913],[-2.185,8.629],[4.19,2.596],[5.803,1.983],[-2.729,9.371],[-7.119,-7.788],[-3.66,9.39],[3.811,1.413],[-4.117,9.199],[-6.861,-5.204],[-6.01,-5.524]];
+
+        // Seeded PRNG (for k-means init only)
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        // K-Means implementation (k-means++ init)
+        function kmeans(X, k, maxIter) {
+            const rng2 = mulberry32(42);
+            // K-means++ initialization
+            let centroids = [X[Math.floor(rng2() * X.length)].slice()];
+            while (centroids.length < k) {
+                const dists = X.map(p => {
+                    let minD = Infinity;
+                    for (const c of centroids) minD = Math.min(minD, (p[0]-c[0])**2 + (p[1]-c[1])**2);
+                    return minD;
+                });
+                const total = dists.reduce((a, b) => a + b, 0);
+                let r = rng2() * total, cum = 0;
+                for (let i = 0; i < X.length; i++) {
+                    cum += dists[i];
+                    if (cum >= r) { centroids.push(X[i].slice()); break; }
+                }
+            }
+            let labels = new Array(X.length).fill(0);
+
+            for (let iter = 0; iter < maxIter; iter++) {
+                // Assign
+                for (let i = 0; i < X.length; i++) {
+                    let best = 0, bestD = Infinity;
+                    for (let j = 0; j < k; j++) {
+                        const d = Math.hypot(X[i][0]-centroids[j][0], X[i][1]-centroids[j][1]);
+                        if (d < bestD) { bestD = d; best = j; }
+                    }
+                    labels[i] = best;
+                }
+                // Update
+                const newC = Array.from({length: k}, () => [0,0,0]); // [sumX, sumY, count]
+                for (let i = 0; i < X.length; i++) {
+                    newC[labels[i]][0] += X[i][0];
+                    newC[labels[i]][1] += X[i][1];
+                    newC[labels[i]][2]++;
+                }
+                let changed = false;
+                for (let j = 0; j < k; j++) {
+                    if (newC[j][2] > 0) {
+                        const nx = newC[j][0]/newC[j][2], ny = newC[j][1]/newC[j][2];
+                        if (Math.abs(nx-centroids[j][0]) > 1e-6 || Math.abs(ny-centroids[j][1]) > 1e-6) changed = true;
+                        centroids[j] = [nx, ny];
+                    }
+                }
+                if (!changed) break;
+            }
+            return { labels, centroids };
+        }
+
+        // Silhouette score
+        function silhouetteScore(X, labels, k) {
+            const n = X.length;
+            const scores = new Array(n);
+            for (let i = 0; i < n; i++) {
+                // a(i): mean distance to same cluster
+                let aSum = 0, aCount = 0;
+                const dists = new Array(k).fill(0);
+                const counts = new Array(k).fill(0);
+                for (let j = 0; j < n; j++) {
+                    if (i === j) continue;
+                    const d = Math.hypot(X[i][0]-X[j][0], X[i][1]-X[j][1]);
+                    dists[labels[j]] += d;
+                    counts[labels[j]]++;
+                }
+                const a = counts[labels[i]] > 0 ? dists[labels[i]] / counts[labels[i]] : 0;
+                let b = Infinity;
+                for (let c = 0; c < k; c++) {
+                    if (c === labels[i] || counts[c] === 0) continue;
+                    b = Math.min(b, dists[c] / counts[c]);
+                }
+                if (b === Infinity) b = 0;
+                scores[i] = Math.max(a, b) > 0 ? (b - a) / Math.max(a, b) : 0;
+            }
+            return scores.reduce((s, v) => s + v, 0) / n;
+        }
+
+        // Pre-compute results for k=2,3,4,5
+        const results = {};
+        const silScores = {};
+        for (const k of [2,3,4,5]) {
+            results[k] = kmeans(X, k, 100);
+            silScores[k] = silhouetteScore(X, results[k].labels, k);
+        }
+
+        // Viridis-like colors for clusters
+        const clusterColors = ['#440154','#31688e','#35b779','#fde725','#e66101'];
+
+        const PL = { x: 70, y: 40, w: 380, h: 300 };
+        const PR = { x: 540, y: 40, w: 280, h: 300 };
+
+        // Data range
+        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+        for (const p of X) {
+            xMin = Math.min(xMin, p[0]); xMax = Math.max(xMax, p[0]);
+            yMin = Math.min(yMin, p[1]); yMax = Math.max(yMax, p[1]);
+        }
+        const pad = 1; xMin -= pad; xMax += pad; yMin -= pad; yMax += pad;
+
+        function txL(v) { return PL.x + (v - xMin)/(xMax - xMin) * PL.w; }
+        function tyL(v) { return PL.y + PL.h - (v - yMin)/(yMax - yMin) * PL.h; }
+
+        function draw() {
+            const step = parseInt(document.getElementById('kmeansStep').value);
+            const labels = ['0 (raw data)', '1 (k=2)', '2 (k=3)', '3 (k=4)', '4 (k=5)'];
+            document.getElementById('kmeansStepVal').textContent = labels[step];
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // ===== Left panel: scatter plot =====
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PL.x, PL.y, PL.w, PL.h); ctx.clip();
+
+            if (step === 0) {
+                // Raw data
+                for (const p of X) {
+                    ctx.beginPath(); ctx.arc(txL(p[0]), tyL(p[1]), 3.5, 0, 2*Math.PI);
+                    ctx.fillStyle = '#888'; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+            } else {
+                const k = step + 1;
+                const res = results[k];
+                for (let i = 0; i < X.length; i++) {
+                    ctx.beginPath(); ctx.arc(txL(X[i][0]), tyL(X[i][1]), 3.5, 0, 2*Math.PI);
+                    ctx.fillStyle = clusterColors[res.labels[i]]; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+                // Centroids
+                for (const c of res.centroids) {
+                    ctx.beginPath();
+                    const cx = txL(c[0]), cy = tyL(c[1]);
+                    ctx.moveTo(cx-6, cy-6); ctx.lineTo(cx+6, cy+6);
+                    ctx.moveTo(cx+6, cy-6); ctx.lineTo(cx-6, cy+6);
+                    ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2.5; ctx.stroke();
+                }
+            }
+            ctx.restore();
+
+            // Left axes
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PL.x, PL.y, PL.w, PL.h);
+            ctx.fillStyle = '#333'; ctx.font = '13px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('Feature 1', PL.x + PL.w/2, PL.y + PL.h + 22);
+            ctx.save(); ctx.translate(20, PL.y + PL.h/2); ctx.rotate(-Math.PI/2);
+            ctx.fillText('Feature 2', 0, 0); ctx.restore();
+            const title = step === 0 ? 'KMeans Clustering (raw data)' : `KMeans Clustering (k=${step+1})`;
+            ctx.font = '14px Segoe UI'; ctx.fillText(title, PL.x + PL.w/2, PL.y - 20);
+
+            // Legend
+            if (step > 0) {
+                const lx = PL.x + PL.w - 105, ly = PL.y + 5;
+                ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+                ctx.fillRect(lx, ly, 100, 24); ctx.strokeRect(lx, ly, 100, 24);
+                ctx.beginPath(); ctx.moveTo(lx+5, ly+7); ctx.lineTo(lx+15, ly+17);
+                ctx.moveTo(lx+15, ly+7); ctx.lineTo(lx+5, ly+17);
+                ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText('Cluster centers', lx + 20, ly + 12);
+            }
+
+            // ===== Right panel: Silhouette Score =====
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PR.x, PR.y, PR.w, PR.h);
+            ctx.font = '14px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillStyle = '#333';
+            ctx.fillText('Silhouette Score vs. # Clusters', PR.x + PR.w/2, PR.y - 20);
+
+            const ssMin = 0.4, ssMax = 0.95;
+            function txR(v) { return PR.x + (v - 1.9)/(5.1 - 1.9) * PR.w; }
+            function tyR(v) { return PR.y + PR.h - (v - ssMin)/(ssMax - ssMin) * PR.h; }
+
+            // Grid
+            ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5;
+            for (let v = 0.5; v <= 0.9; v += 0.1) {
+                ctx.beginPath(); ctx.moveTo(PR.x, tyR(v)); ctx.lineTo(PR.x + PR.w, tyR(v)); ctx.stroke();
+            }
+            for (let k = 2; k <= 5; k++) {
+                ctx.beginPath(); ctx.moveTo(txR(k), PR.y); ctx.lineTo(txR(k), PR.y + PR.h); ctx.stroke();
+            }
+
+            // Axes labels
+            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let k = 2; k <= 5; k++) {
+                ctx.fillText(k.toString(), txR(k), PR.y + PR.h + 4);
+            }
+            ctx.fillText('Number of Clusters', PR.x + PR.w/2, PR.y + PR.h + 22);
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let v = 0.5; v <= 0.9; v += 0.1) {
+                ctx.fillText(v.toFixed(1), PR.x - 4, tyR(v));
+            }
+            ctx.save(); ctx.translate(PR.x - 35, PR.y + PR.h/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.fillText('Silhouette Score', 0, 0); ctx.restore();
+
+            // Plot silhouette scores up to current step
+            if (step > 0) {
+                const ks = [];
+                const ss = [];
+                for (let k = 2; k <= step + 1; k++) {
+                    ks.push(k);
+                    ss.push(silScores[k]);
+                }
+                ctx.strokeStyle = '#1f77b4'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < ks.length; i++) {
+                    if (i === 0) ctx.moveTo(txR(ks[i]), tyR(ss[i]));
+                    else ctx.lineTo(txR(ks[i]), tyR(ss[i]));
+                }
+                ctx.stroke();
+                for (let i = 0; i < ks.length; i++) {
+                    ctx.beginPath(); ctx.arc(txR(ks[i]), tyR(ss[i]), 4, 0, 2*Math.PI);
+                    ctx.fillStyle = '#1f77b4'; ctx.fill();
+                }
+            }
+        }
+
+        document.getElementById('kmeansStep').addEventListener('input', draw);
+        draw();
+    })();
+    </script>
+
+    <!-- Block 3: DBSCAN static plot -->
+    <script>
+    (function(){
+        const canvas = document.getElementById('dbscanCanvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 1000, cssH = 380;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const dbX = [[2.25,1.07],[5.12,0.73],[4.68,2.72],[-4.10,9.72],[5.06,1.04],[7.86,2.92],[4.81,2.97],[3.93,0.99],[-3.18,10.30],[5.93,1.73],[-2.42,12.71],[5.99,2.43],[-0.41,6.91],[5.46,1.67],[-0.22,0.44],[0.29,9.73],[4.98,1.99],[3.13,0.15],[3.91,2.10],[3.54,2.30],[5.66,1.51],[5.41,2.74],[-0.31,8.68],[3.40,1.13],[-2.02,8.44],[-3.33,9.18],[5.40,3.27],[-1.28,7.18],[3.29,2.71],[-1.29,11.05],[-2.56,11.36],[6.38,1.99],[-4.00,8.16],[-1.97,8.05],[-1.29,7.17],[4.94,1.07],[-0.79,10.14],[7.02,0.12],[-2.38,8.57],[3.45,1.80],[-0.29,8.24],[5.26,1.13],[4.62,0.63],[5.18,0.93],[-2.49,11.19],[3.40,1.49],[-1.97,9.86],[-3.72,8.26],[-2.12,10.19],[6.10,1.75],[1.45,1.18],[-3.83,9.24],[-2.68,8.56],[-3.41,8.58],[-0.88,10.59],[3.25,1.88],[-2.36,10.47],[-2.07,7.94],[3.93,2.32],[3.17,2.67],[4.33,1.23],[3.50,2.20],[4.79,0.81],[-2.41,6.88],[4.47,3.83],[-4.84,9.12],[-2.53,7.43],[5.58,2.92],[-4.50,9.31],[-1.99,6.37],[5.42,4.27],[-4.03,9.49],[-1.57,7.73],[-1.32,7.65],[6.80,-0.18],[-2.91,13.09],[-0.14,10.17],[2.57,0.57],[-2.01,10.48],[-3.41,11.79],[2.75,3.35],[5.76,2.89],[5.88,3.19],[6.60,2.00],[4.26,0.10],[8.11,-0.83],[-6.44,10.25],[6.54,0.91],[3.41,2.34],[3.38,1.07],[-2.50,8.66],[-2.36,8.26],[-2.80,9.47],[-2.09,10.26],[5.01,1.21],[-0.96,10.41],[-1.73,9.46],[7.82,3.52],[-3.56,8.52],[3.48,1.62],[2.66,4.72],[-4.63,8.38],[7.84,-0.95],[-3.10,6.82],[-4.12,9.74],[4.61,0.47],[6.07,2.95],[1.60,2.25],[6.07,1.11],[-4.92,9.29],[5.86,2.92],[-3.20,10.60],[2.84,1.47],[-1.14,9.51],[7.87,0.82],[3.41,5.11],[-2.15,6.14],[-4.73,7.93],[-1.40,9.27],[6.56,1.09],[-1.63,12.30],[5.68,1.37],[7.92,0.76],[-3.78,6.74],[-3.77,8.55],[5.31,3.14],[-2.25,9.59],[-3.68,8.53],[-3.52,9.93],[5.50,3.68],[-3.87,6.90],[4.48,2.58],[6.82,3.41],[-0.77,7.78],[3.93,3.61],[4.71,1.00],[-3.30,9.78],[2.36,1.25],[4.65,2.04],[-5.10,8.17],[5.95,2.25],[-2.17,10.98],[-3.84,7.79],[-2.20,6.07],[-2.13,9.53],[2.47,-0.14],[4.74,1.40],[7.09,-0.17],[-3.23,8.74],[5.11,4.19],[-1.06,9.63],[5.15,4.79],[4.17,3.11],[4.79,2.87],[5.13,1.78],[0.32,9.28],[-2.84,10.09],[-3.97,10.19],[-4.17,7.22],[-1.28,11.86],[-2.42,7.30],[4.61,1.54],[-2.37,6.03],[5.41,7.75],[-3.53,9.36],[-3.89,11.34],[4.41,2.86],[6.41,1.27],[4.61,2.15],[-2.07,9.41],[4.74,0.36],[2.07,4.00],[-2.56,7.26],[3.98,2.17],[-5.39,8.97],[-4.24,9.58],[-3.02,7.81],[7.29,2.58],[-3.21,9.83],[3.65,3.25],[6.38,3.16],[4.31,3.62],[-2.84,9.55],[-4.36,7.03],[-2.19,7.15],[-1.80,8.91],[-1.97,11.32],[-2.62,10.52],[3.57,2.99],[-3.20,8.32],[3.56,1.65],[-2.75,9.62],[-2.86,8.66],[5.67,-0.45],[-4.30,10.00],[-2.62,9.53],[3.76,3.25],[-2.88,7.88],[4.75,0.96],[-2.12,8.90],[0.24,8.31],[5.25,3.38],[-2.82,-2.82],[-4.19,7.13],[3.42,4.91],[-4.71,8.58],[6.65,-2.03],[-2.45,-2.43],[-0.74,2.35],[1.05,-0.92],[3.57,-3.05],[-0.91,0.13],[1.38,5.99],[-2.20,2.20],[3.29,-4.35],[3.51,-2.61],[-4.09,8.28],[8.52,6.32],[-0.74,-3.63],[4.58,1.16],[-3.29,1.93],[-4.52,7.73],[-1.38,4.28],[-0.64,2.28],[2.65,-2.41],[8.57,5.85],[8.15,7.53],[3.37,7.91],[-3.76,-2.26],[-4.37,-0.45],[0.44,-1.20],[6.60,-0.01],[-1.07,2.60],[-3.03,6.23],[-3.96,8.82],[5.81,-2.22],[-4.92,6.42],[4.90,5.21],[5.80,-3.96],[0.02,-3.38],[7.08,3.73],[-0.37,-4.11],[-0.65,-0.45],[5.21,3.93],[7.42,1.61],[-3.33,4.99],[5.65,2.86],[5.79,1.91],[2.32,0.99],[-4.64,-3.49]];
+        const dbLabels = [0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,1,0,0,0,0,0,0,1,0,1,1,0,1,0,1,1,0,1,1,1,0,1,0,1,0,1,0,0,0,1,0,1,1,1,0,0,1,1,1,1,0,1,1,0,0,0,0,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,1,1,0,1,1,0,1,0,0,1,0,1,1,0,0,0,0,1,0,1,0,1,0,0,1,1,1,0,1,0,0,1,1,0,1,1,1,0,1,0,0,1,0,0,1,0,0,1,0,1,1,1,1,0,0,0,1,0,1,0,0,0,0,1,1,1,1,1,1,0,1,-1,1,1,0,0,0,1,0,0,1,0,1,1,1,0,1,0,0,0,1,1,1,1,1,1,0,1,0,1,1,0,1,1,0,1,0,1,1,0,2,1,0,1,0,2,0,0,-1,0,0,0,-1,-1,1,-1,-1,0,0,1,0,0,-1,-1,-1,-1,2,2,0,0,0,1,1,0,1,0,-1,-1,0,-1,0,0,0,1,0,0,0,2];
+
+        // Compute data range with padding
+        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+        for (const p of dbX) {
+            xMin = Math.min(xMin, p[0]); xMax = Math.max(xMax, p[0]);
+            yMin = Math.min(yMin, p[1]); yMax = Math.max(yMax, p[1]);
+        }
+        xMin -= 1.0; xMax += 1.0; yMin -= 1.0; yMax += 1.0;
+
+        // Panel layout: two side-by-side panels
+        const panelGap = 80;
+        const panelW = 420, panelH = 300;
+        const leftX = 60, topY = 50;
+        const rightX = leftX + panelW + panelGap;
+
+        function txP(v, px) { return px + (v - xMin) / (xMax - xMin) * panelW; }
+        function tyP(v, py) { return py + panelH - (v - yMin) / (yMax - yMin) * panelH; }
+
+        function drawPanel(px, py, title, drawPoints) {
+            // Panel frame
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(px, py, panelW, panelH);
+
+            // Title
+            ctx.fillStyle = '#333'; ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText(title, px + panelW / 2, py - 6);
+
+            // Axes labels
+            ctx.font = '12px Segoe UI'; ctx.textBaseline = 'top';
+            ctx.fillText('Feature 1', px + panelW / 2, py + panelH + 20);
+            ctx.save();
+            ctx.translate(px - 30, py + panelH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Feature 2', 0, 0);
+            ctx.restore();
+
+            // Draw points
+            ctx.save();
+            ctx.beginPath(); ctx.rect(px, py, panelW, panelH); ctx.clip();
+            drawPoints(px, py);
+            ctx.restore();
+        }
+
+        // Left panel: Raw Data
+        drawPanel(leftX, topY, 'Raw Data', function(px, py) {
+            for (const p of dbX) {
+                ctx.beginPath();
+                ctx.arc(txP(p[0], px), tyP(p[1], py), 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#b0b0b0';
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+        });
+
+        // Right panel: DBSCAN Clustering
+        const labelColors = { 0: '#ffd700', 1: '#e040e0', 2: '#40c0c0', '-1': '#999' };
+        drawPanel(rightX, topY, 'DBSCAN Clustering', function(px, py) {
+            for (let i = 0; i < dbX.length; i++) {
+                const label = dbLabels[i];
+                const r = label === -1 ? 3 : 4.5;
+                ctx.beginPath();
+                ctx.arc(txP(dbX[i][0], px), tyP(dbX[i][1], py), r, 0, 2 * Math.PI);
+                ctx.fillStyle = labelColors[label.toString()] || '#999';
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+        });
+
+        // Legend for right panel
+        const legendX = rightX + panelW - 100, legendY = topY + 8;
+        const legendItems = [
+            { label: 'Cluster 0', color: '#ffd700' },
+            { label: 'Cluster 1', color: '#e040e0' },
+            { label: 'Cluster 2', color: '#40c0c0' },
+            { label: 'Noise', color: '#999' }
+        ];
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+        ctx.fillRect(legendX - 5, legendY - 3, 98, legendItems.length * 18 + 6);
+        ctx.strokeRect(legendX - 5, legendY - 3, 98, legendItems.length * 18 + 6);
+        for (let i = 0; i < legendItems.length; i++) {
+            const ly = legendY + i * 18 + 7;
+            ctx.beginPath();
+            ctx.arc(legendX + 6, ly, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = legendItems[i].color;
+            ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText(legendItems[i].label, legendX + 16, ly);
+        }
+    })();
+    </script>
+</body>
+</html>

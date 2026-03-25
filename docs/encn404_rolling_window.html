@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Rolling Window Features</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 16px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 120px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Rolling Window Features</h1>
+
+    <div class="explainer">
+        <p>Rolling window features are constructed by sliding a <strong>window</strong> over time series data and applying a <strong>function</strong> within that window. They highlight characteristics of the data by suppressing noise.</p>
+        <p>This traffic density time series shows a strong first-order trend, overprinted by second-order patterns.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>T<sub>m</sub>:</label>
+                <input type="range" id="tmSlider" min="20" max="240" step="10" value="150">
+                <span id="tmVal">150</span>
+            </div>
+            <div class="control-group">
+                <label>T<sub>sd</sub>:</label>
+                <input type="range" id="tsdSlider" min="20" max="120" step="10" value="30">
+                <span id="tsdVal">30</span>
+            </div>
+            <div class="control-group">
+                <label>T<sub>i</sub>:</label>
+                <input type="range" id="tiSlider" min="10" max="50" step="5" value="30">
+                <span id="tiVal">30</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="1050" height="300"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p>For feature 1, slide the window length from 150 to 20 days. How does the feature change?</p>
+        <p>Set the same window length for features 1 and 2. How are they different?</p>
+        <p>For feature 3, what information is it extracting?</p>
+        <p>Which feature extracts the first-order trend?</p>
+        <p>Which feature identifies second-order characteristics that overprint the trend?</p>
+        <p>Which of these first- or second-order characteristics are signal and which are noise?</p>
+    </div>
+
+    <script>
+        const density = [35.17,33.77,33.36,33.44,31.46,30.06,28.32,28.61,27.61,28.15,27.76,28.99,28.23,26.88,26.04,27.89,26.96,24.74,23.39,27.12,27.44,27.9,28.58,30.61,31.13,31.38,31.09,30.05,30.3,30.28,29.07,26.4,28.35,29.67,30.08,30.19,29.93,28.25,26.81,26.34,26.12,25.58,24.11,24.75,25.0,26.39,28.02,26.93,27.77,28.12,29.14,32.29,34.72,35.23,36.1,36.31,35.55,35.03,34.23,36.68,36.08,36.04,36.0,34.71,36.24,36.32,32.87,31.35,32.66,32.46,33.3,34.14,34.55,33.49,32.95,32.46,30.87,31.13,31.47,32.4,33.96,34.32,33.15,34.13,34.27,32.29,30.41,30.77,31.84,30.27,30.47,30.23,30.12,30.59,32.41,30.72,32.32,33.62,36.84,37.53,38.6,40.45,41.17,43.28,43.41,44.24,44.57,43.59,45.09,45.09,45.88,46.26,47.17,45.27,46.42,46.99,46.78,45.54,44.48,44.72,44.37,44.83,45.44,45.94,45.52,43.61,45.44,47.8,47.07,47.21,50.75,53.08,53.41,54.02,51.67,51.04,52.29,49.75,50.84,50.09,53.04,51.96,50.41,49.25,47.78,47.5,48.76,47.1,46.91,48.09,45.66,48.29,50.35,52.4,53.15,55.46,59.1,59.12,62.07,62.37,58.16,60.79,60.92,63.29,61.47,60.79,58.77,54.8,54.78,58.0,58.12,57.27,55.8,53.0,54.08,56.26,56.22,56.24,55.85,54.61,59.1,62.14,63.42,61.71,61.43,64.53,67.31,73.91,75.98,76.07,75.61,70.64,71.84,66.86,65.65,63.79,64.0,64.72,65.92,66.9,66.68,68.13,69.12,67.35,69.48,69.34,71.21,74.01,74.24,73.01,76.54,76.87,77.8,80.82,80.15,80.86,82.29,79.91,77.99,77.53,79.2,74.43,75.07,76.0,73.65,72.09,66.99,67.65,65.2,64.97,61.29,63.1,61.33,61.06,63.12,63.97,62.42,63.18,65.09,65.86,66.74,66.86,66.92,67.2,65.56,66.83,68.29,67.01,65.33,63.78,61.56,61.14,61.71,61.79,62.64,59.28,60.25,58.58,57.75,55.67,53.28,51.95,49.57,47.54,44.19,47.0,51.11,52.13,49.6,50.8,55.4,53.62,57.92,59.81,55.06,56.66,57.4,56.6,52.73,51.04,54.36,52.14,47.63,47.6,46.68,43.81,44.01,41.4,39.77,36.89,38.9,38.45,36.05,39.78,41.14,41.25,43.88,42.72,43.05,43.23,43.81,43.99,44.65,45.12,45.51,45.37,45.97,44.86,44.54,43.5,44.11,44.73,44.02,44.22,43.54,44.09,43.56,44.75,45.2,45.69,45.07,43.49,42.73,42.22,41.65,40.8,39.93,38.97,40.04,39.35,38.64,36.34,36.61,36.25,35.66,35.04,34.47,35.3,35.0,36.32,37.28,37.31,36.69,37.6,37.77,37.85,38.54,40.05,38.91,38.41,38.14,39.45,39.56,40.69,42.1,42.04,42.24,42.55,43.04,43.11,43.46,42.18,41.7,40.78,41.31,40.77,40.0,39.59,39.9,40.66,39.59,39.06,39.41,38.65,39.2,38.69,39.29,39.63,39.46,38.82,37.68,37.3,38.37,37.24,37.33,37.12,37.4,37.19,37.31,37.1,37.98,37.7,37.39,38.74,38.83,39.41,39.05,38.84,39.26,39.02,39.1,38.81,38.98,38.65,39.05,37.89,38.38,38.82,38.86,40.35,40.68,41.62,42.29,42.23,41.6,41.13,40.93,40.15,39.87,39.62,38.68,38.48,37.61,38.29,37.3,37.06,36.34,34.0,32.72,32.07,31.18,31.89,31.3,31.37,31.21,31.0,30.93,31.24,31.53,30.93,31.01,30.83,31.08,31.08,31.69,31.08,30.77,31.95,32.4,33.64,34.67,37.4,42.04,43.72,43.38,44.75,41.05,39.87,37.0,31.52,29.36,26.28,25.48,27.43,32.36,32.35,37.06,40.39,42.94,44.09,45.71,45.15,42.17,34.82,31.21,29.28,28.48,27.47,31.36,33.69,34.7,38.5,38.22,39.82,39.87,38.29,36.67,32.0,27.22,22.95,20.94,16.89,16.71,20.71,26.24,29.29,34.19,36.44,37.27,37.55,35.82,30.42,26.25,21.89,18.63,15.83,15.78,15.77,18.16,19.83,21.92,23.53,23.35,22.71,23.46,22.83,18.69,17.35,14.14,11.11,6.9,4.13,3.53,6.42,8.11,11.8,14.02,17.18,20.05,19.25,14.93,11.86,7.37,4.69,2.2,-1.89,-2.94,-1.21,2.54,5.9,8.63,11.21,16.07,15.35,16.11,13.61,11.62,8.21,6.64,1.43,-1.08,1.02,2.63,3.22,7.45,10.2,15.45,15.93,17.77,17.28,14.12,8.8,7.15,6.53,4.16,-0.93,-0.13,6.92,6.84,6.71,10.25,13.47,14.88,16.09,18.08,13.3,13.62,13.0,13.82,10.75,10.04,8.29,9.55,12.05,11.98,13.42,17.12,17.42,18.6,19.79,17.79,12.95,7.72,4.01,2.32,3.57,4.08,5.7,8.36,16.05,17.78,18.62,15.3,17.93,19.49,19.92,18.69,20.0,22.63,20.22,21.06,20.6,21.17,18.88,19.23,18.18,16.97,19.31,18.08,18.33,21.38,22.32,22.08,20.69,18.42,18.38,16.86,17.32,18.3,19.24,17.32,16.97,16.67,17.61,16.63,15.88,13.49,13.53,13.05,11.84,11.27,10.25,11.44,12.59,11.83,11.62,11.47,14.71,15.81,16.11,16.54,15.09,15.39,15.48,14.99,15.1,15.67,14.31,14.41,12.52,14.19,14.32,11.04,10.32,9.23,11.86,11.74,13.07,13.58,16.1,16.98,16.18,16.76,16.53,16.73,16.45,16.78,19.43,20.72,20.73,20.43,21.15,21.8,22.68,22.68,21.75,22.7,22.32,24.03,24.48,27.81,27.8,26.5,26.58,26.9,27.35,25.53,25.99,26.87,30.13,30.28,30.36,32.24,34.69,36.5,37.65,38.93,38.49,37.02,36.13,39.24,39.85,37.96,38.49,37.37,38.24,39.07,38.36,36.51,37.68,38.33,37.74,35.53,36.42,36.1,37.68,38.08,38.57,37.83,37.27,38.45,40.55,42.01,39.47,38.42,37.39,36.2,33.34,32.05,29.52,30.77,30.19,32.29,32.57,32.26,32.86,33.18,36.23,37.86,36.8];
+        const N = density.length;
+
+        // Rolling mean
+        function rollingMean(data, w) {
+            const out = new Array(data.length).fill(NaN);
+            for (let i = w - 1; i < data.length; i++) {
+                let s = 0;
+                for (let j = i - w + 1; j <= i; j++) s += data[j];
+                out[i] = s / w;
+            }
+            return out;
+        }
+
+        // Rolling standard deviation
+        function rollingStd(data, w) {
+            const out = new Array(data.length).fill(NaN);
+            for (let i = w - 1; i < data.length; i++) {
+                let s = 0, s2 = 0;
+                for (let j = i - w + 1; j <= i; j++) { s += data[j]; s2 += data[j]*data[j]; }
+                const mean = s / w;
+                out[i] = Math.sqrt(s2/w - mean*mean);
+            }
+            return out;
+        }
+
+        // Rolling harmonic power (DFT at specific period)
+        function rollingHarmonic(data, w, ti) {
+            const out = new Array(data.length).fill(NaN);
+            const fftW = 240; // fixed FFT window matching Python
+            if (fftW > data.length) return out;
+            for (let i = fftW - 1; i < data.length; i++) {
+                const x = data.slice(i - fftW + 1, i + 1);
+                // Find frequency bin closest to period ti
+                // Frequencies: k/W, periods: W/k
+                const k = Math.round(fftW / ti);
+                if (k < 1 || k >= fftW) { out[i] = 0; continue; }
+                // Compute DFT at bin k
+                let re = 0, im = 0;
+                for (let n = 0; n < fftW; n++) {
+                    const angle = 2 * Math.PI * k * n / fftW;
+                    re += x[n] * Math.cos(angle);
+                    im -= x[n] * Math.sin(angle);
+                }
+                re /= fftW; im /= fftW;
+                out[i] = (re*re + im*im) / 2;
+            }
+            return out;
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 1050, cssH = 300;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const panels = [
+            { x: 60, y: 25, w: 290, h: 230 },
+            { x: 400, y: 25, w: 290, h: 230 },
+            { x: 740, y: 25, w: 290, h: 230 }
+        ];
+
+        function draw() {
+            const Tm = parseInt(document.getElementById('tmSlider').value);
+            const Tsd = parseInt(document.getElementById('tsdSlider').value);
+            const Ti = parseInt(document.getElementById('tiSlider').value);
+            document.getElementById('tmVal').textContent = Tm;
+            document.getElementById('tsdVal').textContent = Tsd;
+            document.getElementById('tiVal').textContent = Ti;
+
+            const mean = rollingMean(density, Tm);
+            const std = rollingStd(density, Tsd);
+            const harmonic = rollingHarmonic(density, 240, Ti);
+
+            const dMin = Math.min(...density), dMax = Math.max(...density);
+            const stdVals = std.filter(v => !isNaN(v));
+            const stdMin = 0, stdMax = stdVals.length ? Math.max(...stdVals) * 1.1 : 1;
+            const hVals = harmonic.filter(v => !isNaN(v));
+            const hMin = 0, hMax = hVals.length ? Math.max(...hVals) * 1.1 : 1;
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const titles = [`feature 1: ${Tm}-day average`, `feature 2: ${Tsd}-day std. dev.`, `feature 3: ${Ti}-day harmonic`];
+            const features = [mean, std, harmonic];
+            const featureRanges = [[dMin, dMax], [stdMin, stdMax], [hMin, hMax]];
+
+            for (let p = 0; p < 3; p++) {
+                const P = panels[p];
+                function txP(i) { return P.x + i / (N-1) * P.w; }
+                function tyP(v) { return P.y + P.h - (v - dMin)/(dMax - dMin) * P.h; }
+                function tyF(v) {
+                    const [fMin, fMax] = featureRanges[p];
+                    return P.y + P.h - (v - fMin)/(fMax - fMin) * P.h;
+                }
+
+                ctx.save();
+                ctx.beginPath(); ctx.rect(P.x, P.y, P.w, P.h); ctx.clip();
+
+                // Raw data (black thin line)
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                for (let i = 0; i < N; i++) {
+                    if (i === 0) ctx.moveTo(txP(i), tyP(density[i]));
+                    else ctx.lineTo(txP(i), tyP(density[i]));
+                }
+                ctx.stroke();
+
+                // Feature (blue)
+                ctx.strokeStyle = '#1f77b4'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                let started = false;
+                const feat = features[p];
+                for (let i = 0; i < N; i++) {
+                    if (isNaN(feat[i])) continue;
+                    const fy = p === 0 ? tyP(feat[i]) : tyF(feat[i]);
+                    if (!started) { ctx.moveTo(txP(i), fy); started = true; }
+                    else ctx.lineTo(txP(i), fy);
+                }
+                ctx.stroke();
+
+                ctx.restore();
+
+                // Frame
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.strokeRect(P.x, P.y, P.w, P.h);
+
+                // Title
+                ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText(titles[p], P.x + P.w/2, P.y - 4);
+
+                // Left Y label
+                ctx.save(); ctx.translate(P.x - 28, P.y + P.h/2); ctx.rotate(-Math.PI/2);
+                ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillText('traffic density', 0, 0); ctx.restore();
+
+                // Right Y for panels 1,2 (feature axis)
+                if (p > 0) {
+                    ctx.save(); ctx.translate(P.x + P.w + 20, P.y + P.h/2); ctx.rotate(Math.PI/2);
+                    ctx.font = '10px Segoe UI'; ctx.textAlign = 'center'; ctx.fillStyle = '#1f77b4';
+                    ctx.fillText(p === 1 ? 'std dev' : 'PSD', 0, 0); ctx.restore();
+                }
+
+                // X-axis date tick labels
+                // Data: 750 daily points starting 2000-01-01
+                const dateTicks = [
+                    {i: 0, label: '2000'},
+                    {i: 182, label: 'Jul'},
+                    {i: 366, label: '2001'},
+                    {i: 548, label: 'Jul'},
+                    {i: 731, label: '2002'}
+                ];
+                ctx.fillStyle = '#666'; ctx.font = '9px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                for (const dt of dateTicks) {
+                    if (dt.i >= N) continue;
+                    const dx = P.x + dt.i / (N-1) * P.w;
+                    ctx.fillText(dt.label, dx, P.y + P.h + 3);
+                    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+                    ctx.beginPath(); ctx.moveTo(dx, P.y + P.h); ctx.lineTo(dx, P.y + P.h + 2); ctx.stroke();
+                }
+            }
+        }
+
+        ['tmSlider','tsdSlider','tiSlider'].forEach(id =>
+            document.getElementById(id).addEventListener('input', draw));
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Data Exploration with Pandas</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        /* Output styling */
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        .output-label { font-size: 11px; color: #888; margin-bottom: 2px; font-family: 'Segoe UI', sans-serif; }
+        /* DataFrame tables */
+        .output-table { border-collapse: collapse; font-size: 12.5px; font-family: 'Consolas', 'Courier New', monospace; }
+        .output-table th, .output-table td { border: 1px solid #ddd; padding: 4px 10px; text-align: right; }
+        .output-table th { background: #f8f8f8; font-weight: 600; }
+        .output-table thead th { border-bottom: 2px solid #ccc; }
+        /* Canvas for plots */
+        .canvas-container { display: flex; justify-content: center; margin: 10px 0; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Data Exploration with Pandas</h1>
+
+    <div class="explainer">
+        <p>Work through the examples below during the lecture</p>
+    </div>
+
+    <div class="section">
+        <details>
+            <summary>Show Python imports</summary>
+            <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> matplotlib <span class="kw">import</span> pyplot <span class="kw">as</span> plt</pre>
+        </details>
+    </div>
+
+    <!-- 1.1 DataFrame -->
+    <div class="section">
+        <h3>1.1 DataFrame</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># The most important object is the DataFrame. Think of this like a table in a spreadsheet.</span>
+data={<span class="str">'time'</span>: [<span class="num">30</span>, <span class="num">60</span>, <span class="num">90</span>, <span class="num">120</span>, <span class="num">150</span>], <span class="str">'rainfall'</span>: [<span class="num">4</span>, <span class="num">11</span>, <span class="num">32</span>, <span class="num">8</span>, <span class="num">0</span>], <span class="str">'runoff'</span>: [<span class="num">0</span>, <span class="num">0</span>, <span class="num">1.7</span>, <span class="num">8.6</span>, <span class="num">3.1</span>]}
+
+<span class="cm"># create the dataframe from a dictionary of data</span>
+df=pd.<span class="fn">DataFrame</span>(data)
+
+<span class="cm"># look at the dataframe</span>
+df.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>time</th><th>rainfall</th><th>runoff</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>30</td><td>4</td><td>0.0</td></tr>
+                <tr><th>1</th><td>60</td><td>11</td><td>0.0</td></tr>
+                <tr><th>2</th><td>90</td><td>32</td><td>1.7</td></tr>
+                <tr><th>3</th><td>120</td><td>8</td><td>8.6</td></tr>
+                <tr><th>4</th><td>150</td><td>0</td><td>3.1</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># display the column names</span>
+df.columns</pre>
+        </details>
+        <div class="output"><code>Index(['time', 'rainfall', 'runoff'], dtype='object')</code></div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># display the row and column counts</span>
+df.shape</pre>
+        </details>
+        <div class="output"><code>(5, 3)</code></div>
+    </div>
+
+    <!-- 1.2 Index -->
+    <div class="section">
+        <h3>1.2 Index</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Dataframes have indices. These are like the indices of an array or list, e.g., 0, 1, 2, … -1.</span>
+<span class="cm"># The indices populate by default in the Python convention. They can be accessed from the 'index' attribute.</span>
+df.index</pre>
+        </details>
+        <div class="output"><code>RangeIndex(start=0, stop=5, step=1)</code></div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Indices don't have to be integers. We can change them to something else.</span>
+<span class="cm"># A popular choice is some kind of measure of time, in which case we are working with time series data.</span>
+df.<span class="fn">set_index</span>(<span class="str">'time'</span>, inplace=<span class="kw">True</span>)
+df.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>rainfall</th><th>runoff</th></tr><tr><th>time</th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>30</th><td>4</td><td>0.0</td></tr>
+                <tr><th>60</th><td>11</td><td>0.0</td></tr>
+                <tr><th>90</th><td>32</td><td>1.7</td></tr>
+                <tr><th>120</th><td>8</td><td>8.6</td></tr>
+                <tr><th>150</th><td>0</td><td>3.1</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># We can use indices to get access to parts of the dataframe.</span>
+<span class="fn">print</span>(df.loc[<span class="num">30</span>])
+<span class="fn">print</span>(df.loc[<span class="num">90</span>,<span class="str">'rainfall'</span>])
+<span class="fn">print</span>(df.loc[<span class="num">120</span>:,<span class="str">'runoff'</span>])</pre>
+        </details>
+        <div class="output"><code>rainfall    4.0
+runoff      0.0
+Name: 30, dtype: float64</code></div>
+        <div class="output"><code>32</code></div>
+        <div class="output"><code>time
+120    8.6
+150    3.1
+Name: runoff, dtype: float64</code></div>
+    </div>
+
+    <!-- 1.3 Series -->
+    <div class="section">
+        <h3>1.3 Series</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># extract a series (one column) from the larger dataframe</span>
+rain=df[<span class="str">'rainfall'</span>]
+
+<span class="cm"># summarize aspects of the series</span>
+<span class="fn">print</span>(rain.<span class="fn">max</span>())             <span class="cm"># or min, mean, std, sum</span>
+<span class="fn">print</span>(rain.<span class="fn">describe</span>())
+<span class="fn">print</span>(rain.<span class="fn">unique</span>())          <span class="cm"># sort_values, value_counts</span></pre>
+        </details>
+        <div class="output"><code>32</code></div>
+        <div class="output"><code>count     5.0000
+mean     11.0000
+std      12.4499
+min       0.0000
+25%       4.0000
+50%       8.0000
+75%      11.0000
+max      32.0000
+Name: rainfall, dtype: float64</code></div>
+        <div class="output"><code>[ 4 11 32  8  0]</code></div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># With matplotlib, we can also generate plots</span>
+rain.<span class="fn">plot</span>(kind=<span class="str">'box'</span>)   <span class="cm"># or line, box, pie…</span>
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="boxPlot" width="390" height="390"></canvas>
+        </div>
+    </div>
+
+    <!-- 1.4 Other operations -->
+    <div class="section">
+        <h3>1.4 Other operations</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># We'll use the dataframe as a variable on which to do calculations (like a spreadsheet).</span>
+<span class="cm"># For example, calculate new columns</span>
+df[<span class="str">'rnf_rnd'</span>]=df[<span class="str">'runoff'</span>].<span class="fn">round</span>()
+df.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>rainfall</th><th>runoff</th><th>rnf_rnd</th></tr><tr><th>time</th><th></th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>30</th><td>4</td><td>0.0</td><td>0.0</td></tr>
+                <tr><th>60</th><td>11</td><td>0.0</td><td>0.0</td></tr>
+                <tr><th>90</th><td>32</td><td>1.7</td><td>2.0</td></tr>
+                <tr><th>120</th><td>8</td><td>8.6</td><td>9.0</td></tr>
+                <tr><th>150</th><td>0</td><td>3.1</td><td>3.0</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># or calculate a summary row</span>
+df.<span class="fn">max</span>()</pre>
+        </details>
+        <div class="output"><code>rainfall    32.0
+runoff       8.6
+rnf_rnd      9.0
+dtype: float64</code></div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># We can write dataframes out to files, and read them back in again. We'll generally use CSV files.</span>
+df.<span class="fn">to_csv</span>(<span class="str">'rainfall.csv'</span>)
+df2=pd.<span class="fn">read_csv</span>(<span class="str">'rainfall.csv'</span>)
+df2.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df2.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>time</th><th>rainfall</th><th>runoff</th><th>rnf_rnd</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>30</td><td>4</td><td>0.0</td><td>0.0</td></tr>
+                <tr><th>1</th><td>60</td><td>11</td><td>0.0</td><td>0.0</td></tr>
+                <tr><th>2</th><td>90</td><td>32</td><td>1.7</td><td>2.0</td></tr>
+                <tr><th>3</th><td>120</td><td>8</td><td>8.6</td><td>9.0</td></tr>
+                <tr><th>4</th><td>150</td><td>0</td><td>3.1</td><td>3.0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 1.5 Rolling window calculations -->
+    <div class="section">
+        <h3>1.5 Rolling window calculations</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># rolling window calculations are a useful series operation</span>
+df[<span class="str">'avg_rain'</span>]=df[<span class="str">'rainfall'</span>].<span class="fn">rolling</span>(<span class="num">3</span>).<span class="fn">mean</span>()
+df.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>rainfall</th><th>runoff</th><th>rnf_rnd</th><th>avg_rain</th></tr><tr><th>time</th><th></th><th></th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>30</th><td>4</td><td>0.0</td><td>0.0</td><td>NaN</td></tr>
+                <tr><th>60</th><td>11</td><td>0.0</td><td>0.0</td><td>NaN</td></tr>
+                <tr><th>90</th><td>32</td><td>1.7</td><td>2.0</td><td>15.666667</td></tr>
+                <tr><th>120</th><td>8</td><td>8.6</td><td>9.0</td><td>17.000000</td></tr>
+                <tr><th>150</th><td>0</td><td>3.1</td><td>3.0</td><td>13.333333</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># rolling() can be chained with apply() to any function you can think of, e.g., sum of squares</span>
+<span class="kw">def</span> <span class="fn">sum_of_squares</span>(x):
+    <span class="kw">return</span> np.<span class="fn">sum</span>(x**<span class="num">2</span>)
+df[<span class="str">'ss_runoff2'</span>]=df[<span class="str">'runoff'</span>].<span class="fn">rolling</span>(<span class="num">3</span>).<span class="fn">apply</span>(sum_of_squares)
+df.<span class="fn">head</span>()</pre>
+        </details>
+        <div class="output-label">df.head()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>rainfall</th><th>runoff</th><th>rnf_rnd</th><th>avg_rain</th><th>ss_runoff2</th></tr><tr><th>time</th><th></th><th></th><th></th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>30</th><td>4</td><td>0.0</td><td>0.0</td><td>NaN</td><td>NaN</td></tr>
+                <tr><th>60</th><td>11</td><td>0.0</td><td>0.0</td><td>NaN</td><td>NaN</td></tr>
+                <tr><th>90</th><td>32</td><td>1.7</td><td>2.0</td><td>15.666667</td><td>2.89</td></tr>
+                <tr><th>120</th><td>8</td><td>8.6</td><td>9.0</td><td>17.000000</td><td>76.85</td></tr>
+                <tr><th>150</th><td>0</td><td>3.1</td><td>3.0</td><td>13.333333</td><td>86.46</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 1.6 Grouping and sorting -->
+    <div class="section">
+        <h3>1.6 Grouping and sorting</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># let's look now at some categorical data in buildings.csv</span>
+df=pd.<span class="fn">read_csv</span>(<span class="str">'buildings.csv'</span>)
+df.<span class="fn">set_index</span>(<span class="str">'Building'</span>, inplace=<span class="kw">True</span>)
+df</pre>
+        </details>
+        <div class="output-label">df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>Type</th><th>Area</th><th>Cost</th></tr><tr><th>Building</th><th></th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>A</th><td style="text-align:left">Commercial</td><td>120</td><td>180000</td></tr>
+                <tr><th>B</th><td style="text-align:left">Industrial</td><td>250</td><td>220000</td></tr>
+                <tr><th>C</th><td style="text-align:left">Residential</td><td>150</td><td>120000</td></tr>
+                <tr><th>D</th><td style="text-align:left">Commercial</td><td>300</td><td>600000</td></tr>
+                <tr><th>E</th><td style="text-align:left">Industrial</td><td>200</td><td>300000</td></tr>
+                <tr><th>F</th><td style="text-align:left">Residential</td><td>100</td><td>150000</td></tr>
+                <tr><th>G</th><td style="text-align:left">Commercial</td><td>350</td><td>400000</td></tr>
+                <tr><th>H</th><td style="text-align:left">Industrial</td><td>180</td><td>250000</td></tr>
+                <tr><th>I</th><td style="text-align:left">Residential</td><td>140</td><td>200000</td></tr>
+                <tr><th>J</th><td style="text-align:left">Residential</td><td>400</td><td>500000</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># we can sort on a particular column</span>
+df.<span class="fn">sort_values</span>(<span class="str">'Cost'</span>, ascending=<span class="kw">False</span>)
+
+<span class="cm"># (Note: sort_values() OUTPUTS a new sorted dataframe. It does not sort the original</span>
+<span class="cm">#  dataframe unless you set inplace=True)</span></pre>
+        </details>
+        <div class="output-label">df.sort_values('Cost', ascending=False)</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>Type</th><th>Area</th><th>Cost</th></tr><tr><th>Building</th><th></th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th>D</th><td style="text-align:left">Commercial</td><td>300</td><td>600000</td></tr>
+                <tr><th>J</th><td style="text-align:left">Residential</td><td>400</td><td>500000</td></tr>
+                <tr><th>G</th><td style="text-align:left">Commercial</td><td>350</td><td>400000</td></tr>
+                <tr><th>E</th><td style="text-align:left">Industrial</td><td>200</td><td>300000</td></tr>
+                <tr><th>H</th><td style="text-align:left">Industrial</td><td>180</td><td>250000</td></tr>
+                <tr><th>B</th><td style="text-align:left">Industrial</td><td>250</td><td>220000</td></tr>
+                <tr><th>I</th><td style="text-align:left">Residential</td><td>140</td><td>200000</td></tr>
+                <tr><th>A</th><td style="text-align:left">Commercial</td><td>120</td><td>180000</td></tr>
+                <tr><th>F</th><td style="text-align:left">Residential</td><td>100</td><td>150000</td></tr>
+                <tr><th>C</th><td style="text-align:left">Residential</td><td>150</td><td>120000</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># we can group according to a category and calculate summaries of those groups</span>
+df.<span class="fn">groupby</span>(<span class="str">'Type'</span>).<span class="fn">median</span>()</pre>
+        </details>
+        <div class="output-label">df.groupby('Type').median()</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>Area</th><th>Cost</th></tr><tr><th>Type</th><th></th><th></th></tr></thead>
+            <tbody>
+                <tr><th style="text-align:left">Commercial</th><td>300.0</td><td>400000.0</td></tr>
+                <tr><th style="text-align:left">Industrial</th><td>200.0</td><td>250000.0</td></tr>
+                <tr><th style="text-align:left">Residential</th><td>145.0</td><td>175000.0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 1.7 Outliers -->
+    <div class="section">
+        <h3>1.7 Outliers</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># we can use pandas to find and replace outliers, for example in the data below</span>
+df=pd.<span class="fn">DataFrame</span>({<span class="str">'disp'</span>: [<span class="num">0.5</span>, <span class="num">0.6</span>, <span class="num">0.7</span>, <span class="num">0.8</span>, <span class="num">0.9</span>, <span class="num">1.0</span>, <span class="num">1.2</span>, <span class="num">10</span>, <span class="num">1.6</span>, <span class="num">1.8</span>, <span class="num">2.0</span>, <span class="num">2.2</span>, <span class="num">2.4</span>, <span class="num">2.6</span>, <span class="num">2.8</span>], <span class="str">'load'</span>: [<span class="num">10</span>, <span class="num">12</span>, <span class="num">14</span>, <span class="num">16</span>, <span class="num">18</span>, <span class="num">20</span>, <span class="num">22</span>, <span class="num">24</span>, <span class="num">26</span>, <span class="num">28</span>, <span class="num">30</span>, <span class="num">32</span>, <span class="num">34</span>, <span class="num">36</span>, <span class="num">38</span>]})
+plt.<span class="fn">plot</span>(df[<span class="str">'load'</span>], df[<span class="str">'disp'</span>], <span class="str">'kx'</span>); plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="outlierBefore" width="585" height="390"></canvas>
+        </div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># calculate a new column that is the z-score (deviation from the mean)</span>
+df[<span class="str">'zsc'</span>]=(df[<span class="str">'disp'</span>]-df[<span class="str">'disp'</span>].<span class="fn">mean</span>())/df[<span class="str">'disp'</span>].<span class="fn">std</span>()
+df</pre>
+        </details>
+        <div class="output-label">df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>disp</th><th>load</th><th>zsc</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>0.5</td><td>10</td><td>-0.677</td></tr>
+                <tr><th>1</th><td>0.6</td><td>12</td><td>-0.634</td></tr>
+                <tr><th>2</th><td>0.7</td><td>14</td><td>-0.591</td></tr>
+                <tr><th>3</th><td>0.8</td><td>16</td><td>-0.548</td></tr>
+                <tr><th>4</th><td>0.9</td><td>18</td><td>-0.505</td></tr>
+                <tr><th>5</th><td>1.0</td><td>20</td><td>-0.462</td></tr>
+                <tr><th>6</th><td>1.2</td><td>22</td><td>-0.376</td></tr>
+                <tr><th>7</th><td>10.0</td><td>24</td><td>3.413</td></tr>
+                <tr><th>8</th><td>1.6</td><td>26</td><td>-0.204</td></tr>
+                <tr><th>9</th><td>1.8</td><td>28</td><td>-0.118</td></tr>
+                <tr><th>10</th><td>2.0</td><td>30</td><td>-0.032</td></tr>
+                <tr><th>11</th><td>2.2</td><td>32</td><td>0.055</td></tr>
+                <tr><th>12</th><td>2.4</td><td>34</td><td>0.141</td></tr>
+                <tr><th>13</th><td>2.6</td><td>36</td><td>0.227</td></tr>
+                <tr><th>14</th><td>2.8</td><td>38</td><td>0.313</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># find outliers based on large absolute zscores</span>
+no_outliers=df[<span class="str">'disp'</span>].<span class="fn">where</span>(df[<span class="str">'zsc'</span>].<span class="fn">abs</span>()&lt;<span class="num">3</span>)
+
+<span class="cm"># replace the outliers with linear interpolation</span>
+df[<span class="str">'disp'</span>]=no_outliers.<span class="fn">interpolate</span>(method=<span class="str">'linear'</span>)
+plt.<span class="fn">plot</span>(df[<span class="str">'load'</span>], df[<span class="str">'disp'</span>], <span class="str">'kx'</span>); plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="outlierAfter" width="585" height="390"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const dpr = window.devicePixelRatio || 1;
+        function setupCanvas(id) {
+            const cv = document.getElementById(id);
+            const ctx = cv.getContext('2d');
+            const w = parseInt(cv.getAttribute('width'));
+            const h = parseInt(cv.getAttribute('height'));
+            cv.width = w * dpr; cv.height = h * dpr;
+            cv.style.width = w + 'px'; cv.style.height = h + 'px';
+            ctx.scale(dpr, dpr);
+            return { ctx, w, h };
+        }
+
+        // === 1.3 Box plot ===
+        (function() {
+            const { ctx, w, h } = setupCanvas('boxPlot');
+            // sorted rainfall: [0, 4, 8, 11, 32]
+            // Q1=4, median=8, Q3=11, IQR=7, upper fence=21.5 → 32 is outlier
+            const mn = 0, q1 = 4, med = 8, q3 = 11, outlier = 32;
+            // upper whisker = Q3 (no non-outlier values above Q3)
+            const whiskerHi = q3, whiskerLo = mn;
+            const pad = { l: 70, r: 40, t: 40, b: 50 };
+            const plotH = h - pad.t - pad.b;
+            const plotW = w - pad.l - pad.r;
+            const yLo = -1, yHi = 35; // axis range to show outlier
+
+            function ty(v) { return pad.t + plotH - (v - yLo) / (yHi - yLo) * plotH; }
+
+            // axes
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, h - pad.b); ctx.lineTo(w - pad.r, h - pad.b); ctx.stroke();
+
+            // y ticks
+            ctx.fillStyle = '#666'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (const v of [0, 5, 10, 15, 20, 25, 30]) {
+                const y = ty(v);
+                ctx.fillText(v, pad.l - 10, y);
+                ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+            }
+
+            const cx = pad.l + plotW / 2, bw = 80;
+
+            // box (Q1 to Q3)
+            ctx.strokeStyle = '#4285f4'; ctx.lineWidth = 2; ctx.fillStyle = 'rgba(66,133,244,0.15)';
+            ctx.fillRect(cx - bw/2, ty(q3), bw, ty(q1) - ty(q3));
+            ctx.strokeRect(cx - bw/2, ty(q3), bw, ty(q1) - ty(q3));
+
+            // median line
+            ctx.strokeStyle = '#e8710a'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(cx - bw/2, ty(med)); ctx.lineTo(cx + bw/2, ty(med)); ctx.stroke();
+
+            // lower whisker (Q1 down to min=0)
+            ctx.strokeStyle = '#4285f4'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(cx, ty(q1)); ctx.lineTo(cx, ty(whiskerLo)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx - bw/4, ty(whiskerLo)); ctx.lineTo(cx + bw/4, ty(whiskerLo)); ctx.stroke();
+
+            // outlier as open circle
+            ctx.strokeStyle = '#4285f4'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, ty(outlier), 6, 0, 2 * Math.PI); ctx.stroke();
+
+            // label
+            ctx.fillStyle = '#333'; ctx.font = '13px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('rainfall', cx, h - pad.b + 12);
+        })();
+
+        // === 1.7 Scatter plots (before and after outlier removal) ===
+        function drawScatter17(canvasId, loadArr, dispArr, title) {
+            const { ctx, w, h } = setupCanvas(canvasId);
+            const pad = { l: 55, r: 20, t: 30, b: 45 };
+            const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+
+            const xMin = 8, xMax = 40;
+            const yMin = Math.min(...dispArr) - 0.3;
+            const yMax = Math.max(...dispArr) + 0.3;
+
+            function tx(v) { return pad.l + (v - xMin) / (xMax - xMin) * pw; }
+            function ty(v) { return pad.t + ph - (v - yMin) / (yMax - yMin) * ph; }
+
+            // axes
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, h - pad.b); ctx.lineTo(w - pad.r, h - pad.b); ctx.stroke();
+
+            // grid + ticks
+            ctx.fillStyle = '#666'; ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let v = 10; v <= 38; v += 4) {
+                const x = tx(v);
+                ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.fillText(v, x, h - pad.b + 5);
+            }
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            const yStep = yMax > 5 ? 2 : 0.5;
+            for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
+                const y = ty(v);
+                ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.fillText(v.toFixed(1), pad.l - 8, y);
+            }
+
+            // x markers
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+            for (let i = 0; i < loadArr.length; i++) {
+                const x = tx(loadArr[i]), y = ty(dispArr[i]);
+                const s = 4;
+                ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke();
+            }
+
+            // labels
+            ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('load', pad.l + pw/2, h - pad.b + 20);
+            ctx.save(); ctx.translate(15, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('disp', 0, 0); ctx.restore();
+        }
+
+        const loadData = [10,12,14,16,18,20,22,24,26,28,30,32,34,36,38];
+        drawScatter17('outlierBefore', loadData, [0.5,0.6,0.7,0.8,0.9,1.0,1.2,10.0,1.6,1.8,2.0,2.2,2.4,2.6,2.8], 'Before');
+        drawScatter17('outlierAfter', loadData, [0.5,0.6,0.7,0.8,0.9,1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.4,2.6,2.8], 'After');
+    </script>
+</body>
+</html>

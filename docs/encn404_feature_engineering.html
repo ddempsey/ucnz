@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Feature Engineering</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        .output-label { font-size: 11px; color: #888; margin-bottom: 2px; font-family: 'Segoe UI', sans-serif; }
+        .output-table { border-collapse: collapse; font-size: 12.5px; font-family: 'Consolas', 'Courier New', monospace; margin: 10px 0; }
+        .output-table th, .output-table td { border: 1px solid #ddd; padding: 4px 10px; text-align: right; }
+        .output-table th { background: #f8f8f8; font-weight: 600; }
+        .output-table thead th { border-bottom: 2px solid #ccc; }
+        .canvas-container { display: flex; justify-content: center; margin: 10px 0; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Feature Engineering</h1>
+
+    <div class="explainer">
+        <p>Work through the examples below in the lecture</p>
+    </div>
+
+    <div class="section">
+        <details>
+            <summary>Show Python imports</summary>
+            <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> matplotlib <span class="kw">import</span> pyplot <span class="kw">as</span> plt</pre>
+        </details>
+    </div>
+
+    <!-- 2.1 Standardization and normalization -->
+    <div class="section">
+        <h3>2.1 Standardization and normalization</h3>
+        <p>Some ML algorithms struggle with data that have order of magnitude different scales and ranges. Z-score standardization transforms these to distributions with zero mean and unit standard deviation.</p>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Displacement data and calculated strain</span>
+u = np.<span class="fn">array</span>([<span class="num">0.011</span>, <span class="num">0.012</span>, <span class="num">0.014</span>, <span class="num">0.022</span>, <span class="num">0.045</span>, <span class="num">0.123</span>, <span class="num">0.190</span>, <span class="num">0.231</span>, <span class="num">0.245</span>, <span class="num">0.249</span>, <span class="num">0.251</span>])   <span class="cm"># 2.5 m samples</span>
+e = np.<span class="fn">diff</span>(u)/<span class="num">2.5</span>  <span class="cm"># strain</span>
+df = pd.<span class="fn">DataFrame</span>({<span class="str">'displacement'</span>: u[:-<span class="num">1</span>], <span class="str">'strain'</span>: e})
+df</pre>
+        </details>
+        <div class="output-label">df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>displacement</th><th>strain</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>0.011</td><td>0.0004</td></tr>
+                <tr><th>1</th><td>0.012</td><td>0.0008</td></tr>
+                <tr><th>2</th><td>0.014</td><td>0.0032</td></tr>
+                <tr><th>3</th><td>0.022</td><td>0.0092</td></tr>
+                <tr><th>4</th><td>0.045</td><td>0.0312</td></tr>
+                <tr><th>5</th><td>0.123</td><td>0.0268</td></tr>
+                <tr><th>6</th><td>0.190</td><td>0.0164</td></tr>
+                <tr><th>7</th><td>0.231</td><td>0.0056</td></tr>
+                <tr><th>8</th><td>0.245</td><td>0.0016</td></tr>
+                <tr><th>9</th><td>0.249</td><td>0.0008</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># note how the blue displacement dominates the plot, whereas red strain is less distinctive</span>
+<span class="cm"># this is because of their different ranges of values</span>
+x=np.<span class="fn">arange</span>(<span class="fn">len</span>(e))*<span class="num">2.5</span>
+plt.<span class="fn">plot</span>(x, df[<span class="str">'displacement'</span>], <span class="str">'b-'</span>, label=<span class="str">'u'</span>)
+plt.<span class="fn">plot</span>(x, df[<span class="str">'strain'</span>], <span class="str">'r-'</span>, label=<span class="str">'e'</span>)
+plt.<span class="fn">gca</span>().<span class="fn">set_xlabel</span>(<span class="str">'x'</span>); plt.<span class="fn">gca</span>().<span class="fn">set_ylabel</span>(<span class="str">'data'</span>)
+plt.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="rawPlot" width="550" height="320"></canvas>
+        </div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Initialize the StandardScaler</span>
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+scaler = <span class="fn">StandardScaler</span>()
+
+<span class="cm"># scale the data to a unit normal distribution</span>
+scaled_data = scaler.<span class="fn">fit_transform</span>(df[[<span class="str">'displacement'</span>, <span class="str">'strain'</span>]])
+scaled_df = pd.<span class="fn">DataFrame</span>(scaled_data, columns=[<span class="str">'scaled_displacement'</span>, <span class="str">'scaled_strain'</span>])
+scaled_df</pre>
+        </details>
+        <div class="output-label">scaled_df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>scaled_displacement</th><th>scaled_strain</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>-1.036</td><td>-0.851</td></tr>
+                <tr><th>1</th><td>-1.026</td><td>-0.814</td></tr>
+                <tr><th>2</th><td>-1.006</td><td>-0.592</td></tr>
+                <tr><th>3</th><td>-0.926</td><td>-0.037</td></tr>
+                <tr><th>4</th><td>-0.695</td><td>1.998</td></tr>
+                <tr><th>5</th><td>0.088</td><td>1.591</td></tr>
+                <tr><th>6</th><td>0.761</td><td>0.629</td></tr>
+                <tr><th>7</th><td>1.173</td><td>-0.370</td></tr>
+                <tr><th>8</th><td>1.313</td><td>-0.740</td></tr>
+                <tr><th>9</th><td>1.354</td><td>-0.814</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># see how shapes of the data are preserved, but they have been rescaled to have similar range and centre</span>
+plt.<span class="fn">plot</span>(x, scaled_df[<span class="str">'scaled_displacement'</span>], <span class="str">'b-'</span>, label=<span class="str">'u'</span>)
+plt.<span class="fn">plot</span>(x, scaled_df[<span class="str">'scaled_strain'</span>], <span class="str">'r-'</span>, label=<span class="str">'e'</span>)
+plt.<span class="fn">gca</span>().<span class="fn">set_xlabel</span>(<span class="str">'x'</span>); plt.<span class="fn">gca</span>().<span class="fn">set_ylabel</span>(<span class="str">'scaled data'</span>)
+plt.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="scaledPlot" width="550" height="320"></canvas>
+        </div>
+    </div>
+
+    <!-- 2.2 One-hot encoding -->
+    <div class="section">
+        <h3>2.2 One-hot encoding</h3>
+        <p>Convert categorical data into binary input features, e.g., commercial/not commercial, residential/not residential. This feature is easier for some ML algorithms to work with.</p>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> OneHotEncoder
+df = pd.<span class="fn">DataFrame</span>({<span class="str">'Type'</span>: [<span class="str">'Resid'</span>, <span class="str">'Comm'</span>, <span class="str">'Indus'</span>, <span class="str">'Resid'</span>, <span class="str">'Indus'</span>, <span class="str">'Comm'</span>]})
+df</pre>
+        </details>
+        <div class="output-label">df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>Type</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td style="text-align:left">Resid</td></tr>
+                <tr><th>1</th><td style="text-align:left">Comm</td></tr>
+                <tr><th>2</th><td style="text-align:left">Indus</td></tr>
+                <tr><th>3</th><td style="text-align:left">Resid</td></tr>
+                <tr><th>4</th><td style="text-align:left">Indus</td></tr>
+                <tr><th>5</th><td style="text-align:left">Comm</td></tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Initialize OneHotEncoder</span>
+encoder = <span class="fn">OneHotEncoder</span>(sparse_output=<span class="kw">False</span>)
+<span class="cm"># Fit and transform the data</span>
+encoded_data = encoder.<span class="fn">fit_transform</span>(df[[<span class="str">'Type'</span>]])
+encoded_data</pre>
+        </details>
+        <div class="output"><code>array([[0., 0., 1.],
+       [1., 0., 0.],
+       [0., 1., 0.],
+       [0., 0., 1.],
+       [0., 1., 0.],
+       [1., 0., 0.]])</code></div>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Create a new dataframe with the encoded data</span>
+encoded_df = pd.<span class="fn">DataFrame</span>(encoded_data, columns=encoder.<span class="fn">get_feature_names_out</span>([<span class="str">'Type'</span>]))
+<span class="cm"># Concatenate the original and encoded dataframes</span>
+result_df = pd.<span class="fn">concat</span>([df, encoded_df], axis=<span class="num">1</span>)
+result_df</pre>
+        </details>
+        <div class="output-label">result_df</div>
+        <table class="output-table">
+            <thead><tr><th></th><th>Type</th><th>Type_Comm</th><th>Type_Indus</th><th>Type_Resid</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td style="text-align:left">Resid</td><td>0.0</td><td>0.0</td><td>1.0</td></tr>
+                <tr><th>1</th><td style="text-align:left">Comm</td><td>1.0</td><td>0.0</td><td>0.0</td></tr>
+                <tr><th>2</th><td style="text-align:left">Indus</td><td>0.0</td><td>1.0</td><td>0.0</td></tr>
+                <tr><th>3</th><td style="text-align:left">Resid</td><td>0.0</td><td>0.0</td><td>1.0</td></tr>
+                <tr><th>4</th><td style="text-align:left">Indus</td><td>0.0</td><td>1.0</td><td>0.0</td></tr>
+                <tr><th>5</th><td style="text-align:left">Comm</td><td>1.0</td><td>0.0</td><td>0.0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const dpr = window.devicePixelRatio || 1;
+        function setupCanvas(id) {
+            const cv = document.getElementById(id);
+            const ctx = cv.getContext('2d');
+            const w = parseInt(cv.getAttribute('width'));
+            const h = parseInt(cv.getAttribute('height'));
+            cv.width = w * dpr; cv.height = h * dpr;
+            cv.style.width = w + 'px'; cv.style.height = h + 'px';
+            ctx.scale(dpr, dpr);
+            return { ctx, w, h };
+        }
+
+        function drawLinePlot(canvasId, xData, series, xlabel, ylabel, opts) {
+            const { ctx, w, h } = setupCanvas(canvasId);
+            const pad = { l: 60, r: 20, t: 20, b: 45 };
+            const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+
+            // Use explicit axis range if provided, otherwise compute
+            let yMin, yMax;
+            if (opts && opts.yRange) {
+                yMin = opts.yRange[0]; yMax = opts.yRange[1];
+            } else {
+                yMin = Infinity; yMax = -Infinity;
+                for (const s of series) {
+                    for (const v of s.data) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; }
+                }
+                const yPad = (yMax - yMin) * 0.08 || 0.01;
+                yMin -= yPad; yMax += yPad;
+            }
+            const xMin = xData[0], xMax = xData[xData.length - 1];
+
+            function tx(v) { return pad.l + (v - xMin) / (xMax - xMin) * pw; }
+            function ty(v) { return pad.t + ph - (v - yMin) / (yMax - yMin) * ph; }
+
+            // y-axis grid and ticks
+            const yTicks = (opts && opts.yTicks) || [];
+            ctx.fillStyle = '#666'; ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (const v of yTicks) {
+                const y = ty(v);
+                if (y < pad.t - 2 || y > h - pad.b + 2) continue;
+                ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+                ctx.fillStyle = '#666';
+                const label = Number.isInteger(v) ? v.toString() : v.toFixed(Math.abs(v) < 1 ? 2 : 1);
+                ctx.fillText(label, pad.l - 8, y);
+            }
+            // x-axis ticks
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const xTicks = (opts && opts.xTicks) || xData;
+            for (const v of xTicks) {
+                ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(tx(v), pad.t); ctx.lineTo(tx(v), h - pad.b); ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.fillText(v.toFixed(1), tx(v), h - pad.b + 5);
+            }
+
+            // axes
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, h - pad.b); ctx.lineTo(w - pad.r, h - pad.b); ctx.stroke();
+
+            // lines
+            for (const s of series) {
+                ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < xData.length; i++) {
+                    if (i === 0) ctx.moveTo(tx(xData[i]), ty(s.data[i]));
+                    else ctx.lineTo(tx(xData[i]), ty(s.data[i]));
+                }
+                ctx.stroke();
+            }
+
+            // legend
+            let lx = pad.l + 15, ly = pad.t + 10;
+            ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            for (const s of series) {
+                ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 20, ly); ctx.stroke();
+                ctx.fillStyle = '#333';
+                ctx.fillText(s.label, lx + 25, ly);
+                ly += 18;
+            }
+
+            // axis labels
+            ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(xlabel, pad.l + pw/2, h - pad.b + 22);
+            ctx.save(); ctx.translate(15, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(ylabel, 0, 0); ctx.restore();
+        }
+
+        const xVals = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5];
+        const disp = [0.011, 0.012, 0.014, 0.022, 0.045, 0.123, 0.19, 0.231, 0.245, 0.249];
+        const strain = [0.0004, 0.0008, 0.0032, 0.0092, 0.0312, 0.0268, 0.0164, 0.0056, 0.0016, 0.0008];
+        const scaledDisp = [-1.036, -1.026, -1.006, -0.926, -0.695, 0.088, 0.761, 1.173, 1.313, 1.354];
+        const scaledStrain = [-0.851, -0.814, -0.592, -0.037, 1.998, 1.591, 0.629, -0.370, -0.740, -0.814];
+
+        drawLinePlot('rawPlot', xVals,
+            [{ data: disp, color: '#2196F3', label: 'u' }, { data: strain, color: '#f44336', label: 'e' }],
+            'x', 'data',
+            { yRange: [-0.01, 0.27], yTicks: [0, 0.05, 0.10, 0.15, 0.20, 0.25], xTicks: [0, 5, 10, 15, 20] });
+
+        drawLinePlot('scaledPlot', xVals,
+            [{ data: scaledDisp, color: '#2196F3', label: 'u' }, { data: scaledStrain, color: '#f44336', label: 'e' }],
+            'x', 'scaled data',
+            { yRange: [-1.3, 2.3], yTicks: [-1, -0.5, 0, 0.5, 1, 1.5, 2], xTicks: [0, 5, 10, 15, 20] });
+    </script>
+</body>
+</html>

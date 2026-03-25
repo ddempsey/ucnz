@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ENCN404 - Interaction Features</title>
+    <title>ENCN404 - Interaction Features &amp; PCA</title>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1150px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
         h1 { text-align: center; color: #333; }
         h3 { color: #333; margin-top: 1.5em; }
         .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
@@ -22,6 +22,8 @@
         .section-label { font-size: 12px; font-weight: 600; color: #666; margin-right: 4px; white-space: nowrap; }
         .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
         .questions p { margin: 0.8em 0; color: #555; }
+        .pca-info { background: #f0f4ff; padding: 12px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: #333; font-family: 'Consolas', 'Courier New', monospace; }
+        .pca-info div { margin: 2px 0; }
         /* Collapsible code blocks */
         details { margin: 10px 0; }
         summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
@@ -35,7 +37,7 @@
     </style>
 </head>
 <body>
-    <h1>Interaction Features</h1>
+    <h1>Interaction Features &amp; PCA</h1>
 
     <div class="explainer">
         <p>We seek to <strong>combine</strong> different types of data together into new features that may better capture characteristics of the covarying data. For example, the product of two data types. Or a ratio.</p>
@@ -65,7 +67,10 @@ plt.<span class="fn">tight_layout</span>()
 plt.<span class="fn">show</span>()</pre>
         </details>
         <div class="canvas-container">
-            <canvas id="rawCanvas" width="1050" height="310"></canvas>
+            <canvas id="rawCanvas" width="1100" height="380"></canvas>
+        </div>
+        <div class="questions" style="margin-top:14px;">
+            <p><strong>TASK 1:</strong> Looking at the raw features, which one has the strongest correlation with Strength? Which is weakest?</p>
         </div>
     </div>
 
@@ -123,15 +128,68 @@ plt.<span class="fn">show</span>()</pre>
             <label id="lbl_A2"><input type="checkbox" data-feat="A2"> A&sup2;</label>
         </div>
         <div class="canvas-container">
-            <canvas id="intCanvas" width="1050" height="600"></canvas>
+            <canvas id="intCanvas" width="1100" height="600"></canvas>
+        </div>
+        <div class="questions" style="margin-top:14px;">
+            <p><strong>TASK 2:</strong> Turn on the product features (C&times;W, C&times;A, W&times;A). Which product correlates best with Strength? Why might that be?</p>
+            <p><strong>TASK 3:</strong> Now try the ratios. Can you find a ratio that correlates better than any raw feature? What does it physically represent?</p>
+            <p><strong>TASK 4:</strong> Compare the r values. What is the best single interaction feature you can find? Is it a product or a ratio?</p>
         </div>
     </div>
 
-    <div class="questions">
-        <p><strong>TASK 1:</strong> Looking at the raw features, which one has the strongest correlation with Strength? Which is weakest?</p>
-        <p><strong>TASK 2:</strong> Turn on the product features (C&times;W, C&times;A, W&times;A). Which product correlates best with Strength? Why might that be?</p>
-        <p><strong>TASK 3:</strong> Now try the ratios. Can you find a ratio that correlates better than any raw feature? What does it physically represent?</p>
-        <p><strong>TASK 4:</strong> Compare the r values. What is the best single interaction feature you can find? Is it a product or a ratio?</p>
+    <!-- PCA -->
+    <div class="widget-container">
+        <h3 style="margin-top:0;">Principal Component Analysis (PCA)</h3>
+        <div class="explainer" style="box-shadow:none; padding: 12px 20px; margin-bottom: 12px;">
+            <p>PCA is a statistical procedure that helps us work with <strong>correlated</strong> data or features. It converts variables that appear related to each other into new sets of uncorrelated variables called principal components. These components capture the <strong>largest directions of variation</strong> within the data.</p>
+        </div>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> PCA
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+
+<span class="cm"># Separate predictors (X) and label (y)</span>
+X = df
+
+<span class="cm"># Standardize the predictors so they contribute equally</span>
+scaler = <span class="fn">StandardScaler</span>()
+X_scaled = scaler.<span class="fn">fit_transform</span>(X)
+
+<span class="cm"># Perform PCA</span>
+pca = <span class="fn">PCA</span>(n_components=<span class="num">3</span>)  <span class="cm"># Reduce to 3 components</span>
+X_pca = pca.<span class="fn">fit_transform</span>(X_scaled)
+weights = pca.components_
+
+<span class="cm"># Create a new dataframe with the PCA components</span>
+df_pca = pd.<span class="fn">DataFrame</span>(X_pca, columns=[<span class="str">'PC1'</span>, <span class="str">'PC2'</span>, <span class="str">'PC3'</span>])
+df_pca = pd.<span class="fn">concat</span>([df,df_pca], axis=<span class="num">1</span>)
+
+<span class="cm"># Print the principal component weights and variance</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>):
+    w=weights[i,:]
+    s=<span class="str">f'PC{i+1:d}='</span>
+    <span class="kw">for</span> j,c <span class="kw">in</span> <span class="fn">enumerate</span>(X.columns):
+        s+=<span class="str">f'{w[j]:3.2f}*{c}+'</span>
+    <span class="fn">print</span>(s[:-<span class="num">1</span>]+<span class="str">f',\tExplained variance={int(pca.explained_variance_ratio_[i]*100):d}%'</span>)
+
+<span class="cm"># plot the new principal components and look for correlations</span>
+f,axs=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">6</span>,figsize=(<span class="num">16</span>,<span class="num">3</span>))
+<span class="kw">for</span> ax,col <span class="kw">in</span> <span class="fn">zip</span>(axs, df_pca.columns):
+    ax.<span class="fn">plot</span>(df_pca[col], y, <span class="str">'bo'</span>, alpha=<span class="num">0.7</span>)
+    ax.<span class="fn">set_xlabel</span>(col)
+axs[<span class="num">0</span>].<span class="fn">set_ylabel</span>(<span class="str">'Strength'</span>)
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div id="pcaInfo" class="pca-info"></div>
+        <div class="canvas-container">
+            <canvas id="pcaCanvas" width="1100" height="400"></canvas>
+        </div>
+        <div class="questions" style="margin-top:14px;">
+            <p><strong>TASK 5:</strong> Looking at the PCA plots, which principal component correlates most strongly with Strength? How does it compare to the best raw feature?</p>
+            <p><strong>TASK 6:</strong> What do the PCA weights tell you about how each component combines the original features? Which raw features contribute most to the best principal component?</p>
+        </div>
     </div>
 
     <script>
@@ -216,8 +274,12 @@ plt.<span class="fn">show</span>()</pre>
             return v.toPrecision(2);
         }
 
-        function drawScatter(ctx, panel, xs, ys, xlabel, ylabel, rVal) {
+        function drawScatter(ctx, panel, xs, ys, xlabel, ylabel, rVal, opts) {
             const {x, y, w, h} = panel;
+            const pointRadius = (opts && opts.pointRadius) || 4.5;
+            const tickFont = (opts && opts.tickFont) || '10px Segoe UI';
+            const labelFont = (opts && opts.labelFont) || '12px Segoe UI';
+            const rFont = (opts && opts.rFont) || 'bold 11px Segoe UI';
 
             // Compute ranges (filter NaN/Inf)
             let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
@@ -243,7 +305,7 @@ plt.<span class="fn">show</span>()</pre>
             for (let i = 0; i < xs.length; i++) {
                 if (isNaN(xs[i]) || !isFinite(xs[i])) continue;
                 ctx.beginPath();
-                ctx.arc(tx(xs[i]), ty(ys[i]), 3.5, 0, 2*Math.PI);
+                ctx.arc(tx(xs[i]), ty(ys[i]), pointRadius, 0, 2*Math.PI);
                 ctx.fill();
             }
             ctx.globalAlpha = 1.0;
@@ -255,7 +317,7 @@ plt.<span class="fn">show</span>()</pre>
 
             // X ticks
             const xTicks = niceTicks(xMin, xMax, Math.max(3, Math.floor(w / 60)));
-            ctx.fillStyle = '#666'; ctx.font = '9px Segoe UI';
+            ctx.fillStyle = '#666'; ctx.font = tickFont;
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
             for (const v of xTicks) {
@@ -273,12 +335,12 @@ plt.<span class="fn">show</span>()</pre>
                 if (py < y + 2 || py > y + h - 2) continue;
                 ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
                 ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x - 3, py); ctx.stroke();
-                ctx.fillStyle = '#666'; ctx.font = '9px Segoe UI';
+                ctx.fillStyle = '#666'; ctx.font = tickFont;
                 ctx.fillText(fmtTick(v), x - 5, py);
             }
 
             // X label
-            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#333'; ctx.font = labelFont;
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             ctx.fillText(xlabel, x + w/2, y + h + 16);
 
@@ -286,6 +348,7 @@ plt.<span class="fn">show</span>()</pre>
             if (ylabel) {
                 ctx.save(); ctx.translate(x - 42, y + h/2); ctx.rotate(-Math.PI/2);
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = labelFont;
                 ctx.fillText(ylabel, 0, 0); ctx.restore();
             }
 
@@ -293,7 +356,7 @@ plt.<span class="fn">show</span>()</pre>
             if (rVal !== undefined) {
                 const rAbs = Math.abs(rVal);
                 const color = rAbs > 0.7 ? '#1a7f37' : rAbs > 0.5 ? '#9a6700' : '#888';
-                ctx.font = 'bold 11px Segoe UI';
+                ctx.font = rFont;
                 ctx.textAlign = 'right'; ctx.textBaseline = 'top';
                 ctx.fillStyle = color;
                 ctx.fillText(`r = ${rVal >= 0 ? '+' : ''}${rVal.toFixed(3)}`, x + w - 4, y + 4);
@@ -309,7 +372,7 @@ plt.<span class="fn">show</span>()</pre>
                 { xs: W, label: 'Water (kg/m\u00b3)' },
                 { xs: A, label: 'Age (days)' },
             ];
-            const pw = 260, ph = 210, gap = 65, startX = 70, startY = 20;
+            const pw = 280, ph = 260, gap = 70, startX = 70, startY = 20;
             for (let p = 0; p < 3; p++) {
                 const panel = { x: startX + p*(pw+gap), y: startY, w: pw, h: ph };
                 const r = pearsonR(datasets[p].xs, Sm);
@@ -353,9 +416,9 @@ plt.<span class="fn">show</span>()</pre>
             const maxCols = Math.min(nSel, 5);
             const nRows = Math.ceil(nSel / maxCols);
             const nCols = Math.min(nSel, maxCols);
-            const pw = Math.min(160, (intCv.w - 80) / nCols - 20);
-            const ph = Math.min(140, pw * 0.85);
-            const gapX = pw + 40, gapY = ph + 50;
+            const pw = Math.min(200, (intCv.w - 80) / nCols - 20);
+            const ph = Math.min(170, pw * 0.85);
+            const gapX = pw + 40, gapY = ph + 55;
             const totalH = nRows * gapY + 30;
             const startX = (intCv.w - nCols * gapX + 40) / 2 + 30;
 
@@ -387,6 +450,163 @@ plt.<span class="fn">show</span>()</pre>
             cb.addEventListener('change', drawInteraction);
         });
         drawInteraction();
+
+        // === PCA IMPLEMENTATION ===
+        function computePCA() {
+            const cols = [C, W, A];
+            const colNames = ['C', 'W', 'A'];
+            const nFeat = 3;
+
+            // 1. Standardize: subtract mean, divide by std
+            const means = [], stds = [];
+            for (let j = 0; j < nFeat; j++) {
+                let s = 0;
+                for (let i = 0; i < N; i++) s += cols[j][i];
+                const mean = s / N;
+                let ss = 0;
+                for (let i = 0; i < N; i++) ss += (cols[j][i] - mean) ** 2;
+                const std = Math.sqrt(ss / N);  // population std (matching sklearn default)
+                means.push(mean);
+                stds.push(std);
+            }
+
+            // Standardized data matrix (N x 3)
+            const X = [];
+            for (let i = 0; i < N; i++) {
+                X.push([]);
+                for (let j = 0; j < nFeat; j++) {
+                    X[i].push((cols[j][i] - means[j]) / stds[j]);
+                }
+            }
+
+            // 2. Covariance matrix (3x3) using 1/N (population, matching sklearn)
+            const cov = Array.from({length: nFeat}, () => new Array(nFeat).fill(0));
+            for (let j = 0; j < nFeat; j++) {
+                for (let k = j; k < nFeat; k++) {
+                    let s = 0;
+                    for (let i = 0; i < N; i++) s += X[i][j] * X[i][k];
+                    cov[j][k] = s / N;
+                    cov[k][j] = cov[j][k];
+                }
+            }
+
+            // 3. Eigenvalues/eigenvectors of 3x3 symmetric matrix
+            // Use Jacobi eigenvalue algorithm for 3x3 symmetric
+            const eigVals = [], eigVecs = [];
+            jacobi3x3(cov, eigVals, eigVecs);
+
+            // Sort by eigenvalue descending
+            const order = [0, 1, 2].sort((a, b) => eigVals[b] - eigVals[a]);
+            const sortedVals = order.map(i => eigVals[i]);
+            const sortedVecs = order.map(i => eigVecs[i]); // each is length-3 column
+
+            // Explained variance ratio
+            const totalVar = sortedVals.reduce((a, b) => a + b, 0);
+            const explainedRatio = sortedVals.map(v => v / totalVar);
+
+            // Components (weights): each row is a PC, columns are features
+            const components = sortedVecs; // [PC1_weights, PC2_weights, PC3_weights]
+
+            // 4. Project data
+            const PC = [[], [], []];
+            for (let i = 0; i < N; i++) {
+                for (let p = 0; p < 3; p++) {
+                    let val = 0;
+                    for (let j = 0; j < nFeat; j++) val += X[i][j] * components[p][j];
+                    PC[p].push(val);
+                }
+            }
+
+            return { components, explainedRatio, PC, colNames };
+        }
+
+        // Jacobi eigenvalue algorithm for 3x3 symmetric matrix
+        function jacobi3x3(A, eigVals, eigVecs) {
+            // Work on a copy
+            const a = A.map(r => [...r]);
+            const n = 3;
+            // V starts as identity
+            const V = [[1,0,0],[0,1,0],[0,0,1]];
+
+            for (let iter = 0; iter < 100; iter++) {
+                // Find largest off-diagonal element
+                let maxVal = 0, p = 0, q = 1;
+                for (let i = 0; i < n; i++) {
+                    for (let j = i + 1; j < n; j++) {
+                        if (Math.abs(a[i][j]) > maxVal) {
+                            maxVal = Math.abs(a[i][j]);
+                            p = i; q = j;
+                        }
+                    }
+                }
+                if (maxVal < 1e-12) break;
+
+                // Compute rotation
+                const theta = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]);
+                const c = Math.cos(theta), s = Math.sin(theta);
+
+                // Apply Givens rotation
+                const ap = [...a[p]], aq = [...a[q]];
+                for (let j = 0; j < n; j++) {
+                    a[p][j] = c * ap[j] - s * aq[j];
+                    a[q][j] = s * ap[j] + c * aq[j];
+                }
+                const col_p = a.map(r => r[p]), col_q = a.map(r => r[q]);
+                for (let i = 0; i < n; i++) {
+                    a[i][p] = c * col_p[i] - s * col_q[i];
+                    a[i][q] = s * col_p[i] + c * col_q[i];
+                }
+
+                // Update eigenvectors
+                const vp = V.map(r => r[p]), vq = V.map(r => r[q]);
+                for (let i = 0; i < n; i++) {
+                    V[i][p] = c * vp[i] - s * vq[i];
+                    V[i][q] = s * vp[i] + c * vq[i];
+                }
+            }
+
+            // Extract eigenvalues and eigenvectors
+            for (let i = 0; i < n; i++) {
+                eigVals.push(a[i][i]);
+                eigVecs.push(V.map(r => r[i])); // column i of V
+            }
+        }
+
+        // Run PCA and draw
+        const pca = computePCA();
+
+        // Display PCA info text
+        const pcaInfoDiv = document.getElementById('pcaInfo');
+        let infoHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const w = pca.components[i];
+            let s = `PC${i+1} = `;
+            for (let j = 0; j < pca.colNames.length; j++) {
+                if (j > 0) s += w[j] >= 0 ? ' + ' : ' - ';
+                if (j === 0) s += `${w[j].toFixed(2)}*${pca.colNames[j]}`;
+                else s += `${Math.abs(w[j]).toFixed(2)}*${pca.colNames[j]}`;
+            }
+            s += `,  Explained variance = ${Math.round(pca.explainedRatio[i] * 100)}%`;
+            infoHTML += `<div>${s}</div>`;
+        }
+        pcaInfoDiv.innerHTML = infoHTML;
+
+        // PCA Canvas
+        const pcaCv = setupCanvas(document.getElementById('pcaCanvas'));
+        function drawPCA() {
+            pcaCv.ctx.clearRect(0, 0, pcaCv.w, pcaCv.h);
+            const allXs = [C, W, A, pca.PC[0], pca.PC[1], pca.PC[2]];
+            const labels = ['C', 'W', 'A', 'PC1', 'PC2', 'PC3'];
+            const nPanels = 6;
+            const pw = 130, ph = 260, gap = 50, startX = 60, startY = 20;
+            for (let p = 0; p < nPanels; p++) {
+                const panel = { x: startX + p*(pw+gap), y: startY, w: pw, h: ph };
+                const r = pearsonR(allXs[p], Sm);
+                drawScatter(pcaCv.ctx, panel, allXs[p], Sm,
+                    labels[p], p === 0 ? 'Strength (MPa)' : null, r);
+            }
+        }
+        drawPCA();
     </script>
 </body>
 </html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Interaction Features</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 1.5em; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+        .controls label { font-size: 13px; cursor: pointer; padding: 4px 10px; background: #e8f0fe; border-radius: 4px; border: 1px solid #c0d0e8; user-select: none; }
+        .controls label:hover { background: #d0e0f8; }
+        .controls label.active { background: #4285f4; color: white; border-color: #3070d4; }
+        .controls input[type="checkbox"] { margin-right: 4px; }
+        .section-label { font-size: 12px; font-weight: 600; color: #666; margin-right: 4px; white-space: nowrap; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Interaction Features</h1>
+
+    <div class="explainer">
+        <p>We seek to <strong>combine</strong> different types of data together into new features that may better capture characteristics of the covarying data. For example, the product of two data types. Or a ratio.</p>
+        <p>In this example, we have strength measurements for concrete samples with different amounts of water and cement, and that have been aged for different lengths of time. Data columns are Cement (C), Water (W) and Age (A), whereas interaction features could be <strong>ratios</strong> or <strong>products</strong>, e.g., C/W (cement-water ratio), C&times;A (cement-age product).</p>
+        <p>Each plot shows the Pearson correlation coefficient <em>r</em>, which measures the strength of the linear relationship between a feature and Strength (+1 = perfect positive, &minus;1 = perfect negative, 0 = none).</p>
+    </div>
+
+    <!-- RAW FEATURES -->
+    <div class="widget-container">
+        <h3 style="margin-top:0;">Raw features vs Strength</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># load in Cement (C), Water (W) and Age (A) data for concrete</span>
+df=pd.<span class="fn">read_csv</span>(<span class="str">'concrete_data.csv'</span>)
+
+<span class="cm"># the Strength data will be our 'label' (more on this later)</span>
+y=df[<span class="str">'Strength'</span>]
+df=df.<span class="fn">drop</span>(columns=[<span class="str">'Strength'</span>])
+
+<span class="cm"># plot correlations between the raw data and strength</span>
+f,axs=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">3</span>,figsize=(<span class="num">14</span>,<span class="num">4</span>))
+<span class="kw">for</span> ax,col <span class="kw">in</span> <span class="fn">zip</span>(axs, df.columns[:<span class="num">3</span>]):
+    ax.<span class="fn">plot</span>(df[col], y,<span class="str">'bo'</span>,alpha=<span class="num">0.7</span>)
+    ax.<span class="fn">set_xlabel</span>(col)
+axs[<span class="num">0</span>].<span class="fn">set_ylabel</span>(<span class="str">'Strength'</span>)
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="rawCanvas" width="1050" height="310"></canvas>
+        </div>
+    </div>
+
+    <!-- INTERACTION FEATURES -->
+    <div class="widget-container">
+        <h3 style="margin-top:0;">Interaction features vs Strength</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> PolynomialFeatures
+
+<span class="cm"># Create Polynomial Interaction Features with degree 2, e.g., C*A, W*C</span>
+poly = <span class="fn">PolynomialFeatures</span>(degree=<span class="num">2</span>, interaction_only=<span class="kw">True</span>)
+int_features = poly.<span class="fn">fit_transform</span>(df)
+feature_names = poly.<span class="fn">get_feature_names_out</span>(df.columns)
+df_int = pd.<span class="fn">DataFrame</span>(int_features, columns=feature_names)
+
+<span class="cm"># extend the dataframe with reciprocals, i.e., 1/A, 1/C, 1/W</span>
+df2 = pd.<span class="fn">DataFrame</span>(<span class="num">1.</span>/df.values, columns=[<span class="str">f'{col}^-1'</span> <span class="kw">for</span> col <span class="kw">in</span> df.columns])
+df3 = pd.<span class="fn">concat</span>([df,df2], axis=<span class="num">1</span>)
+
+<span class="cm"># interaction features now also include ratios, e.g., C/W</span>
+poly = <span class="fn">PolynomialFeatures</span>(degree=<span class="num">2</span>, interaction_only=<span class="kw">True</span>)
+int_features = poly.<span class="fn">fit_transform</span>(df3)
+feature_names = poly.<span class="fn">get_feature_names_out</span>(df3.columns)
+df_int2 = pd.<span class="fn">DataFrame</span>(int_features, columns=feature_names)
+
+<span class="cm"># plot the new interaction features and look for correlations</span>
+f,axs=plt.<span class="fn">subplots</span>(<span class="num">4</span>,<span class="num">5</span>,figsize=(<span class="num">16</span>,<span class="num">10</span>))
+axs=[item <span class="kw">for</span> sublist <span class="kw">in</span> axs <span class="kw">for</span> item <span class="kw">in</span> sublist]
+<span class="kw">for</span> ax,col <span class="kw">in</span> <span class="fn">zip</span>(axs, df_int2.columns[-<span class="num">20</span>:]):
+    ax.<span class="fn">plot</span>(df_int2[col], y,<span class="str">'bo'</span>,alpha=<span class="num">0.7</span>,label=col)
+    ax.<span class="fn">legend</span>()
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="controls">
+            <span class="section-label">Products:</span>
+            <label id="lbl_CW"><input type="checkbox" data-feat="CW" checked> C&times;W</label>
+            <label id="lbl_CA"><input type="checkbox" data-feat="CA" checked> C&times;A</label>
+            <label id="lbl_WA"><input type="checkbox" data-feat="WA" checked> W&times;A</label>
+        </div>
+        <div class="controls">
+            <span class="section-label">Ratios:</span>
+            <label id="lbl_CdW"><input type="checkbox" data-feat="CdW"> C/W</label>
+            <label id="lbl_CdA"><input type="checkbox" data-feat="CdA"> C/A</label>
+            <label id="lbl_WdC"><input type="checkbox" data-feat="WdC"> W/C</label>
+            <label id="lbl_WdA"><input type="checkbox" data-feat="WdA"> W/A</label>
+            <label id="lbl_AdC"><input type="checkbox" data-feat="AdC"> A/C</label>
+            <label id="lbl_AdW"><input type="checkbox" data-feat="AdW"> A/W</label>
+        </div>
+        <div class="controls">
+            <span class="section-label">Squares:</span>
+            <label id="lbl_C2"><input type="checkbox" data-feat="C2"> C&sup2;</label>
+            <label id="lbl_W2"><input type="checkbox" data-feat="W2"> W&sup2;</label>
+            <label id="lbl_A2"><input type="checkbox" data-feat="A2"> A&sup2;</label>
+        </div>
+        <div class="canvas-container">
+            <canvas id="intCanvas" width="1050" height="600"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> Looking at the raw features, which one has the strongest correlation with Strength? Which is weakest?</p>
+        <p><strong>TASK 2:</strong> Turn on the product features (C&times;W, C&times;A, W&times;A). Which product correlates best with Strength? Why might that be?</p>
+        <p><strong>TASK 3:</strong> Now try the ratios. Can you find a ratio that correlates better than any raw feature? What does it physically represent?</p>
+        <p><strong>TASK 4:</strong> Compare the r values. What is the best single interaction feature you can find? Is it a product or a ratio?</p>
+    </div>
+
+    <script>
+        // === DATA (100 samples) ===
+        const C = [275.82,377.11,389.28,332.41,190.7,234.93,198.38,390.28,304.37,339.32,214.22,411.3,342.48,235.78,226.87,223.61,296.16,313.05,261.17,276.6,364.81,248.55,228.04,263.59,316.55,342.88,248.81,318.34,299.94,208.1,256.68,213.62,207.96,364.82,425.77,333.08,252.12,222.15,365.67,259.31,247.67,299.24,187.25,391.11,255.74,320.5,263.74,296.31,311.61,250.21,425.64,330.27,430.56,339.92,316.54,396.14,223.32,226.74,204.88,255.21,265.95,271.26,372.89,257.49,274.18,314.69,244.44,373.03,198.33,386.17,369.39,251.95,200.69,365.44,366.92,333.97,365.2,210.77,267.34,245.15,389.13,340.93,292.29,213.13,275.84,258.83,352.4,324.91,379.38,306.35,207.55,384.5,332.04,287.97,377.36,314.59,317.03,298.08,204.84,203.63];
+        const W = [154.66,200.1,200.94,197.92,224.25,168.5,199.3,214.28,156.44,162.57,183.87,155.98,233.55,235.45,184.38,209.0,216.0,164.39,245.47,233.44,247.9,236.41,181.42,140.95,172.42,186.94,238.26,219.53,161.08,231.73,189.57,180.25,175.79,175.74,248.77,182.57,203.83,204.84,186.85,257.14,275.27,194.36,242.79,164.74,195.93,157.36,254.75,184.1,138.35,165.88,198.35,163.44,149.31,201.95,255.4,211.73,236.22,214.62,155.8,232.66,160.37,249.86,236.94,194.19,124.77,260.61,179.79,193.41,122.19,197.1,217.86,152.6,192.21,185.11,193.16,164.59,221.5,198.96,257.91,141.26,153.42,186.9,249.12,222.76,206.82,218.31,255.31,206.87,244.18,209.29,154.33,259.15,252.95,240.68,164.6,198.64,243.76,204.54,215.04,187.2];
+        const A = [229.31,45.98,89.88,329.56,254.31,-23.25,3.87,241.4,10.52,58.88,159.39,251.07,212.22,96.03,267.57,68.56,109.17,251.54,236.21,329.22,220.66,217.95,24.49,118.99,95.39,69.11,344.1,120.13,365.0,231.44,276.32,188.24,208.75,175.86,84.35,279.12,92.59,-1.67,230.45,19.43,313.02,375.57,366.91,130.76,18.16,345.13,218.44,375.25,349.2,292.38,76.05,145.24,295.69,87.91,49.76,182.04,375.5,271.99,208.34,65.97,226.41,344.15,82.45,200.45,299.62,266.83,237.2,229.05,150.38,146.06,267.64,307.14,303.6,323.68,175.28,166.27,292.55,220.97,261.93,289.66,320.18,105.88,126.18,50.32,221.51,-5.47,172.46,213.55,71.91,226.93,-1.15,26.01,285.16,96.01,14.7,192.06,286.47,61.47,240.5,-1.16];
+        const S = [2440315.45,1949550.92,2116470.99,2640792.6,1472992.82,1331723.03,1187997.04,2559890.8,1861388.87,2369635.11,1550218.65,3367823.34,2381764.02,1250859.96,1723024.61,1204799.8,1443887.59,2639787.05,1877076.3,2067184.27,2171977.51,1424847.51,1512200.94,2065793.0,1969361.1,2173360.92,1887277.56,1719217.12,3150738.83,1523761.55,2610163.85,1790067.65,1764424.69,2823779.31,1892574.86,2938493.3,1561745.86,1018142.63,2602272.17,1353843.28,1681771.47,2748365.99,1726807.08,2638766.22,1427205.66,3290377.33,1655092.26,2590784.16,3081987.41,2070463.77,2061823.98,2542107.21,3563850.0,2345835.67,1486061.49,2989322.62,1746239.71,1666042.04,1638908.61,1285999.03,2111502.41,2111343.27,1904437.86,1847587.31,2431674.88,2156225.78,1834443.87,3062443.29,1678187.53,2329156.01,2675508.79,2290161.2,1636204.15,3313679.92,2230150.95,2699992.57,2649838.2,1648879.61,1811927.01,2011572.12,3234814.89,2414854.31,1464348.33,969641.33,2046026.7,1264355.74,2082545.7,2243758.67,2257093.83,2326584.82,1432650.68,1479370.92,2525038.67,1876375.25,2093336.36,2186522.8,2224782.39,1418198.67,1326180.44,1042939.99];
+        const N = C.length;
+
+        // Strength in millions for readability
+        const Sm = S.map(v => v / 1e6);
+
+        // === INTERACTION FEATURE DEFINITIONS ===
+        const featureDefs = {
+            CW:  { label: 'C\u00d7W',  fn: i => C[i]*W[i] },
+            CA:  { label: 'C\u00d7A',  fn: i => C[i]*A[i] },
+            WA:  { label: 'W\u00d7A',  fn: i => W[i]*A[i] },
+            CdW: { label: 'C/W',       fn: i => C[i]/W[i] },
+            CdA: { label: 'C/A',       fn: i => A[i] !== 0 ? C[i]/A[i] : NaN },
+            WdC: { label: 'W/C',       fn: i => C[i] !== 0 ? W[i]/C[i] : NaN },
+            WdA: { label: 'W/A',       fn: i => A[i] !== 0 ? W[i]/A[i] : NaN },
+            AdC: { label: 'A/C',       fn: i => C[i] !== 0 ? A[i]/C[i] : NaN },
+            AdW: { label: 'A/W',       fn: i => W[i] !== 0 ? A[i]/W[i] : NaN },
+            C2:  { label: 'C\u00b2',   fn: i => C[i]*C[i] },
+            W2:  { label: 'W\u00b2',   fn: i => W[i]*W[i] },
+            A2:  { label: 'A\u00b2',   fn: i => A[i]*A[i] },
+        };
+
+        // === STATS ===
+        function pearsonR(xs, ys) {
+            const n = xs.length;
+            let sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0, cnt = 0;
+            for (let i = 0; i < n; i++) {
+                if (isNaN(xs[i]) || !isFinite(xs[i])) continue;
+                sx += xs[i]; sy += ys[i]; sxy += xs[i]*ys[i];
+                sxx += xs[i]*xs[i]; syy += ys[i]*ys[i]; cnt++;
+            }
+            const num = cnt*sxy - sx*sy;
+            const den = Math.sqrt((cnt*sxx - sx*sx)*(cnt*syy - sy*sy));
+            return den === 0 ? 0 : num/den;
+        }
+
+        // === DRAW HELPERS ===
+        function setupCanvas(cv) {
+            const ctx = cv.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = parseInt(cv.getAttribute('width'));
+            const h = parseInt(cv.getAttribute('height'));
+            cv.width = w * dpr; cv.height = h * dpr;
+            cv.style.width = w + 'px'; cv.style.height = h + 'px';
+            ctx.scale(dpr, dpr);
+            return { ctx, w, h };
+        }
+
+        // Generate nice tick values spanning a range
+        function niceTicks(lo, hi, maxTicks) {
+            const range = hi - lo;
+            if (range <= 0) return [lo];
+            const rough = range / (maxTicks || 5);
+            const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+            const residual = rough / mag;
+            let step;
+            if (residual <= 1.5) step = 1 * mag;
+            else if (residual <= 3.5) step = 2 * mag;
+            else if (residual <= 7.5) step = 5 * mag;
+            else step = 10 * mag;
+            const start = Math.ceil(lo / step) * step;
+            const ticks = [];
+            for (let v = start; v <= hi + step*0.01; v += step) ticks.push(v);
+            return ticks;
+        }
+
+        // Format tick value compactly
+        function fmtTick(v) {
+            const a = Math.abs(v);
+            if (a === 0) return '0';
+            if (a >= 1e6) return (v/1e6).toFixed(a >= 1e7 ? 0 : 1) + 'M';
+            if (a >= 1e4) return (v/1e3).toFixed(0) + 'k';
+            if (a >= 100) return v.toFixed(0);
+            if (a >= 1) return v.toFixed(1);
+            return v.toPrecision(2);
+        }
+
+        function drawScatter(ctx, panel, xs, ys, xlabel, ylabel, rVal) {
+            const {x, y, w, h} = panel;
+
+            // Compute ranges (filter NaN/Inf)
+            let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+            for (let i = 0; i < xs.length; i++) {
+                if (isNaN(xs[i]) || !isFinite(xs[i])) continue;
+                if (xs[i] < xMin) xMin = xs[i];
+                if (xs[i] > xMax) xMax = xs[i];
+                if (ys[i] < yMin) yMin = ys[i];
+                if (ys[i] > yMax) yMax = ys[i];
+            }
+            const xPad = (xMax - xMin) * 0.06 || 1;
+            const yPad = (yMax - yMin) * 0.06 || 1;
+            xMin -= xPad; xMax += xPad; yMin -= yPad; yMax += yPad;
+
+            function tx(v) { return x + (v - xMin)/(xMax - xMin) * w; }
+            function ty(v) { return y + h - (v - yMin)/(yMax - yMin) * h; }
+
+            // Points
+            ctx.save();
+            ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = '#4285f4';
+            for (let i = 0; i < xs.length; i++) {
+                if (isNaN(xs[i]) || !isFinite(xs[i])) continue;
+                ctx.beginPath();
+                ctx.arc(tx(xs[i]), ty(ys[i]), 3.5, 0, 2*Math.PI);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.restore();
+
+            // Frame
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, w, h);
+
+            // X ticks
+            const xTicks = niceTicks(xMin, xMax, Math.max(3, Math.floor(w / 60)));
+            ctx.fillStyle = '#666'; ctx.font = '9px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+            for (const v of xTicks) {
+                const px = tx(v);
+                if (px < x + 2 || px > x + w - 2) continue;
+                ctx.beginPath(); ctx.moveTo(px, y + h); ctx.lineTo(px, y + h + 3); ctx.stroke();
+                ctx.fillText(fmtTick(v), px, y + h + 4);
+            }
+
+            // Y ticks
+            const yTicks = niceTicks(yMin, yMax, Math.max(3, Math.floor(h / 40)));
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (const v of yTicks) {
+                const py = ty(v);
+                if (py < y + 2 || py > y + h - 2) continue;
+                ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x - 3, py); ctx.stroke();
+                ctx.fillStyle = '#666'; ctx.font = '9px Segoe UI';
+                ctx.fillText(fmtTick(v), x - 5, py);
+            }
+
+            // X label
+            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(xlabel, x + w/2, y + h + 16);
+
+            // Y label
+            if (ylabel) {
+                ctx.save(); ctx.translate(x - 42, y + h/2); ctx.rotate(-Math.PI/2);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(ylabel, 0, 0); ctx.restore();
+            }
+
+            // Pearson r badge
+            if (rVal !== undefined) {
+                const rAbs = Math.abs(rVal);
+                const color = rAbs > 0.7 ? '#1a7f37' : rAbs > 0.5 ? '#9a6700' : '#888';
+                ctx.font = 'bold 11px Segoe UI';
+                ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+                ctx.fillStyle = color;
+                ctx.fillText(`r = ${rVal >= 0 ? '+' : ''}${rVal.toFixed(3)}`, x + w - 4, y + 4);
+            }
+        }
+
+        // === RAW FEATURES CANVAS ===
+        const raw = setupCanvas(document.getElementById('rawCanvas'));
+        function drawRaw() {
+            raw.ctx.clearRect(0, 0, raw.w, raw.h);
+            const datasets = [
+                { xs: C, label: 'Cement (kg/m\u00b3)' },
+                { xs: W, label: 'Water (kg/m\u00b3)' },
+                { xs: A, label: 'Age (days)' },
+            ];
+            const pw = 260, ph = 210, gap = 65, startX = 70, startY = 20;
+            for (let p = 0; p < 3; p++) {
+                const panel = { x: startX + p*(pw+gap), y: startY, w: pw, h: ph };
+                const r = pearsonR(datasets[p].xs, Sm);
+                drawScatter(raw.ctx, panel, datasets[p].xs, Sm,
+                    datasets[p].label, p === 0 ? 'Strength (MPa)' : null, r);
+            }
+        }
+        drawRaw();
+
+        // === INTERACTION FEATURES CANVAS ===
+        const intCv = setupCanvas(document.getElementById('intCanvas'));
+
+        function getSelectedFeatures() {
+            const checks = document.querySelectorAll('[data-feat]');
+            const selected = [];
+            checks.forEach(cb => { if (cb.checked) selected.push(cb.dataset.feat); });
+            return selected;
+        }
+
+        function drawInteraction() {
+            const selected = getSelectedFeatures();
+            const nSel = selected.length;
+
+            // Update label styling
+            document.querySelectorAll('[data-feat]').forEach(cb => {
+                cb.closest('label').classList.toggle('active', cb.checked);
+            });
+
+            intCv.ctx.clearRect(0, 0, intCv.w, intCv.h);
+
+            if (nSel === 0) {
+                intCv.ctx.fillStyle = '#999'; intCv.ctx.font = '14px Segoe UI';
+                intCv.ctx.textAlign = 'center'; intCv.ctx.textBaseline = 'middle';
+                intCv.ctx.fillText('Select one or more interaction features above.', intCv.w/2, intCv.h/2);
+                // Resize canvas back to small
+                document.getElementById('intCanvas').style.height = '80px';
+                return;
+            }
+
+            // Grid layout: up to 5 columns
+            const maxCols = Math.min(nSel, 5);
+            const nRows = Math.ceil(nSel / maxCols);
+            const nCols = Math.min(nSel, maxCols);
+            const pw = Math.min(160, (intCv.w - 80) / nCols - 20);
+            const ph = Math.min(140, pw * 0.85);
+            const gapX = pw + 40, gapY = ph + 50;
+            const totalH = nRows * gapY + 30;
+            const startX = (intCv.w - nCols * gapX + 40) / 2 + 30;
+
+            // Resize canvas height dynamically
+            const cvEl = document.getElementById('intCanvas');
+            const newH = Math.max(200, totalH + 10);
+            cvEl.setAttribute('height', newH);
+            const dpr = window.devicePixelRatio || 1;
+            cvEl.width = intCv.w * dpr; cvEl.height = newH * dpr;
+            cvEl.style.width = intCv.w + 'px'; cvEl.style.height = newH + 'px';
+            intCv.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            intCv.h = newH;
+
+            for (let idx = 0; idx < nSel; idx++) {
+                const key = selected[idx];
+                const def = featureDefs[key];
+                const col = idx % nCols;
+                const row = Math.floor(idx / nCols);
+                const panel = { x: startX + col*gapX, y: 15 + row*gapY, w: pw, h: ph };
+                const xs = Array.from({length: N}, (_, i) => def.fn(i));
+                const r = pearsonR(xs, Sm);
+                drawScatter(intCv.ctx, panel, xs, Sm,
+                    def.label, col === 0 ? 'Strength (MPa)' : null, r);
+            }
+        }
+
+        // Wire up checkboxes
+        document.querySelectorAll('[data-feat]').forEach(cb => {
+            cb.addEventListener('change', drawInteraction);
+        });
+        drawInteraction();
+    </script>
+</body>
+</html>

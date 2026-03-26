@@ -42,10 +42,37 @@
 
     <div class="section">
         <h3>7.1 Classification models</h3>
-        <p>Consider a classification problem where we are trying to predict whether a site will be contaminated based on environmental indicators. 'contamination'= 1 denotes a contaminated site.</p>
-    </div>
 
-    <div class="section">
+        <p>Consider a classification problem where we are trying to predict whether a site will be contaminated based on environmental indicators. 'contamination' = 1 denotes a contaminated site.</p>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># import and summarize the environmental data (last column is target/label)</span>
+df = pd.<span class="fn">read_csv</span>(<span class="str">'enviro_data.csv'</span>)
+<span class="fn">print</span>(df.shape)
+df.<span class="fn">head</span>()</pre>
+        </details>
+
+        <div class="output">(297, 14)</div>
+
+        <div style="overflow-x:auto; margin:10px 0;">
+            <table style="border-collapse:collapse; font-size:12px; font-family:Consolas,'Courier New',monospace;">
+                <thead>
+                    <tr style="border-bottom:2px solid #333; text-align:right;">
+                        <th style="padding:3px 6px;"></th>
+                        <th style="padding:3px 6px;">water_age</th><th style="padding:3px 6px;">industrial_area</th><th style="padding:3px 6px;">pollutant_type</th><th style="padding:3px 6px;">flow_rate</th><th style="padding:3px 6px;">chemical_oxygen_demand</th><th style="padding:3px 6px;">agricultural_runoff</th><th style="padding:3px 6px;">sensor_faults</th><th style="padding:3px 6px;">biological_oxygen_demand</th><th style="padding:3px 6px;">nearby_construction</th><th style="padding:3px 6px;">turbidity</th><th style="padding:3px 6px;">treatment_efficiency</th><th style="padding:3px 6px;">contaminant_alerts</th><th style="padding:3px 6px;">sampling_issues</th><th style="padding:3px 6px;">contamination</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #ddd;"><td style="padding:3px 6px; font-weight:bold;">0</td><td style="padding:3px 6px;">63.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">145.0</td><td style="padding:3px 6px;">233.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">150.0</td><td style="padding:3px 6px;">0.0</td><td style="padding:3px 6px;">2.3</td><td style="padding:3px 6px;">3.0</td><td style="padding:3px 6px;">0.0</td><td style="padding:3px 6px;">6.0</td><td style="padding:3px 6px;">0</td></tr>
+                    <tr style="border-bottom:1px solid #ddd;"><td style="padding:3px 6px; font-weight:bold;">1</td><td style="padding:3px 6px;">67.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">4.0</td><td style="padding:3px 6px;">160.0</td><td style="padding:3px 6px;">286.0</td><td style="padding:3px 6px;">0.0</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">108.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">1.5</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">3.0</td><td style="padding:3px 6px;">3.0</td><td style="padding:3px 6px;">1</td></tr>
+                    <tr><td style="padding:3px 6px; font-weight:bold;">2</td><td style="padding:3px 6px;">67.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">4.0</td><td style="padding:3px 6px;">120.0</td><td style="padding:3px 6px;">229.0</td><td style="padding:3px 6px;">0.0</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">129.0</td><td style="padding:3px 6px;">1.0</td><td style="padding:3px 6px;">2.6</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">2.0</td><td style="padding:3px 6px;">7.0</td><td style="padding:3px 6px;">1</td></tr>
+                </tbody>
+            </table>
+        </div>
+
         <p>We'll use a RandomForest model to fit these data and try solve the classification problem.</p>
         <ul>
             <li>A random forest comprises lots of decision trees.</li>
@@ -53,15 +80,6 @@
             <li>The model output is a number between 0 and 1.</li>
             <li>We convert the output to a binary prediction by comparing against a threshold value.</li>
         </ul>
-        <details>
-            <summary>Show Python code</summary>
-            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> roc
-<span class="fn">roc</span>()</pre>
-        </details>
-    </div>
-
-    <div class="explainer">
-        <p>A <strong>Random Forest</strong> classifier predicts contamination risk from 13 environmental features (297 samples, 70/30 train-test split). Adjust the decision <strong>threshold</strong> to trade off between false positives and false negatives. Change <strong># trees</strong> to see how ensemble size affects discriminatory power. The faded curve shows the baseline (10 trees).</p>
     </div>
 
     <div class="widget-container">
@@ -81,9 +99,12 @@
                 <div class="control-group">
                     <label># Trees:</label>
                     <select id="ntrees">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="5">5</option>
                         <option value="10" selected>10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
                 <div class="status" id="statusText"></div>
@@ -92,9 +113,19 @@
     </div>
 
     <div class="questions">
-        <p><strong>TASK 1:</strong> For the default settings, referring to the confusion matrix: how many contaminated sites are in the dataset? How many contaminated sites are predicted by the model? What is the "rate" of correct model predictions?</p>
-        <p><strong>TASK 2:</strong> Change the slider so the threshold to predict contamination is lower. Which column gains more counts? Does the sum across a row change? Why/why not? Which square in the confusion matrix is for false positives? Increase the threshold to minimize false positives — what is the tradeoff?</p>
-        <p><strong>TASK 3:</strong> Change the number of trees. How does hyperparameter selection affect model performance?</p>
+        <p><strong>TASK 1:</strong> For the default settings, referring to the confusion matrix:</p>
+        <p>&bull; How many contaminated sites are in the dataset?</p>
+        <p>&bull; How many contaminated sites are predicted by the model?</p>
+        <p>&bull; What is the "rate" of correct model predictions?</p>
+
+        <p><strong>TASK 2:</strong> Change the slider so the threshold to predict contamination is lower.</p>
+        <p>&bull; Which column gains more counts?</p>
+        <p>&bull; Does the sum across a row change? Why/why not?</p>
+        <p>&bull; Which square in the confusion matrix is for false positives?</p>
+        <p>&bull; Increase the threshold to minimize false positives — what is the tradeoff?</p>
+
+        <p><strong>TASK 3:</strong> Change the number of trees.</p>
+        <p>&bull; How does hyperparameter selection affect model performance?</p>
     </div>
 
     <script>
@@ -262,7 +293,7 @@
         // === PRE-COMPUTE ===
         const { xTr, yTr, xTe, yTe } = trainTestSplit(DATA_X, DATA_Y, 0.3, 42);
         const cache = {};
-        for (const nt of [10, 20, 30]) {
+        for (const nt of [1, 2, 5, 10, 50, 100]) {
             const rng = mulberry32(42);
             const forest = trainForest(xTr, yTr, nt, rng);
             const probs = predictForest(forest, xTe);
@@ -294,7 +325,7 @@
             document.getElementById('thresholdVal').textContent = threshold.toFixed(2);
 
             const roc = cache[ntrees];
-            const roc10 = cache[10];
+            const rocBase = cache[10]; // baseline for comparison
 
             // Confusion matrix
             let tp = 0, fp = 0, fn = 0, tn = 0;
@@ -369,9 +400,9 @@
             if (ntrees !== 10) {
                 ctxR.strokeStyle = 'rgba(41,128,185,0.35)'; ctxR.lineWidth = 1.5;
                 ctxR.beginPath();
-                for (let i = 0; i < roc10.fpr.length; i++) {
-                    const x = pad.l + roc10.fpr[i] * pw;
-                    const y = pad.t + ph - roc10.tpr[i] * ph;
+                for (let i = 0; i < rocBase.fpr.length; i++) {
+                    const x = pad.l + rocBase.fpr[i] * pw;
+                    const y = pad.t + ph - rocBase.tpr[i] * ph;
                     i === 0 ? ctxR.moveTo(x, y) : ctxR.lineTo(x, y);
                 }
                 ctxR.stroke();
@@ -398,20 +429,20 @@
             ctxR.font = '11px Segoe UI'; ctxR.textAlign = 'left';
             const lx = pad.l + pw - 130, ly = pad.t + ph - 40;
             ctxR.fillStyle = 'rgba(255,255,255,0.85)';
-            ctxR.fillRect(lx - 5, ly - 12, 140, ntrees !== 10 ? 38 : 25);
+            ctxR.fillRect(lx - 5, ly - 12, 145, ntrees !== 10 ? 38 : 25);
             ctxR.strokeStyle = '#ccc'; ctxR.lineWidth = 0.5;
-            ctxR.strokeRect(lx - 5, ly - 12, 140, ntrees !== 10 ? 38 : 25);
+            ctxR.strokeRect(lx - 5, ly - 12, 145, ntrees !== 10 ? 38 : 25);
 
             ctxR.strokeStyle = '#2980b9'; ctxR.lineWidth = 2.5;
             ctxR.beginPath(); ctxR.moveTo(lx, ly); ctxR.lineTo(lx + 20, ly); ctxR.stroke();
             ctxR.fillStyle = '#333';
-            ctxR.fillText(`AUC = ${roc.auc.toFixed(2)} (${ntrees} trees)`, lx + 25, ly + 4);
+            ctxR.fillText('AUC = ' + roc.auc.toFixed(2) + ' (' + ntrees + ' trees)', lx + 25, ly + 4);
 
             if (ntrees !== 10) {
                 ctxR.strokeStyle = 'rgba(41,128,185,0.35)'; ctxR.lineWidth = 1.5;
                 ctxR.beginPath(); ctxR.moveTo(lx, ly + 15); ctxR.lineTo(lx + 20, ly + 15); ctxR.stroke();
                 ctxR.fillStyle = '#333';
-                ctxR.fillText(`AUC = ${roc10.auc.toFixed(2)} (10 trees)`, lx + 25, ly + 19);
+                ctxR.fillText('AUC = ' + rocBase.auc.toFixed(2) + ' (10 trees)', lx + 25, ly + 19);
             }
 
             // --- CONFUSION MATRIX ---

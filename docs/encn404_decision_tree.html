@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Decision Trees</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group select, .control-group input[type="range"] { font-size: 13px; }
+        .control-group input[type="range"] { width: 120px; }
+        .sub-controls { display: flex; gap: 30px; margin-top: 6px; flex-wrap: wrap; }
+        .sub-panel { border: 1px solid #ddd; border-radius: 6px; padding: 8px 12px; }
+        .sub-panel-title { font-size: 11px; color: #888; margin-bottom: 4px; }
+        .canvas-container { display: flex; justify-content: center; margin-top: 10px; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; margin-bottom: 20px; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        /* Styled DataFrame table */
+        table.dataframe { border-collapse: collapse; font-size: 12.5px; font-family: 'Consolas', 'Courier New', monospace; margin: 10px 0; }
+        table.dataframe th { background: #f0f0f0; border: 1px solid #ccc; padding: 4px 10px; text-align: right; font-weight: 600; }
+        table.dataframe td { border: 1px solid #ddd; padding: 4px 10px; text-align: right; }
+        table.dataframe tr:nth-child(even) { background: #fafafa; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Decision Trees</h1>
+
+    <!-- ==================== Dataset Introduction ==================== -->
+    <div class="section">
+        <h3>6.1 Decision Trees</h3>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Consider the dataset below, describing seven bridges. For each, its load capacity,</span>
+<span class="cm"># construction material and age is recorded.</span>
+<span class="cm"># An assessment of the bridge's safety has also been included, as a binary variable.</span>
+data = [
+    {<span class="str">"load_capacity"</span>: <span class="num">30</span>, <span class="str">"material_type"</span>: <span class="str">"Concrete"</span>, <span class="str">"age"</span>: <span class="num">5</span>, <span class="str">"safe"</span>: <span class="kw">True</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">60</span>, <span class="str">"material_type"</span>: <span class="str">"Steel"</span>, <span class="str">"age"</span>: <span class="num">15</span>, <span class="str">"safe"</span>: <span class="kw">True</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">70</span>, <span class="str">"material_type"</span>: <span class="str">"Concrete"</span>, <span class="str">"age"</span>: <span class="num">25</span>, <span class="str">"safe"</span>: <span class="kw">False</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">70</span>, <span class="str">"material_type"</span>: <span class="str">"Steel"</span>, <span class="str">"age"</span>: <span class="num">35</span>, <span class="str">"safe"</span>: <span class="kw">False</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">50</span>, <span class="str">"material_type"</span>: <span class="str">"Steel"</span>, <span class="str">"age"</span>: <span class="num">8</span>, <span class="str">"safe"</span>: <span class="kw">True</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">50</span>, <span class="str">"material_type"</span>: <span class="str">"Concrete"</span>, <span class="str">"age"</span>: <span class="num">10</span>, <span class="str">"safe"</span>: <span class="kw">False</span>},
+    {<span class="str">"load_capacity"</span>: <span class="num">35</span>, <span class="str">"material_type"</span>: <span class="str">"Steel"</span>, <span class="str">"age"</span>: <span class="num">3</span>, <span class="str">"safe"</span>: <span class="kw">True</span>}
+]
+
+df = pd.<span class="fn">DataFrame</span>(data)
+<span class="fn">print</span>(df)</pre>
+        </details>
+
+        <table class="dataframe">
+            <thead><tr><th></th><th>load_capacity</th><th>material_type</th><th>age</th><th>safe</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>30</td><td style="text-align:left">Concrete</td><td>5</td><td>True</td></tr>
+                <tr><th>1</th><td>60</td><td style="text-align:left">Steel</td><td>15</td><td>True</td></tr>
+                <tr><th>2</th><td>70</td><td style="text-align:left">Concrete</td><td>25</td><td>False</td></tr>
+                <tr><th>3</th><td>70</td><td style="text-align:left">Steel</td><td>35</td><td>False</td></tr>
+                <tr><th>4</th><td>50</td><td style="text-align:left">Steel</td><td>8</td><td>True</td></tr>
+                <tr><th>5</th><td>50</td><td style="text-align:left">Concrete</td><td>10</td><td>False</td></tr>
+                <tr><th>6</th><td>35</td><td style="text-align:left">Steel</td><td>3</td><td>True</td></tr>
+            </tbody>
+        </table>
+
+        <p>We wish to develop a model that can predict whether a bridge is safe based on its load capacity, material and age.</p>
+    </div>
+
+    <!-- ==================== DataFrame Split Demo ==================== -->
+    <div class="section">
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># For this problem, we will use a decision tree that splits the dataset into subsets.</span>
+<span class="cm"># Run this cell to see how a dataframe is split into two subsets, according to a feature and value</span>
+feature=<span class="str">'load_capacity'</span>
+split=<span class="num">50</span>
+<span class="fn">print</span>(df.<span class="fn">loc</span>[df[feature]&lt;=split])
+<span class="fn">print</span>(df.<span class="fn">loc</span>[df[feature]&gt;split])</pre>
+        </details>
+
+        <p style="font-size:13px; color:#666; margin:6px 0 2px 0;">df[load_capacity &lt;= 50]:</p>
+        <table class="dataframe">
+            <thead><tr><th></th><th>load_capacity</th><th>material_type</th><th>age</th><th>safe</th></tr></thead>
+            <tbody>
+                <tr><th>0</th><td>30</td><td style="text-align:left">Concrete</td><td>5</td><td>True</td></tr>
+                <tr><th>4</th><td>50</td><td style="text-align:left">Steel</td><td>8</td><td>True</td></tr>
+                <tr><th>5</th><td>50</td><td style="text-align:left">Concrete</td><td>10</td><td>False</td></tr>
+                <tr><th>6</th><td>35</td><td style="text-align:left">Steel</td><td>3</td><td>True</td></tr>
+            </tbody>
+        </table>
+
+        <p style="font-size:13px; color:#666; margin:6px 0 2px 0;">df[load_capacity &gt; 50]:</p>
+        <table class="dataframe">
+            <thead><tr><th></th><th>load_capacity</th><th>material_type</th><th>age</th><th>safe</th></tr></thead>
+            <tbody>
+                <tr><th>1</th><td>60</td><td style="text-align:left">Steel</td><td>15</td><td>True</td></tr>
+                <tr><th>2</th><td>70</td><td style="text-align:left">Concrete</td><td>25</td><td>False</td></tr>
+                <tr><th>3</th><td>70</td><td style="text-align:left">Steel</td><td>35</td><td>False</td></tr>
+            </tbody>
+        </table>
+
+        <p>A decision tree splits the dataset into subsets using feature values at each node. At each split, we try to separate the safe (green) and unsafe (red) bridges. Build your own decision tree by selecting features and split values.</p>
+    </div>
+
+    <!-- ==================== Interactive Widget ==================== -->
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>Root feature:</label>
+                <select id="fd1">
+                    <option value="load_capacity" selected>load_capacity</option>
+                    <option value="age">age</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Split:</label>
+                <input type="range" id="sl1" min="2" max="71" step="1" value="50">
+                <span id="sl1Val">50</span>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="lockCheck"> lock root node</label>
+            </div>
+        </div>
+        <div class="sub-controls" id="subControls" style="display:none;">
+            <div class="sub-panel">
+                <div class="sub-panel-title">Left branch (False)</div>
+                <div class="control-group">
+                    <label>Feature:</label>
+                    <select id="fd2">
+                        <option value="load_capacity">load_capacity</option>
+                        <option value="age" selected>age</option>
+                        <option value="material_type">material_type</option>
+                    </select>
+                </div>
+                <div class="control-group" id="sl2Group">
+                    <label>Split:</label>
+                    <input type="range" id="sl2" min="2" max="71" step="1" value="10">
+                    <span id="sl2Val">10</span>
+                </div>
+            </div>
+            <div class="sub-panel">
+                <div class="sub-panel-title">Right branch (True)</div>
+                <div class="control-group">
+                    <label>Feature:</label>
+                    <select id="fd3">
+                        <option value="load_capacity">load_capacity</option>
+                        <option value="age" selected>age</option>
+                        <option value="material_type">material_type</option>
+                    </select>
+                </div>
+                <div class="control-group" id="sl3Group">
+                    <label>Split:</label>
+                    <input type="range" id="sl3" min="2" max="71" step="1" value="10">
+                    <span id="sl3Val">10</span>
+                </div>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="380"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> Move the top slider to divide the dataset, trying both features. Try to separate the safe and unsafe bridges as much as possible. When you are satisfied with the split of data, check the box to lock the root node.</p>
+        <p><strong>TASK 2:</strong> Repeat the exercise for the left and right sliders below. Further separate and subdivide the data, trying to distinguish the two binary classes. Can you construct a decision tree that classifies the two bridge types based on their features?</p>
+        <p>Consider the original dataframe given in the cells above. Which part is the feature matrix X, and which is the label vector y? What are the parameters of this model? What are the hyperparameters?</p>
+        <p><strong>TASK 3:</strong> Suppose you are given a new bridge: load_capacity of 45, steel, and 10 years old. What would your model predict?</p>
+    </div>
+
+    <!-- ==================== sklearn Demo ==================== -->
+    <div class="section">
+        <details>
+            <summary>Show sklearn Decision Tree demo code</summary>
+            <pre><span class="cm"># here is an AI written demo of sklearn's Decision Tree</span>
+<span class="cm"># Import necessary libraries</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_iris
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier, plot_tree
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+
+<span class="cm"># Load the Iris dataset (you can replace this with your own dataset)</span>
+iris = <span class="fn">load_iris</span>()
+X, y = iris.data, iris.target
+
+<span class="cm"># Split the data into training and testing sets</span>
+X_train, X_test, y_train, y_test = <span class="fn">train_test_split</span>(X, y, test_size=<span class="num">0.2</span>, random_state=<span class="num">42</span>)
+
+<span class="cm"># Create a Decision Tree classifier</span>
+clf = <span class="fn">DecisionTreeClassifier</span>(random_state=<span class="num">42</span>)
+
+<span class="cm"># Train the model on the training data</span>
+clf.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="cm"># Make predictions on the test data</span>
+y_pred = clf.<span class="fn">predict</span>(X_test)
+
+<span class="cm"># Calculate accuracy</span>
+accuracy = <span class="fn">accuracy_score</span>(y_test, y_pred)
+<span class="fn">print</span>(<span class="str">f"Accuracy: {accuracy:.2f}"</span>)
+
+<span class="cm"># Visualize the decision tree</span>
+plt.<span class="fn">figure</span>(figsize=(<span class="num">10</span>, <span class="num">6</span>))
+<span class="fn">plot_tree</span>(clf, filled=<span class="kw">True</span>, feature_names=iris.feature_names, class_names=iris.target_names)
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="output">Accuracy: 1.00</div>
+        <p style="font-size:13px; color:#666; margin-top:8px;">Run this code in Python to see the decision tree visualisation — the plot is not shown here.</p>
+    </div>
+
+    <!-- ==================== JavaScript: Decision Tree Widget ==================== -->
+    <script>
+    (function(){
+        const data = [
+            { load_capacity: 30, material_type: 'Concrete', age: 5, safe: true },
+            { load_capacity: 60, material_type: 'Steel', age: 15, safe: true },
+            { load_capacity: 70, material_type: 'Concrete', age: 25, safe: false },
+            { load_capacity: 70, material_type: 'Steel', age: 35, safe: false },
+            { load_capacity: 50, material_type: 'Steel', age: 8, safe: true },
+            { load_capacity: 50, material_type: 'Concrete', age: 10, safe: false },
+            { load_capacity: 35, material_type: 'Steel', age: 3, safe: true }
+        ];
+
+        function getVal(d, feat) {
+            if (feat === 'material_type') return d.material_type === 'Steel' ? 1 : 0;
+            return d[feat];
+        }
+
+        // Axis ranges for each feature
+        const featureRange = {
+            load_capacity: { min: 0, max: 75, ticks: [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75], isCat: false },
+            age:           { min: 0, max: 40, ticks: [0,5,10,15,20,25,30,35,40], isCat: false },
+            material_type: { min: -0.5, max: 1.5, ticks: [0, 1], tickLabels: ['Concrete','Steel'], isCat: true }
+        };
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 900, cssH = 380;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const PL = { x: 80, y: 30, w: 360, h: 290 };
+        const PR = { x: 500, y: 30, w: 370, h: 290 };
+
+        function draw() {
+            const fd1 = document.getElementById('fd1').value;
+            const fd2 = document.getElementById('fd2').value;
+            const fd3 = document.getElementById('fd3').value;
+            const sl1 = parseFloat(document.getElementById('sl1').value);
+            const sl2 = parseFloat(document.getElementById('sl2').value);
+            const sl3 = parseFloat(document.getElementById('sl3').value);
+            const locked = document.getElementById('lockCheck').checked;
+
+            document.getElementById('sl1Val').textContent = sl1;
+            document.getElementById('sl2Val').textContent = sl2;
+            document.getElementById('sl3Val').textContent = sl3;
+            document.getElementById('subControls').style.display = locked ? 'flex' : 'none';
+
+            // Hide slider for material_type
+            document.getElementById('sl2Group').style.display = fd2 === 'material_type' ? 'none' : 'flex';
+            document.getElementById('sl3Group').style.display = fd3 === 'material_type' ? 'none' : 'flex';
+
+            // Split data at root
+            const leftSet = data.filter(d => d[fd1] <= sl1);
+            const rightSet = data.filter(d => d[fd1] > sl1);
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            // ===== Scatter plot (left panel) =====
+            // X-axis is always fd1
+            const xr = featureRange[fd1];
+            const xMin = xr.min, xMax = xr.max;
+            function txP(v) { return PL.x + (v - xMin)/(xMax - xMin) * PL.w; }
+
+            // Determine y-axis feature(s) and ranges
+            let yFeatL, yFeatR, yrL, yrR;
+            if (!locked) {
+                // Single y-axis: fd2
+                yFeatL = yFeatR = fd2;
+                yrL = yrR = featureRange[fd2];
+            } else {
+                // Left subset uses fd2, right subset uses fd3
+                yFeatL = fd2; yFeatR = fd3;
+                yrL = featureRange[fd2]; yrR = featureRange[fd3];
+                // If same feature, share range
+                if (fd2 === fd3) { yrR = yrL; }
+            }
+
+            function tyL(v) { return PL.y + PL.h - (v - yrL.min)/(yrL.max - yrL.min) * PL.h; }
+            function tyR(v) { return PL.y + PL.h - (v - yrR.min)/(yrR.max - yrR.min) * PL.h; }
+
+            // Draw data points (clipped)
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PL.x, PL.y, PL.w, PL.h); ctx.clip();
+
+            const ms = 8;
+            if (!locked) {
+                for (const d of data) {
+                    ctx.beginPath(); ctx.arc(txP(d[fd1]), tyL(getVal(d, fd2)), ms, 0, 2*Math.PI);
+                    ctx.fillStyle = d.safe ? '#27ae60' : '#e74c3c'; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+                // Vertical split line
+                ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
+                ctx.beginPath(); ctx.moveTo(txP(sl1), PL.y); ctx.lineTo(txP(sl1), PL.y+PL.h); ctx.stroke();
+                ctx.setLineDash([]);
+            } else {
+                // Left subset (fd1 <= sl1) plotted vs fd2
+                for (const d of leftSet) {
+                    ctx.beginPath(); ctx.arc(txP(d[fd1]), tyL(getVal(d, fd2)), ms, 0, 2*Math.PI);
+                    ctx.fillStyle = d.safe ? '#27ae60' : '#e74c3c'; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+                // Right subset (fd1 > sl1) plotted vs fd3
+                for (const d of rightSet) {
+                    ctx.beginPath(); ctx.arc(txP(d[fd1]), tyR(getVal(d, fd3)), ms, 0, 2*Math.PI);
+                    ctx.fillStyle = d.safe ? '#27ae60' : '#e74c3c'; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+                // Split lines
+                ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
+                // Vertical root split
+                ctx.beginPath(); ctx.moveTo(txP(sl1), PL.y); ctx.lineTo(txP(sl1), PL.y+PL.h); ctx.stroke();
+                // Horizontal sub-splits
+                const sl2v = yrL.isCat ? 0.5 : sl2;
+                const sl3v = yrR.isCat ? 0.5 : sl3;
+                ctx.beginPath(); ctx.moveTo(PL.x, tyL(sl2v)); ctx.lineTo(txP(sl1), tyL(sl2v)); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(txP(sl1), tyR(sl3v)); ctx.lineTo(PL.x+PL.w, tyR(sl3v)); ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            ctx.restore();
+
+            // ===== Axes frame and ticks =====
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(PL.x, PL.y, PL.w, PL.h);
+
+            // X-axis ticks
+            ctx.fillStyle = '#333'; ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let i = 0; i < xr.ticks.length; i++) {
+                const v = xr.ticks[i];
+                const px = txP(v);
+                if (px < PL.x - 1 || px > PL.x + PL.w + 1) continue;
+                ctx.beginPath(); ctx.moveTo(px, PL.y + PL.h); ctx.lineTo(px, PL.y + PL.h + 4); ctx.stroke();
+                // Show every other tick label to avoid crowding
+                if (v % 10 === 0) ctx.fillText(v, px, PL.y + PL.h + 5);
+            }
+            // X-axis label
+            ctx.font = '12px Segoe UI';
+            ctx.fillText(fd1, PL.x + PL.w/2, PL.y + PL.h + 20);
+
+            // Left Y-axis ticks
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let i = 0; i < yrL.ticks.length; i++) {
+                const v = yrL.ticks[i];
+                const py = tyL(v);
+                if (py < PL.y - 1 || py > PL.y + PL.h + 1) continue;
+                ctx.beginPath(); ctx.moveTo(PL.x, py); ctx.lineTo(PL.x - 4, py); ctx.stroke();
+                const label = yrL.tickLabels ? yrL.tickLabels[i] : (yrL.isCat ? v : (v % 10 === 0 || yrL.max <= 5 ? v : ''));
+                if (label !== '') ctx.fillText(label, PL.x - 6, py);
+            }
+            // Left Y-axis label
+            ctx.font = '12px Segoe UI';
+            ctx.save(); ctx.translate(14, PL.y + PL.h/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(yFeatL, 0, 0); ctx.restore();
+
+            // Right Y-axis ticks (only if locked and fd2 !== fd3)
+            if (locked && fd2 !== fd3) {
+                ctx.font = '10px Segoe UI';
+                ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                for (let i = 0; i < yrR.ticks.length; i++) {
+                    const v = yrR.ticks[i];
+                    const py = tyR(v);
+                    if (py < PL.y - 1 || py > PL.y + PL.h + 1) continue;
+                    ctx.beginPath(); ctx.moveTo(PL.x + PL.w, py); ctx.lineTo(PL.x + PL.w + 4, py); ctx.stroke();
+                    const label = yrR.tickLabels ? yrR.tickLabels[i] : (yrR.isCat ? v : (v % 10 === 0 || yrR.max <= 5 ? v : ''));
+                    if (label !== '') ctx.fillText(label, PL.x + PL.w + 6, py);
+                }
+                ctx.font = '12px Segoe UI';
+                ctx.save(); ctx.translate(PL.x + PL.w + 38, PL.y + PL.h/2); ctx.rotate(Math.PI/2);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(yFeatR, 0, 0); ctx.restore();
+            }
+
+            // Legend
+            ctx.beginPath(); ctx.arc(PL.x + 15, PL.y + 12, 6, 0, 2*Math.PI);
+            ctx.fillStyle = '#27ae60'; ctx.fill();
+            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('safe', PL.x + 25, PL.y + 12);
+            ctx.beginPath(); ctx.arc(PL.x + 75, PL.y + 12, 6, 0, 2*Math.PI);
+            ctx.fillStyle = '#e74c3c'; ctx.fill();
+            ctx.fillStyle = '#333'; ctx.fillText('unsafe', PL.x + 85, PL.y + 12);
+
+            // ===== Right panel: tree diagram =====
+            const c1 = locked ? '#999' : '#000';
+            const c2 = locked ? '#000' : '#999';
+
+            const rx = PR.x + PR.w/2, ry = PR.y + 20;
+            drawBox(rx, ry, `${fd1}\n>${sl1}`, c1);
+
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            const ly = ry + 50, lx = PR.x + PR.w*0.25, rxn = PR.x + PR.w*0.75;
+            ctx.beginPath(); ctx.moveTo(rx, ry+18); ctx.lineTo(rxn, ly); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(rx, ry+18); ctx.lineTo(lx, ly); ctx.stroke();
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#0066cc';
+            ctx.textAlign = 'center';
+            ctx.fillText('True', (rx+rxn)/2 + 10, (ry+ly)/2 - 2);
+            ctx.fillText('False', (rx+lx)/2 - 10, (ry+ly)/2 - 2);
+
+            if (!locked) {
+                const leftSafe = leftSet.filter(d => d.safe).length;
+                const leftUnsafe = leftSet.length - leftSafe;
+                const rightSafe = rightSet.filter(d => d.safe).length;
+                const rightUnsafe = rightSet.length - rightSafe;
+                drawBox(lx, ly, `${leftSafe} Safe\n${leftUnsafe} Unsafe`, c2);
+                drawBox(rxn, ly, `${rightSafe} Safe\n${rightUnsafe} Unsafe`, c2);
+            } else {
+                const fd2IsStr = fd2 === 'material_type';
+                const fd3IsStr = fd3 === 'material_type';
+                const fd2txt = fd2IsStr ? `${fd2}\nis steel` : `${fd2}\n>${sl2}`;
+                const fd3txt = fd3IsStr ? `${fd3}\nis steel` : `${fd3}\n>${sl3}`;
+                drawBox(lx, ly, fd2txt, c2);
+                drawBox(rxn, ly, fd3txt, c2);
+
+                const ly2 = ly + 55;
+                const positions = [
+                    [lx - PR.w*0.12, ly2], [lx + PR.w*0.12, ly2],
+                    [rxn - PR.w*0.12, ly2], [rxn + PR.w*0.12, ly2]
+                ];
+                for (let i = 0; i < 2; i++) {
+                    const parent = i === 0 ? lx : rxn;
+                    ctx.beginPath(); ctx.moveTo(parent, ly+18); ctx.lineTo(positions[i*2][0], ly2); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(parent, ly+18); ctx.lineTo(positions[i*2+1][0], ly2); ctx.stroke();
+                    ctx.fillStyle = '#0066cc'; ctx.font = '10px Segoe UI';
+                    ctx.fillText('True', (parent+positions[i*2+1][0])/2 + 5, (ly+ly2)/2 - 2);
+                    ctx.fillText('False', (parent+positions[i*2][0])/2 - 5, (ly+ly2)/2 - 2);
+                }
+
+                let df00, df01, df10, df11;
+                if (fd2IsStr) {
+                    df01 = leftSet.filter(d => d.material_type === 'Steel');
+                    df00 = leftSet.filter(d => d.material_type !== 'Steel');
+                } else {
+                    df01 = leftSet.filter(d => d[fd2] > sl2);
+                    df00 = leftSet.filter(d => d[fd2] <= sl2);
+                }
+                if (fd3IsStr) {
+                    df11 = rightSet.filter(d => d.material_type === 'Steel');
+                    df10 = rightSet.filter(d => d.material_type !== 'Steel');
+                } else {
+                    df11 = rightSet.filter(d => d[fd3] > sl3);
+                    df10 = rightSet.filter(d => d[fd3] <= sl3);
+                }
+
+                const leafSets = [df00, df01, df10, df11];
+                for (let i = 0; i < 4; i++) {
+                    const s = leafSets[i].filter(d => d.safe).length;
+                    const u = leafSets[i].length - s;
+                    drawBox(positions[i][0], positions[i][1], `${s} Safe\n${u} Unsafe`, c2);
+                }
+            }
+        }
+
+        function drawBox(cx, cy, text, color) {
+            const lines = text.split('\n');
+            const w = 80, h = 14 * lines.length + 10;
+            ctx.fillStyle = 'white'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.fillRect(cx - w/2, cy - h/2, w, h);
+            ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+            ctx.fillStyle = color; ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], cx, cy - (lines.length-1)*7 + i*14);
+            }
+        }
+
+        ['fd1','fd2','fd3','sl1','sl2','sl3','lockCheck'].forEach(id =>
+            document.getElementById(id).addEventListener(id.includes('Check') ? 'change' : 'input', draw));
+        draw();
+    })();
+    </script>
+</body>
+</html>

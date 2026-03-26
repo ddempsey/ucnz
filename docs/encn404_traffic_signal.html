@@ -8,8 +8,9 @@
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
         h1 { text-align: center; color: #333; }
-        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
-        .explainer p { margin: 1em 0; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
         .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
         .canvas-container { flex: 0 0 auto; }
@@ -23,18 +24,6 @@
         .status { font-size: 13px; margin-top: 6px; line-height: 1.6; }
         .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
         .questions p { margin: 0.8em 0; color: #555; }
-        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
-        .section p { margin: 1em 0; }
-        details { margin: 10px 0; }
-        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
-        summary:hover { color: #2060c0; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
-        pre .kw { color: #569cd6; }
-        pre .fn { color: #dcdcaa; }
-        pre .str { color: #ce9178; }
-        pre .cm { color: #6a9955; }
-        pre .num { color: #b5cea8; }
-        h3 { color: #333; margin-top: 0; }
     </style>
 </head>
 <body>
@@ -42,15 +31,7 @@
 
     <div class="section">
         <h3>11.2 Traffic Signal</h3>
-        <details>
-            <summary>Show Python code</summary>
-            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> traffic_signal
-<span class="fn">traffic_signal</span>()</pre>
-        </details>
-    </div>
-
-    <div class="explainer">
-        <p>A single intersection where traffic flows NS or EW. Vehicles arrive at Poisson rate &lambda; and cross at 2 veh/s on green. Changing phase triggers a 2-second yellow interval. The (negative) reward accumulates from vehicle wait time.</p>
+        <p>One area that reinforcement learning has been used is to develop improved traffic light phasing policies. We'll consider an example of this below.</p>
     </div>
 
     <div class="widget-container">
@@ -79,13 +60,6 @@
                     <input type="range" id="lamEW" min="0" max="100" step="5" value="30">
                     <span id="lamEWVal">0.30</span>
                 </div>
-                <div class="control-group">
-                    <label>Phase:</label>
-                    <select id="phaseSelect">
-                        <option value="0" selected>NS-green</option>
-                        <option value="1">EW-green</option>
-                    </select>
-                </div>
                 <div style="display:flex; gap:8px;">
                     <button id="stepBtn">Step (1 s)</button>
                     <button id="step20Btn">Step x20</button>
@@ -97,10 +71,19 @@
     </div>
 
     <div class="questions">
-        <p><strong>TASK 1:</strong> Set epsilon to zero (0) and train the model for 100 episodes. What does a "greedy" strategy look like? Use the "show Q values" checkbox to visualise the decision-making.</p>
-        <p><strong>TASK 2:</strong> Gradually increase epsilon. How does exploration change the Q-values and the signal behavior? What epsilon gives the best trade-off between exploration and exploitation?</p>
-        <p><strong>TASK 3:</strong> With epsilon = 0.2, train for 200 episodes. What does the signal controller learn about managing traffic flow? Which states does it learn to switch the signal?</p>
-        <p><strong>TASK 4:</strong> Try different learning rates (by modifying the code) and observe the effect on learning speed.</p>
+        <p><strong>TASK 0:</strong> The intersection below is grey. Traffic can travel either north-south or east-west. Traffic crosses the intersection at 2 veh/s on green signal. Traffic stops on yellow and red signals (so this is not Christchurch). Traffic arrives at Poisson rate &lambda; (you can change this). NS and EW signals are green for a specified time (you can change this). Negative reward builds up for vehicle wait time.</p>
+        <p>&bull; Take some steps. Take 20 steps. Watch the lights change and queues build up.</p>
+
+        <p><strong>TASK 1:</strong> Set NS traffic rate to maximum. Leave signals as default.</p>
+        <p>&bull; After 120 seconds: How are the queues? Which drivers are happy? Write the cumulative reward here: ___</p>
+        <p>&bull; Reset the model and double the length of the NS signal (20 s). After 120 seconds: How are the queues? Which drivers are happy? Write the cumulative reward here: ___</p>
+        <p>&bull; Reset the model and halve both signal lengths (5 and 10 s). After 120 seconds: How are the queues? Which drivers are happy? Write the cumulative reward here: ___</p>
+
+        <p><strong>TASK 2:</strong></p>
+        <p>&bull; What is the "state" for this problem?</p>
+        <p>&bull; What is the "action"?</p>
+        <p>&bull; What is the "policy"?</p>
+        <p>&bull; How does Reinforcement Learning direct us to improve the policy?</p>
     </div>
 
     <script>
@@ -130,7 +113,7 @@
             queues.N += poisson(lamNS); queues.S += poisson(lamNS);
             queues.E += poisson(lamEW); queues.W += poisson(lamEW);
 
-            // Departures
+            // Departures (only if not in yellow)
             const green = phase === 0 ? ['N','S'] : ['E','W'];
             if (!inYellow) {
                 for (const k of green) {
@@ -148,7 +131,6 @@
                 if (yellowElapsed >= 2) {
                     inYellow = false;
                     phase = 1 - phase;
-                    document.getElementById('phaseSelect').value = phase;
                     timeInPhase = 0;
                 }
             } else {
@@ -178,21 +160,26 @@
         canvas.style.width = cssS + 'px'; canvas.style.height = cssS + 'px';
         ctx.scale(dpr, dpr);
 
-        function draw() {
+        // Grid geometry: 5x5 units mapped to canvas
+        const S = 60, ox = 20, oy = 30;
+
+        function updateSliderDisplays() {
             document.getElementById('durNSVal').textContent = document.getElementById('durNS').value;
             document.getElementById('durEWVal').textContent = document.getElementById('durEW').value;
             document.getElementById('lamNSVal').textContent = (parseInt(document.getElementById('lamNS').value)/100).toFixed(2);
             document.getElementById('lamEWVal').textContent = (parseInt(document.getElementById('lamEW').value)/100).toFixed(2);
+        }
+
+        function draw() {
+            updateSliderDisplays();
 
             const sumQ = queues.N + queues.S + queues.E + queues.W;
             document.getElementById('statusText').innerHTML =
-                `t = ${t}s &nbsp; phase time = ${timeInPhase}s<br>` +
-                `&Sigma;Q = ${sumQ} &nbsp; reward = ${totalReward.toFixed(1)}`;
+                't = ' + t + 's &nbsp; phase time = ' + timeInPhase + 's<br>' +
+                '&Sigma;Q = ' + sumQ + ' &nbsp; reward = ' + totalReward.toFixed(1);
 
             ctx.clearRect(0, 0, cssS, cssS);
 
-            // Scale: 5x5 grid mapped to canvas
-            const S = 60, ox = 20, oy = 30;
             // Intersection box
             ctx.fillStyle = '#ddd';
             ctx.fillRect(ox + 2*S, oy + 2*S, S, S);
@@ -202,11 +189,13 @@
             // Queue bars
             const maxQ = Math.max(1, queues.N, queues.S, queues.E, queues.W);
             const greenLanes = phase === 0 ? ['N','S'] : ['E','W'];
+
+            // Lane geometry: origin point at intersection edge, direction outward, bar width
             const laneGeom = {
-                N: {x:2*S+5+ox, y:2*S+oy, dx:0, dy:-1, bw:20, dir:'v'},
-                S: {x:2*S+35+ox, y:3*S+oy, dx:0, dy:1, bw:20, dir:'v'},
-                E: {x:3*S+ox, y:2*S+5+oy, dx:1, dy:0, bw:20, dir:'h'},
-                W: {x:2*S+ox, y:2*S+35+oy, dx:-1, dy:0, bw:20, dir:'h'}
+                N: {x: 2*S + 5 + ox, y: 2*S + oy, dx: 0, dy: -1, bw: 20, dir: 'v'},
+                S: {x: 2*S + 35 + ox, y: 3*S + oy, dx: 0, dy: 1, bw: 20, dir: 'v'},
+                E: {x: 3*S + ox, y: 2*S + 5 + oy, dx: 1, dy: 0, bw: 20, dir: 'h'},
+                W: {x: 2*S + ox, y: 2*S + 35 + oy, dx: -1, dy: 0, bw: 20, dir: 'h'}
             };
 
             for (const k of ['N','S','E','W']) {
@@ -219,12 +208,10 @@
                 const len = 1.5 * S * (queues[k] / maxQ);
                 let rx, ry, rw, rh;
                 if (g.dir === 'v') {
-                    rw = g.bw;
-                    rh = len * (g.dy < 0 ? -1 : 1);
+                    rw = g.bw; rh = len * (g.dy < 0 ? -1 : 1);
                     rx = g.x; ry = g.y;
                 } else {
-                    rw = len * (g.dx < 0 ? -1 : 1);
-                    rh = g.bw;
+                    rw = len * (g.dx < 0 ? -1 : 1); rh = g.bw;
                     rx = g.x; ry = g.y;
                 }
                 ctx.fillStyle = fc;
@@ -239,6 +226,63 @@
                 if (queues[k] > 0) ctx.fillText(queues[k].toString(), tx, ty);
             }
 
+            // Departing vehicles: green open squares with arrows on the exit side
+            const cx = ox + 2.5*S, cy = oy + 2.5*S; // intersection centre
+            const exitGeom = {
+                // N vehicles travel upward: enter from bottom, exit at top
+                N: {moveX: 0, moveY: -1, laneOffX: laneGeom.N.x + 10 - cx, laneOffY: 0},
+                // S vehicles travel downward: exit at bottom
+                S: {moveX: 0, moveY: 1, laneOffX: laneGeom.S.x + 10 - cx, laneOffY: 0},
+                // E vehicles travel rightward: exit at right
+                E: {moveX: 1, moveY: 0, laneOffX: 0, laneOffY: laneGeom.E.y + 10 - cy},
+                // W vehicles travel leftward: exit at left
+                W: {moveX: -1, moveY: 0, laneOffX: 0, laneOffY: laneGeom.W.y + 10 - cy}
+            };
+
+            for (const k of ['N','S','E','W']) {
+                if (justServed[k] === 0) continue;
+                const eg = exitGeom[k];
+
+                // Start just inside the junction
+                const startX = cx + eg.moveX * 5 + eg.laneOffX;
+                const startY = cy + eg.moveY * 5 + eg.laneOffY;
+
+                // End point downstream of junction
+                const endX = startX + eg.moveX * 35;
+                const endY = startY + eg.moveY * 35;
+
+                // Green open square at end point
+                ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 2;
+                ctx.strokeRect(endX - 8, endY - 8, 16, 16);
+
+                // Arrow from start to end
+                ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+
+                // Arrowhead
+                const len = Math.hypot(endX - startX, endY - startY);
+                if (len > 0) {
+                    const ndx = (endX - startX)/len, ndy = (endY - startY)/len;
+                    ctx.fillStyle = '#27ae60';
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - ndx*8 - ndy*4, endY - ndy*8 + ndx*4);
+                    ctx.lineTo(endX - ndx*8 + ndy*4, endY - ndy*8 - ndx*4);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Show served count next to the square
+                ctx.fillStyle = '#27ae60'; ctx.font = 'bold 11px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const labelX = endX + eg.moveX * 14 + (eg.moveX === 0 ? 14 : 0);
+                const labelY = endY + eg.moveY * 14 + (eg.moveY === 0 ? 14 : 0);
+                ctx.fillText(justServed[k].toString(), labelX, labelY);
+            }
+
             // Direction labels
             ctx.fillStyle = '#666'; ctx.font = '14px Segoe UI';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -248,13 +292,17 @@
             ctx.fillText('E', ox + 5*S - 10, oy + 2.5*S);
         }
 
+        // Slider live updates
+        ['durNS','durEW','lamNS','lamEW'].forEach(id =>
+            document.getElementById(id).addEventListener('input', updateSliderDisplays));
+
         document.getElementById('stepBtn').addEventListener('click', () => simulate(1));
         document.getElementById('step20Btn').addEventListener('click', () => simulate(20));
         document.getElementById('resetBtn').addEventListener('click', () => {
             queues = {N:0, S:0, E:0, W:0};
+            justServed = {N:0, S:0, E:0, W:0};
             phase = 0; timeInPhase = 0; inYellow = false; yellowElapsed = 0;
             t = 0; totalReward = 0;
-            document.getElementById('phaseSelect').value = 0;
             draw();
         });
         draw();

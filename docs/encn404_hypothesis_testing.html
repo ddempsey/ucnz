@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Hypothesis Testing</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Hypothesis Testing</h1>
+
+    <div class="section">
+        <p>Work through the examples below during the lecture.</p>
+    </div>
+
+    <!-- ==================== 4.1 T-test ==================== -->
+    <div class="section">
+        <h3>4.1 T-test</h3>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> scipy <span class="kw">import</span> stats
+<span class="cm"># Data: compressive strength measurements of two concrete types</span>
+concrete_type_A = [<span class="num">30</span>, <span class="num">32</span>, <span class="num">31</span>, <span class="num">33</span>, <span class="num">29</span>, <span class="num">28</span>, <span class="num">30</span>, <span class="num">31</span>, <span class="num">32</span>, <span class="num">30</span>]
+concrete_type_B = [<span class="num">35</span>, <span class="num">34</span>, <span class="num">33</span>, <span class="num">36</span>, <span class="num">32</span>, <span class="num">31</span>, <span class="num">33</span>, <span class="num">34</span>, <span class="num">35</span>, <span class="num">33</span>]
+
+<span class="cm"># Perform an independent two-sample t-test</span>
+t_statistic, p_value = stats.<span class="fn">ttest_ind</span>(concrete_type_A, concrete_type_B)
+
+<span class="cm"># Set significance level (alpha)</span>
+alpha = <span class="num">0.05</span>
+<span class="kw">if</span> p_value &lt; alpha:
+    <span class="fn">print</span>(p_value, <span class="str">'different means'</span>)</pre>
+        </details>
+
+        <div class="output">0.00030547417924354326 different means</div>
+    </div>
+
+    <!-- ==================== 4.2 Kendall's Rank Correlation ==================== -->
+    <div class="section">
+        <h3>4.2 Kendall's Rank Correlation</h3>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Data: stage and flow measurements on a river</span>
+stage = [<span class="num">1.2</span>, <span class="num">1.5</span>, <span class="num">1.8</span>, <span class="num">2.0</span>, <span class="num">2.3</span>, <span class="num">2.6</span>, <span class="num">2.9</span>, <span class="num">3.2</span>, <span class="num">3.5</span>, <span class="num">3.8</span>]
+flow = [<span class="num">11.0</span>, <span class="num">11.3</span>, <span class="num">12.0</span>, <span class="num">12.3</span>, <span class="num">18.0</span>, <span class="num">18.5</span>, <span class="num">19.8</span>, <span class="num">25.3</span>, <span class="num">28.3</span>, <span class="num">28.2</span>]
+
+<span class="cm"># Calculate Kendall's tau and p-value</span>
+tau, p_value = stats.<span class="fn">kendalltau</span>(stage, flow)
+
+<span class="cm"># - A positive tau indicates a positive correlation (as stage height increases, river flow tends to increase).</span>
+<span class="cm"># - The p-value tells us if the correlation is statistically significant.</span>
+tau, p_value = stats.<span class="fn">kendalltau</span>(stage[::<span class="num">3</span>], flow[::<span class="num">3</span>])
+<span class="fn">print</span>(tau, p_value)</pre>
+        </details>
+
+        <div class="output">1.0 0.08333333333333333</div>
+    </div>
+
+    <!-- ==================== 4.3 Mann-Whitney U test ==================== -->
+    <div class="section">
+        <h3>4.3 Mann-Whitney U test</h3>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Perform the Mann Whitney U test</span>
+statistic, p_value = stats.<span class="fn">mannwhitneyu</span>(concrete_type_A, concrete_type_B, alternative=<span class="str">'two-sided'</span>)
+
+<span class="cm"># Set significance level (alpha)</span>
+alpha = <span class="num">0.05</span>
+<span class="kw">if</span> p_value &lt; alpha:
+    <span class="fn">print</span>(<span class="str">'different medians'</span>)</pre>
+        </details>
+
+        <div class="output">different medians</div>
+    </div>
+
+</body>
+</html>

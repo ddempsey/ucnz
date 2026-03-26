@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Well Siting - ENCN342</title>
+    <script>
+    MathJax = {
+        tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] }
+    };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://d3js.org/d3-contour.v4.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; margin-bottom: 2px; }
+        h2 { color: #333; margin-top: 35px; }
+        h3 { color: #444; }
+        .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+        .institution { text-align: center; color: #555; margin-bottom: 25px; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.7; }
+        .explainer p { margin: 0.9em 0; }
+        .explainer ol { margin: 0.5em 0; padding-left: 1.5em; }
+        .explainer ol li { margin: 0.3em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 5px; }
+        .control-group label { font-weight: 500; font-size: 13px; min-width: 30px; white-space: nowrap; }
+        .control-group input[type="range"] { width: 120px; cursor: pointer; }
+        .control-group .val { font-size: 12px; color: #666; min-width: 45px; text-align: right; }
+        .map-div { width: 100%; height: 500px; border-radius: 6px; border: 1px solid #ddd; }
+        .well-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+        .well-card { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px; background: #f9f9f9; border: 1px solid #ddd; }
+        .well-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #333; }
+        .well-card label { font-size: 13px; font-weight: 500; }
+        .well-card input[type="range"] { width: 100px; }
+        .well-card .val { font-size: 12px; color: #666; min-width: 40px; }
+        .tasks { background: #f0f7ff; border: 1px solid #c0d8f0; border-radius: 6px; padding: 12px 18px; margin-top: 12px; }
+        .tasks p { margin: 0.4em 0; font-size: 14px; }
+        .tasks strong { color: #336; }
+        .mjx-chtml { font-size: 100% !important; }
+    </style>
+</head>
+<body>
+    <h1>Well Siting</h1>
+    <div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+    <div class="institution">University of Canterbury</div>
+
+    <!-- ==================== INTRO ==================== -->
+    <h2>Siting considerations</h2>
+    <div class="explainer">
+        <p>Groundwater wells are expensive to drill, so it makes sense to think carefully about <strong>where</strong> we place them. The three things to think about are:</p>
+        <ol>
+            <li>Is my well location <strong>practical</strong>?</li>
+            <li>Will my well adversely impact other users <strong>nearby</strong>?</li>
+            <li>Is my well close to any sources of <strong>contamination</strong>?</li>
+        </ol>
+        <p>We'll start thinking about these problems below.</p>
+    </div>
+
+    <!-- ==================== CONE OF DEPRESSION ==================== -->
+    <h2>Cone of depression</h2>
+    <div class="explainer">
+        <p>The spatial impact or "footprint" of a well is quantified by its <strong>cone of depression</strong>, which represents the aquifer drawdown caused by pumping the well.</p>
+        <p>The exercise below gives you a well to move around beautiful Christchurch. Play with the slider and drag the well to a new location, to see how choices you make affect how much drawdown occurs (note, contours are drawn at 0.25 m).</p>
+    </div>
+    <div class="widget-container">
+        <div id="map-theis" class="map-div"></div>
+        <div class="controls" style="margin-top:10px;">
+            <div class="control-group">
+                <label>$Q$ [L/s]</label>
+                <input type="range" id="theis-Q" min="0" max="100" step="5" value="25">
+                <span class="val" id="theis-Q-val">25</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SUPERPOSITION ==================== -->
+    <h2>Superposition</h2>
+    <div class="explainer">
+        <p>Superposition describes the <strong>addition</strong> of multiple cones of depression from nearby pumping wells. This is especially important to think about when wells are closely spaced, because they can <strong>interfere adversely</strong> with each other.</p>
+        <p>When <strong>planning</strong> a new well, we need to think about possible impacts on neighbouring wells. We also need to think about the total impact on the groundwater system and any <strong>streams</strong> it might be supporting through <strong>baseflow</strong>.</p>
+        <p><em>The exercise below allows you to place four different wells and vary the pumping rate from each. Contours of total drawdown, calculated by superposition, are shown.</em></p>
+    </div>
+    <div class="explainer">
+        <p><strong><em>Select positions for the four wells subject to the following constraints.</em></strong></p>
+        <ol>
+            <li>Wells should be placed in the Christchurch <strong>red zone</strong>, because the land is available to Council at zero cost.</li>
+            <li>Wells should be placed as close as possible to <strong>residential areas</strong>, to minimize the cost of connection into the Council Water Supply network (which runs along residential streets).</li>
+            <li>To avoid negative impacts on the <strong>Avon/&#332;t&#257;karo river</strong>, drawdown should not exceed 1.5 m anywhere beneath the river.</li>
+            <li>To obtain value for money, the <strong>total pumping rate</strong> should be maximized.</li>
+        </ol>
+    </div>
+    <div class="widget-container">
+        <div id="map-super" class="map-div"></div>
+        <div class="well-controls" id="super-controls"></div>
+    </div>
+
+    <!-- ==================== SOURCE PROTECTION ==================== -->
+    <h2>Source protection</h2>
+    <div class="explainer">
+        <p>Water drawn into a well is not equally sourced from all directions around it. If there is a <strong>hydraulic gradient</strong>, $dh/dx$, then we can think of upstream and downstream directions from the well. Water is drawn <strong>asymmetrically</strong> about the well, more from one direction than the other, and this effect is exacerbated in fast moving groundwater.</p>
+        <p>Nearly all groundwater originates from the ground surface. This surface water can sometimes carry <strong>pathogens</strong> into the aquifer. However, if we wait long enough, these pathogens will die.</p>
+        <p>Different regulators have different rules about how old the water sourced from a well should be: a common requirement is 100 days. For a given time of travel, we can map the perimeter around a well from which that water could plausibly have come from. This is the <strong>source protection zone</strong>, and careful attention should be paid to potential sources of contamination falling within it.</p>
+        <p><em>The exercise below shows the time of travel, $t_t$ (red contour) around a moveable well. You can vary properties of the groundwater system and pumping to see how these affect the size and shape of the source protection zone. Use it to answer the following questions.</em></p>
+    </div>
+    <div class="explainer">
+        <p><strong><em>1. When there is a hydraulic gradient, is a greater proportion of water drawn from the upstream or downstream direction?</em></strong></p>
+        <p><strong><em>2. How does the pumping rate affect the area of the source protection zone?</em></strong></p>
+        <p><strong><em>3. How does the hydraulic gradient &mdash; magnitude and direction &mdash; affect the shape of the source protection zone?</em></strong></p>
+        <p><strong><em>4. How does the time of travel affect the size of the source protection zones?</em></strong></p>
+        <p><strong><em>5. Environment Canterbury specifies source protection zone in terms of distances rather than "time of travel". Why is this still appropriate?</em></strong></p>
+    </div>
+    <div class="widget-container">
+        <div id="map-travel" class="map-div"></div>
+        <div class="controls" style="margin-top:10px;">
+            <div class="control-group">
+                <label>pumping [L/s]</label>
+                <input type="range" id="travel-Q" min="0" max="200" step="20" value="100">
+                <span class="val" id="travel-Q-val">100</span>
+            </div>
+            <div class="control-group">
+                <label>$t_t$ [day]</label>
+                <input type="range" id="travel-t" min="10" max="365" step="20" value="100">
+                <span class="val" id="travel-t-val">100</span>
+            </div>
+            <div class="control-group">
+                <label>$dh/dx$ [m/km]</label>
+                <input type="range" id="travel-q" min="0.5" max="3" step="0.5" value="1.5">
+                <span class="val" id="travel-q-val">1.5</span>
+            </div>
+            <div class="control-group">
+                <label>flow dir. [&deg;]</label>
+                <input type="range" id="travel-th" min="0" max="180" step="5" value="135">
+                <span class="val" id="travel-th-val">135</span>
+            </div>
+        </div>
+    </div>
+
+<script>
+/* ================================================================
+   MATH UTILITIES
+   ================================================================ */
+var PI = Math.PI;
+
+// Exponential integral E1(x) for x>0  (W(u) = E1(u))
+function E1(x) {
+    if (x <= 0) return Infinity;
+    if (x <= 1) {
+        var a = [-0.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004, 0.00107857];
+        var s = a[0], xp = 1;
+        for (var i = 1; i < a.length; i++) { xp *= x; s += a[i] * xp; }
+        return -Math.log(x) + s;
+    } else {
+        var a = [0.2677737343, 8.6347608925, 18.0590169730, 8.5733287401, 1.0];
+        var b = [3.9584969228, 21.0996530827, 25.6329561486, 9.5733223454, 1.0];
+        var num = a[0], xp = 1;
+        for (var i = 1; i < a.length; i++) { xp *= x; num += a[i] * xp; }
+        var den = b[0]; xp = 1;
+        for (var i = 1; i < b.length; i++) { xp *= x; den += b[i] * xp; }
+        return (num / den) / (x * Math.exp(x));
+    }
+}
+
+function Theis(r, t, T, S, Q) {
+    if (t <= 0 || r <= 0) return 0;
+    var u = r * r * S / (4 * T * t);
+    return Q / (4 * PI * T) * E1(u);
+}
+
+/* ================================================================
+   UTM ZONE 59S <-> WGS84 TRANSFORMS
+   ================================================================ */
+var UTM = (function() {
+    var a = 6378137.0, f = 1 / 298.257223563;
+    var e2 = 2 * f - f * f, ep2 = e2 / (1 - e2), k0 = 0.9996;
+    var lonOrigin = 171, FN = 10000000;
+    function toRad(d) { return d * PI / 180; }
+    function toDeg(r) { return r * 180 / PI; }
+
+    function fromLatLon(lat, lon) {
+        var lr = toRad(lat);
+        var N = a / Math.sqrt(1 - e2 * Math.sin(lr) * Math.sin(lr));
+        var T = Math.tan(lr) * Math.tan(lr);
+        var C = ep2 * Math.cos(lr) * Math.cos(lr);
+        var A = Math.cos(lr) * toRad(lon - lonOrigin);
+        var M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * lr
+            - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * Math.sin(2*lr)
+            + (15*e2*e2/256 + 45*e2*e2*e2/1024) * Math.sin(4*lr)
+            - (35*e2*e2*e2/3072) * Math.sin(6*lr));
+        var x = k0 * N * (A + (1-T+C)*A*A*A/6 + (5-18*T+T*T+72*C-58*ep2)*A*A*A*A*A/120) + 500000;
+        var y = k0 * (M + N * Math.tan(lr) * (A*A/2 + (5-T+9*C+4*C*C)*A*A*A*A/24 + (61-58*T+T*T+600*C-330*ep2)*A*A*A*A*A*A/720));
+        if (lat < 0) y += FN;
+        return [x, y];
+    }
+
+    function toLatLon(x, y) {
+        x -= 500000; y -= FN;
+        var M = y / k0;
+        var mu = M / (a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256));
+        var e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+        var phi1 = mu + (3*e1/2 - 27*e1*e1*e1/32) * Math.sin(2*mu)
+            + (21*e1*e1/16 - 55*e1*e1*e1*e1/32) * Math.sin(4*mu)
+            + (151*e1*e1*e1/96) * Math.sin(6*mu);
+        var N1 = a / Math.sqrt(1 - e2 * Math.sin(phi1) * Math.sin(phi1));
+        var T1 = Math.tan(phi1) * Math.tan(phi1);
+        var C1 = ep2 * Math.cos(phi1) * Math.cos(phi1);
+        var R1 = a * (1 - e2) / Math.pow(1 - e2 * Math.sin(phi1) * Math.sin(phi1), 1.5);
+        var D = x / (N1 * k0);
+        var lat = phi1 - (N1 * Math.tan(phi1) / R1) * (D*D/2 - (5+3*T1+10*C1-4*C1*C1-9*ep2)*D*D*D*D/24
+            + (61+90*T1+298*C1+45*T1*T1-252*ep2-3*C1*C1)*D*D*D*D*D*D/720);
+        var lon = (D - (1+2*T1+C1)*D*D*D/6 + (5-2*C1+28*T1-3*C1*C1+8*ep2+24*T1*T1)*D*D*D*D*D/120) / Math.cos(phi1);
+        return [toDeg(lat), toDeg(lon) + lonOrigin];
+    }
+    return { fromLatLon: fromLatLon, toLatLon: toLatLon };
+})();
+
+function xy2ll(xs, ys, lat0, lon0) {
+    var ref = UTM.fromLatLon(lat0, lon0);
+    var lats = [], lons = [];
+    for (var i = 0; i < xs.length; i++) {
+        var ll = UTM.toLatLon(xs[i] + ref[0], ys[i] + ref[1]);
+        lats.push(ll[0]); lons.push(ll[1]);
+    }
+    return [lats, lons];
+}
+
+/* ================================================================
+   LAMBERT W FUNCTION (principal branch W0 and W_{-1})
+   Halley's method iteration
+   ================================================================ */
+function lambertW0(x) {
+    if (x < -1/Math.E + 1e-10) return -1;
+    if (x === 0) return 0;
+    var w = (x < 1) ? x : Math.log(x) - Math.log(Math.log(x) + 1);
+    for (var i = 0; i < 50; i++) {
+        var ew = Math.exp(w), wew = w * ew;
+        var d = (wew - x) / (ew * (w + 1) - (w + 2) * (wew - x) / (2 * (w + 1)));
+        w -= d;
+        if (Math.abs(d) < 1e-12) break;
+    }
+    return w;
+}
+
+function lambertWm1(x) {
+    if (x >= 0 || x < -1/Math.E) return NaN;
+    var w = Math.log(-x) - Math.log(-Math.log(-x));
+    for (var i = 0; i < 50; i++) {
+        var ew = Math.exp(w), wew = w * ew;
+        var d = (wew - x) / (ew * (w + 1) - (w + 2) * (wew - x) / (2 * (w + 1)));
+        w -= d;
+        if (Math.abs(d) < 1e-12) break;
+    }
+    return w;
+}
+
+/* ================================================================
+   TRAVEL TIME (Bear & Jacobs 1965)
+   ODE: dy/dx = b/a where
+     a = cos(y)*x/y - sin(y) - sin(y)*x/y^2
+     b = exp(x-t0) - sin(y)/y
+   Implicit initial condition via Newton iteration,
+   then RK45 (Dormand-Prince) adaptive integration
+   ================================================================ */
+function dydxf(x, y, t0) {
+    if (Math.abs(y) < 1e-15) return 1e20;
+    var a = Math.cos(y) * x / y - Math.sin(y) - Math.sin(y) * x / (y * y);
+    var b = Math.exp(x - t0) - Math.sin(y) / y;
+    if (Math.abs(a) < 1e-30) return 1e20;
+    var r = b / a;
+    return Math.max(-1e20, Math.min(r, 1e20));
+}
+
+function travelTimeDimensionless(t0) {
+    // Solve intercepts: x where the curve crosses y=0
+    var arg = -Math.exp(-t0 - 1);
+    var x1 = -(lambertWm1(arg)) - 1;  // far intercept (downstream)
+    var x0 = -(lambertW0(arg)) - 1;    // near intercept (upstream)
+
+    if (isNaN(x1) || isNaN(x0) || x1 <= x0) return { x: [0], y: [0] };
+
+    // Implicit initial condition: solve y = dydxf(x0+dx, y, t0) * dx
+    // via Newton iteration (matches Python's scipy.optimize.root)
+    var dx = 1e-4 * (x1 - x0);
+    var xStart = x0 + dx;
+    var yc = dx; // initial guess
+    for (var it = 0; it < 50; it++) {
+        var f_val = yc - dydxf(xStart, yc, t0) * dx;
+        // Numerical derivative df/dy
+        var eps = Math.max(1e-10, Math.abs(yc) * 1e-8);
+        var f_plus = (yc + eps) - dydxf(xStart, yc + eps, t0) * dx;
+        var dfdyc = (f_plus - f_val) / eps;
+        if (Math.abs(dfdyc) < 1e-30) break;
+        var step = f_val / dfdyc;
+        yc -= step;
+        if (yc <= 0) yc = 1e-10;
+        if (Math.abs(step) < 1e-14) break;
+    }
+    if (isNaN(yc) || yc <= 0) yc = 1e-8;
+
+    // RK4 integration with fine step count (matching Python's LSODA quality)
+    var nx = 2000;
+    var xEnd = x1 - dx;
+    var h = (xEnd - xStart) / nx;
+    var xArr = [xStart];
+    var yArr = [yc];
+    var xv = xStart;
+    var yv = yc;
+
+    for (var i = 0; i < nx; i++) {
+        var k1 = dydxf(xv, yv, t0);
+        var k2 = dydxf(xv + h/2, yv + h*k1/2, t0);
+        var k3 = dydxf(xv + h/2, yv + h*k2/2, t0);
+        var k4 = dydxf(xv + h, yv + h*k3, t0);
+        yv = yv + h * (k1 + 2*k2 + 2*k3 + k4) / 6;
+        xv = xv + h;
+        if (isNaN(yv) || !isFinite(yv) || yv < 0) yv = 0;
+        xArr.push(xv);
+        yArr.push(yv);
+    }
+    yArr[yArr.length - 1] = 0; // force closure at far intercept
+
+    // Subsample for output (every 2nd point)
+    var xOut = [], yOut = [];
+    for (var i = 0; i < xArr.length; i += 2) {
+        xOut.push(xArr[i]);
+        yOut.push(yArr[i]);
+    }
+    if (xOut[xOut.length-1] !== xArr[xArr.length-1]) {
+        xOut.push(xArr[xArr.length-1]);
+        yOut.push(0);
+    }
+    return { x: xOut, y: yOut };
+}
+
+/* ================================================================
+   BLUES COLORMAP (matching matplotlib cm.Blues)
+   ================================================================ */
+var BLUES_STOPS = [
+    [247, 251, 255], [222, 235, 247], [198, 219, 239], [158, 202, 225],
+    [107, 174, 214], [66, 146, 198], [33, 113, 181], [8, 81, 156], [8, 48, 107]
+];
+
+function bluesColor(t) {
+    // t in [0,1] -> [r,g,b]
+    t = Math.max(0, Math.min(1, t));
+    var idx = t * (BLUES_STOPS.length - 1);
+    var i0 = Math.floor(idx), i1 = Math.min(i0 + 1, BLUES_STOPS.length - 1);
+    var f = idx - i0;
+    return [
+        Math.round(BLUES_STOPS[i0][0] * (1 - f) + BLUES_STOPS[i1][0] * f),
+        Math.round(BLUES_STOPS[i0][1] * (1 - f) + BLUES_STOPS[i1][1] * f),
+        Math.round(BLUES_STOPS[i0][2] * (1 - f) + BLUES_STOPS[i1][2] * f)
+    ];
+}
+
+/* ================================================================
+   DRAWDOWN CONTOURS - Canvas image overlay + contour line labels
+   ================================================================ */
+function drawdownContours(map, wells, Qs, T, t_days, bounds, levels, gradient, layerGroup) {
+    layerGroup.clearLayers();
+
+    var n = 100;
+    var sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+    var swU = UTM.fromLatLon(sw.lat, sw.lng), neU = UTM.fromLatLon(ne.lat, ne.lng);
+    var xr = neU[0] - swU[0], yr = neU[1] - swU[1];
+    var x0 = swU[0] - 0.05 * xr, x1 = neU[0] + 0.05 * xr;
+    var y0 = swU[1] - 0.05 * yr, y1 = neU[1] + 0.05 * yr;
+    var dx = (x1 - x0) / (n - 1), dy = (y1 - y0) / (n - 1);
+
+    // Well positions in UTM
+    var wellsU = [];
+    for (var w = 0; w < wells.length; w++) {
+        var ll = wells[w].getLatLng();
+        wellsU.push(UTM.fromLatLon(ll.lat, ll.lng));
+    }
+
+    // Compute drawdown grid
+    var t_sec = t_days * 24 * 3600, S = 1e-4;
+    var grid = new Float64Array(n * n);
+    var gradMag = gradient ? gradient[0] : 0;
+    var gradAngle = gradient ? gradient[1] : 0;
+
+    for (var j = 0; j < n; j++) {
+        for (var i = 0; i < n; i++) {
+            var px = x0 + i * dx, py = y0 + j * dy;
+            var h = 0;
+            if (gradMag !== 0) {
+                h += gradMag * (Math.cos(gradAngle) * (px - wellsU[0][0]) + Math.sin(gradAngle) * (py - wellsU[0][1]));
+            }
+            for (var w = 0; w < wells.length; w++) {
+                var rr = Math.sqrt((px - wellsU[w][0]) * (px - wellsU[w][0]) + (py - wellsU[w][1]) * (py - wellsU[w][1]));
+                if (rr < 1) rr = 1;
+                var Q_m3s = Qs[w] / 1000;
+                if (gradient) {
+                    h -= Theis(rr, t_sec, T, S, Q_m3s);
+                } else {
+                    h += Theis(rr, t_sec, T, S, Q_m3s);
+                }
+            }
+            grid[j * n + i] = h;
+        }
+    }
+
+    // --- (1) Filled contour bands as canvas image overlay, 50% transparency ---
+    var canvas = document.createElement('canvas');
+    canvas.width = n; canvas.height = n;
+    var ctx = canvas.getContext('2d');
+    var imgData = ctx.createImageData(n, n);
+    var nLev = levels.length;
+
+    for (var j = 0; j < n; j++) {
+        for (var i = 0; i < n; i++) {
+            var val = grid[j * n + i];
+            var bandIdx = -1;
+            for (var li = nLev - 1; li >= 0; li--) {
+                if (val >= levels[li]) { bandIdx = li; break; }
+            }
+            if (bandIdx >= 0) {
+                var t_color = nLev > 1 ? bandIdx / (nLev - 1) : 0.5;
+                var rgb = bluesColor(t_color);
+                var pidx = ((n - 1 - j) * n + i) * 4;
+                imgData.data[pidx] = rgb[0];
+                imgData.data[pidx + 1] = rgb[1];
+                imgData.data[pidx + 2] = rgb[2];
+                imgData.data[pidx + 3] = 128; // 50% alpha
+            }
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    var swLL = UTM.toLatLon(x0, y0);
+    var neLL = UTM.toLatLon(x1, y1);
+    layerGroup.addLayer(L.imageOverlay(canvas.toDataURL(), [[swLL[0], swLL[1]], [neLL[0], neLL[1]]]));
+
+    // --- (2) Yellow contour lines via marching squares ---
+    for (var li = 0; li < nLev; li++) {
+        var level = levels[li];
+        var segments = [];
+        for (var j = 0; j < n - 1; j++) {
+            for (var i = 0; i < n - 1; i++) {
+                var v00 = grid[j*n+i], v10 = grid[j*n+i+1];
+                var v01 = grid[(j+1)*n+i], v11 = grid[(j+1)*n+i+1];
+                var idx = 0;
+                if (v00 >= level) idx |= 1;
+                if (v10 >= level) idx |= 2;
+                if (v11 >= level) idx |= 4;
+                if (v01 >= level) idx |= 8;
+                if (idx === 0 || idx === 15) continue;
+                var ax = x0+i*dx, ay = y0+j*dy;
+                function lerp2(xa,ya,xb,yb,va,vb) {
+                    var t = (level-va)/(vb-va); t=Math.max(0,Math.min(1,t));
+                    return [xa+t*(xb-xa), ya+t*(yb-ya)];
+                }
+                var bot = lerp2(ax,ay,ax+dx,ay,v00,v10);
+                var rgt = lerp2(ax+dx,ay,ax+dx,ay+dy,v10,v11);
+                var top = lerp2(ax,ay+dy,ax+dx,ay+dy,v01,v11);
+                var lft = lerp2(ax,ay,ax,ay+dy,v00,v01);
+                var edges = [];
+                switch(idx) {
+                    case 1: case 14: edges.push([lft,bot]); break;
+                    case 2: case 13: edges.push([bot,rgt]); break;
+                    case 3: case 12: edges.push([lft,rgt]); break;
+                    case 4: case 11: edges.push([rgt,top]); break;
+                    case 5: edges.push([lft,bot]); edges.push([rgt,top]); break;
+                    case 6: case 9: edges.push([bot,top]); break;
+                    case 7: case 8: edges.push([lft,top]); break;
+                    case 10: edges.push([lft,top]); edges.push([bot,rgt]); break;
+                }
+                for (var e = 0; e < edges.length; e++) segments.push(edges[e]);
+            }
+        }
+        // Trace segments into rings and draw as yellow polylines
+        var rings = traceRings(segments);
+        for (var ri = 0; ri < rings.length; ri++) {
+            var latlngs = [];
+            for (var pi = 0; pi < rings[ri].length; pi++) {
+                var ll = UTM.toLatLon(rings[ri][pi][0], rings[ri][pi][1]);
+                latlngs.push([ll[0], ll[1]]);
+            }
+            if (latlngs.length >= 3) {
+                layerGroup.addLayer(L.polyline(latlngs, { color: 'yellow', weight: 1, opacity: 1, fill: false }));
+            }
+        }
+
+        // --- (3) Yellow contour label at midpoint of longest ring ---
+        if (rings.length > 0) {
+            var longest = rings[0];
+            for (var ri = 1; ri < rings.length; ri++) {
+                if (rings[ri].length > longest.length) longest = rings[ri];
+            }
+            var mi = Math.floor(longest.length / 2);
+            var ll = UTM.toLatLon(longest[mi][0], longest[mi][1]);
+            var levStr = (Math.round(level * 100) / 100).toString();
+            var icon = L.divIcon({
+                className: '',
+                html: '<div style="display:inline-block;padding:1px 4px;background:rgba(255,255,0,0.85);border:1px solid rgba(0,0,0,0.4);border-radius:3px;font:bold 11px/1.2 sans-serif;color:#111;white-space:nowrap;">' + levStr + '&nbsp;m</div>',
+                iconSize: null
+            });
+            layerGroup.addLayer(L.marker([ll[0], ll[1]], { icon: icon, interactive: false }));
+        }
+    }
+}
+
+// Trace iso-line segments into ordered rings
+function traceRings(segments) {
+    if (segments.length === 0) return [];
+    var EPS = 1e-8;
+    var used = new Array(segments.length);
+    for (var i = 0; i < used.length; i++) used[i] = false;
+    var rings = [];
+    for (var si = 0; si < segments.length; si++) {
+        if (used[si]) continue;
+        used[si] = true;
+        var ring = [segments[si][0], segments[si][1]];
+        var changed = true;
+        while (changed) {
+            changed = false;
+            var tail = ring[ring.length - 1];
+            for (var j = 0; j < segments.length; j++) {
+                if (used[j]) continue;
+                var s = segments[j];
+                if (Math.abs(s[0][0]-tail[0]) < EPS && Math.abs(s[0][1]-tail[1]) < EPS) {
+                    ring.push(s[1]); used[j] = true; changed = true; break;
+                }
+                if (Math.abs(s[1][0]-tail[0]) < EPS && Math.abs(s[1][1]-tail[1]) < EPS) {
+                    ring.push(s[0]); used[j] = true; changed = true; break;
+                }
+            }
+        }
+        if (ring.length >= 3) rings.push(ring);
+    }
+    return rings;
+}
+
+/* ================================================================
+   WIDGET 1: CONE OF DEPRESSION (single well)
+   ================================================================ */
+(function() {
+    var map = L.map('map-theis').setView([-43.51876, 172.66859], 13);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri World Imagery', maxZoom: 18
+    }).addTo(map);
+
+    var well = L.marker([-43.5187, 172.6685], { draggable: true, title: 'Drag me!' });
+    well.addTo(map);
+    var contourLayer = L.layerGroup().addTo(map);
+
+    var Qsl = document.getElementById('theis-Q');
+    var Qval = document.getElementById('theis-Q-val');
+
+    function update() {
+        Qval.textContent = Qsl.value;
+        var Q = parseFloat(Qsl.value);
+        var levels = [];
+        for (var v = 0.25; v <= 4; v += 0.25) levels.push(v);
+        drawdownContours(map, [well], [Q], 0.025, 100, map.getBounds(), levels, null, contourLayer);
+    }
+
+    Qsl.addEventListener('input', function() { Qval.textContent = Qsl.value; });
+    Qsl.addEventListener('change', update);
+    well.on('dragend', update);
+    map.on('zoomend moveend', update);
+
+    // Delay initial render to let map settle
+    setTimeout(update, 500);
+})();
+
+/* ================================================================
+   WIDGET 2: SUPERPOSITION (four wells)
+   ================================================================ */
+(function() {
+    var map = L.map('map-super').setView([-43.51876, 172.66859], 13);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri World Imagery', maxZoom: 18
+    }).addTo(map);
+
+    var colors = ['green', 'lightblue', 'red', 'pink'];
+    var wells = [];
+    var sliders = [];
+    var controlsDiv = document.getElementById('super-controls');
+
+    for (var i = 0; i < 4; i++) {
+        var lat = -43.51876 + (Math.random() - 0.5) * 0.01;
+        var lng = 172.66859 + (Math.random() - 0.5) * 0.01;
+        var marker = L.marker([lat, lng], {
+            draggable: true,
+            icon: L.divIcon({
+                className: '',
+                html: '<div style="width:20px;height:20px;border-radius:50%;background:' + colors[i] + ';border:2px solid #333;"></div>',
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            })
+        });
+        marker.addTo(map);
+        wells.push(marker);
+
+        // Create control card
+        var card = document.createElement('div');
+        card.className = 'well-card';
+        var dot = document.createElement('div');
+        dot.className = 'well-dot';
+        dot.style.background = colors[i];
+        card.appendChild(dot);
+        var lbl = document.createElement('label');
+        lbl.textContent = 'Q [L/s]';
+        card.appendChild(lbl);
+        var sl = document.createElement('input');
+        sl.type = 'range'; sl.min = '0'; sl.max = '40'; sl.step = '5'; sl.value = '10';
+        card.appendChild(sl);
+        var vl = document.createElement('span');
+        vl.className = 'val'; vl.textContent = '10';
+        card.appendChild(vl);
+        controlsDiv.appendChild(card);
+        sliders.push({ slider: sl, valSpan: vl });
+    }
+
+    var contourLayer = L.layerGroup().addTo(map);
+
+    function update() {
+        var Qs = [];
+        for (var i = 0; i < 4; i++) {
+            sliders[i].valSpan.textContent = sliders[i].slider.value;
+            Qs.push(parseFloat(sliders[i].slider.value));
+        }
+        var levels = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0];
+        drawdownContours(map, wells, Qs, 0.025, 100, map.getBounds(), levels, null, contourLayer);
+    }
+
+    for (var i = 0; i < 4; i++) {
+        sliders[i].slider.addEventListener('input', (function(idx) {
+            return function() { sliders[idx].valSpan.textContent = sliders[idx].slider.value; };
+        })(i));
+        sliders[i].slider.addEventListener('change', update);
+        wells[i].on('dragend', update);
+    }
+    map.on('zoomend moveend', update);
+    setTimeout(update, 500);
+})();
+
+/* ================================================================
+   WIDGET 3: SOURCE PROTECTION / TRAVEL TIME
+   ================================================================ */
+(function() {
+    var map = L.map('map-travel').setView([-43.51876, 172.66859], 14);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri World Imagery', maxZoom: 18
+    }).addTo(map);
+
+    var well = L.marker([-43.51876, 172.66859], { draggable: true, title: 'Drag me!' });
+    well.addTo(map);
+    var contourLayer = L.layerGroup().addTo(map);
+    var travelLayer = L.layerGroup().addTo(map);
+
+    var slQ  = document.getElementById('travel-Q');
+    var slT  = document.getElementById('travel-t');
+    var slq  = document.getElementById('travel-q');
+    var slTh = document.getElementById('travel-th');
+    var vQ   = document.getElementById('travel-Q-val');
+    var vT   = document.getElementById('travel-t-val');
+    var vq   = document.getElementById('travel-q-val');
+    var vTh  = document.getElementById('travel-th-val');
+
+    function update() {
+        vQ.textContent = slQ.value;
+        vT.textContent = slT.value;
+        vq.textContent = slq.value;
+        vTh.textContent = slTh.value;
+
+        var Q_Ls = parseFloat(slQ.value);       // L/s
+        var Q = Q_Ls / 1000;                     // m3/s
+        var t_days = parseFloat(slT.value);      // days
+        var dhdx = parseFloat(slq.value) / 1000; // m/km -> m/m
+        var theta_deg = parseFloat(slTh.value);
+        var theta = (270 - theta_deg) / 180 * PI;
+        var T = 0.05;    // m2/s
+        var b = 10;      // m
+        var n_por = 0.03;
+        var q_darcy = dhdx * T / b;  // Darcy velocity
+
+        // Travel time contour
+        travelLayer.clearLayers();
+        var wll = well.getLatLng();
+
+        if (Q > 1e-5) {
+            var t_sec = t_days * 24 * 3600;
+            var t0 = 2 * PI * q_darcy * q_darcy / (b * n_por * Q) * t_sec;
+            var sol = travelTimeDimensionless(t0);
+            var xd = sol.x, yd = sol.y;
+
+            // Scale to physical coordinates
+            var scale = Q / (2 * PI * q_darcy);
+            var xp = [], yp = [];
+            for (var i = 0; i < xd.length; i++) {
+                xp.push(xd[i] * scale);
+                yp.push(yd[i] * scale);
+            }
+            // Create closed contour: forward + mirror
+            var xAll = [], yAll = [];
+            for (var i = 0; i < xp.length; i++) { xAll.push(xp[i]); yAll.push(yp[i]); }
+            for (var i = xp.length - 1; i >= 0; i--) { xAll.push(xp[i]); yAll.push(-yp[i]); }
+
+            // Rotate by theta
+            var xRot = [], yRot = [];
+            for (var i = 0; i < xAll.length; i++) {
+                xRot.push(Math.cos(theta) * xAll[i] - Math.sin(theta) * yAll[i]);
+                yRot.push(Math.sin(theta) * xAll[i] + Math.cos(theta) * yAll[i]);
+            }
+
+            // Convert to lat/lon
+            var ll = xy2ll(xRot, yRot, wll.lat, wll.lng);
+            var latlngs = [];
+            for (var i = 0; i < ll[0].length; i++) {
+                latlngs.push([ll[0][i], ll[1][i]]);
+            }
+            if (latlngs.length >= 3) {
+                L.polygon(latlngs, { color: 'red', weight: 2, fill: true, fillColor: 'red', fillOpacity: 0.1 }).addTo(travelLayer);
+            }
+        }
+
+        // Piezometric surface contours
+        var gradient = [dhdx, theta];
+        var levels = [];
+        for (var v = -10; v <= 20; v += 1) levels.push(v);
+        drawdownContours(map, [well], [Q_Ls], T, t_days, map.getBounds(), levels, gradient, contourLayer);
+    }
+
+    [slQ, slT, slq, slTh].forEach(function(sl) {
+        var vSpan = document.getElementById(sl.id + '-val');
+        sl.addEventListener('input', function() { vSpan.textContent = sl.value; });
+        sl.addEventListener('change', update);
+    });
+    well.on('dragend', update);
+    map.on('zoomend moveend', update);
+    setTimeout(update, 500);
+})();
+
+</script>
+</body>
+</html>

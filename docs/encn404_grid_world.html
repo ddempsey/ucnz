@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Grid World MDP</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .canvas-container { flex: 0 0 auto; }
+        canvas { border: 1px solid #ddd; background: white; }
+        .controls { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; min-width: 60px; }
+        .control-group select, .control-group input { font-size: 13px; }
+        .control-group input[type="range"] { width: 120px; }
+        button { padding: 6px 16px; border: 1px solid #999; border-radius: 4px; background: #f8f8f8; cursor: pointer; font-size: 13px; }
+        button:hover { background: #e8e8e8; }
+        .status { font-size: 14px; font-weight: 500; margin-top: 8px; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        h3 { color: #333; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Grid World MDP</h1>
+
+    <div class="section">
+        <h3>11.1 Grid World</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> grid_world
+<span class="fn">grid_world</span>()</pre>
+        </details>
+    </div>
+
+    <div class="explainer">
+        <p>Navigate the desert (5x5 grid) to reach the oasis (gold star) without dying. The green dot is your location. Cell colour shows <strong>value</strong> (red=good, blue=bad). Arrows show the suggested <strong>policy</strong>.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="layout">
+            <div class="canvas-container">
+                <canvas id="canvas" width="340" height="340"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Policy:</label>
+                    <select id="policySelect">
+                        <option value="greedy" selected>Greedy</option>
+                        <option value="random">Random</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&gamma;:</label>
+                    <input type="range" id="gammaSlider" min="0" max="100" step="5" value="90">
+                    <span id="gammaVal">0.90</span>
+                </div>
+                <div class="control-group" id="actionGroup">
+                    <label>Action:</label>
+                    <select id="actionSelect">
+                        <option value="0">&uarr;</option>
+                        <option value="1" selected>&rarr;</option>
+                        <option value="2">&darr;</option>
+                        <option value="3">&larr;</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="stepBtn">Step</button>
+                    <button id="resetBtn">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="arrowsCheck" checked> Show arrows</label>
+                </div>
+                <div class="status" id="statusText"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> Set epsilon to zero and run for some episodes. What path does the agent take? Does it find the optimal path? Why or why not?</p>
+        <p><strong>TASK 2:</strong> Set epsilon to 0.3 and run 500 episodes. Turn on "show Q-values" — what do the arrows mean? What path does the agent prefer now?</p>
+        <p><strong>TASK 3:</strong> Try epsilon = 1.0. What happens? Is purely random exploration effective?</p>
+        <p><strong>TASK 4:</strong> Find the best epsilon for learning the shortest path. How many episodes are needed?</p>
+    </div>
+
+    <script>
+    (function(){
+        const GRID = [5, 5];
+        const START = [4, 0];
+        const GOAL = [0, 4];
+        const WALLS = [[1,1],[1,2],[2,3]];
+        const STEP_PENALTY = -1, GOAL_REWARD = 10, WALL_PENALTY = -1;
+        const ACTIONS = [[- 1,0],[0,1],[1,0],[0,-1]]; // up, right, down, left
+        const ARROWS = ['\u2191','\u2192','\u2193','\u2190'];
+
+        function isWall(r, c) { return WALLS.some(w => w[0]===r && w[1]===c); }
+        function inBounds(r, c) { return r >= 0 && r < GRID[0] && c >= 0 && c < GRID[1]; }
+
+        function step(state, aId) {
+            const nr = state[0] + ACTIONS[aId][0], nc = state[1] + ACTIONS[aId][1];
+            if (!inBounds(nr, nc) || isWall(nr, nc)) return { next: [...state], reward: WALL_PENALTY };
+            if (nr === GOAL[0] && nc === GOAL[1]) return { next: [nr, nc], reward: GOAL_REWARD };
+            return { next: [nr, nc], reward: STEP_PENALTY };
+        }
+
+        // Value iteration
+        function computeV(gamma) {
+            const V = Array.from({length: GRID[0]}, () => new Array(GRID[1]).fill(0));
+            for (let iter = 0; iter < 1000; iter++) {
+                let delta = 0;
+                for (let r = 0; r < GRID[0]; r++) {
+                    for (let c = 0; c < GRID[1]; c++) {
+                        if ((r===GOAL[0]&&c===GOAL[1]) || isWall(r,c)) continue;
+                        const old = V[r][c];
+                        let best = -Infinity;
+                        for (let a = 0; a < 4; a++) {
+                            const {next, reward} = step([r,c], a);
+                            best = Math.max(best, reward + gamma * V[next[0]][next[1]]);
+                        }
+                        V[r][c] = best;
+                        delta = Math.max(delta, Math.abs(old - V[r][c]));
+                    }
+                }
+                if (delta < 1e-4) break;
+            }
+            return V;
+        }
+
+        function greedyAction(V, state, gamma) {
+            let best = -Infinity, bestA = 0;
+            for (let a = 0; a < 4; a++) {
+                const {next, reward} = step(state, a);
+                const q = reward + gamma * V[next[0]][next[1]];
+                if (q > best + 1e-6) { best = q; bestA = a; }
+            }
+            return bestA;
+        }
+
+        // State
+        let currentState = [...START];
+        let totalReward = 0;
+        let V = computeV(0.9);
+
+        // Seeded random for consistent random policy
+        let randomSeed = 42;
+        function quickRand() { randomSeed = (randomSeed * 1103515245 + 12345) & 0x7fffffff; return randomSeed / 0x7fffffff; }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssS = 340;
+        canvas.width = cssS * dpr; canvas.height = cssS * dpr;
+        canvas.style.width = cssS + 'px'; canvas.style.height = cssS + 'px';
+        ctx.scale(dpr, dpr);
+
+        const cellSize = 60, offsetX = 20, offsetY = 30;
+
+        function draw() {
+            const gamma = parseInt(document.getElementById('gammaSlider').value) / 100;
+            const showArrows = document.getElementById('arrowsCheck').checked;
+            const policy = document.getElementById('policySelect').value;
+            document.getElementById('gammaVal').textContent = gamma.toFixed(2);
+            document.getElementById('statusText').textContent =
+                `State: (${currentState[0]},${currentState[1]})  |  Reward: ${totalReward.toFixed(1)}`;
+
+            ctx.clearRect(0, 0, cssS, cssS);
+
+            // Find value range for colormap
+            const vMax = Math.max(1, ...V.flat().map(Math.abs));
+
+            for (let r = 0; r < GRID[0]; r++) {
+                for (let c = 0; c < GRID[1]; c++) {
+                    const x = offsetX + c * cellSize, y = offsetY + r * cellSize;
+
+                    if (isWall(r, c)) {
+                        ctx.fillStyle = '#333'; ctx.fillRect(x, y, cellSize, cellSize);
+                        continue;
+                    }
+
+                    // Value colormap (blue-white-red)
+                    const norm = V[r][c] / vMax; // -1 to 1
+                    const t = (norm + 1) / 2; // 0 to 1
+                    const red = Math.round(t * 255);
+                    const blue = Math.round((1-t) * 255);
+                    ctx.fillStyle = `rgb(${red},${Math.round((1-Math.abs(norm))*200)},${blue})`;
+                    ctx.fillRect(x, y, cellSize, cellSize);
+
+                    // Arrow
+                    if (showArrows && !(r===GOAL[0]&&c===GOAL[1])) {
+                        let a;
+                        if (policy === 'greedy') {
+                            a = greedyAction(V, [r,c], gamma);
+                        } else if (policy === 'random') {
+                            if (r === currentState[0] && c === currentState[1]) {
+                                a = Math.floor(quickRand() * 4);
+                            } else continue;
+                        } else {
+                            a = parseInt(document.getElementById('actionSelect').value);
+                        }
+                        const cx = x + cellSize/2, cy = y + cellSize/2;
+                        const dx = ACTIONS[a][1] * 15, dy = ACTIONS[a][0] * 15;
+                        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+                        ctx.beginPath(); ctx.moveTo(cx - dx*0.5, cy - dy*0.5); ctx.lineTo(cx + dx, cy + dy); ctx.stroke();
+                        // Arrowhead
+                        const len = Math.hypot(dx, dy);
+                        if (len > 0) {
+                            const ndx = dx/len, ndy = dy/len;
+                            ctx.fillStyle = '#000'; ctx.beginPath();
+                            ctx.moveTo(cx + dx, cy + dy);
+                            ctx.lineTo(cx + dx - ndx*8 - ndy*4, cy + dy - ndy*8 + ndx*4);
+                            ctx.lineTo(cx + dx - ndx*8 + ndy*4, cy + dy - ndy*8 - ndx*4);
+                            ctx.closePath(); ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // Grid lines
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            for (let r = 0; r <= GRID[0]; r++) {
+                ctx.beginPath(); ctx.moveTo(offsetX, offsetY + r*cellSize);
+                ctx.lineTo(offsetX + GRID[1]*cellSize, offsetY + r*cellSize); ctx.stroke();
+            }
+            for (let c = 0; c <= GRID[1]; c++) {
+                ctx.beginPath(); ctx.moveTo(offsetX + c*cellSize, offsetY);
+                ctx.lineTo(offsetX + c*cellSize, offsetY + GRID[0]*cellSize); ctx.stroke();
+            }
+
+            // Goal star
+            const gx = offsetX + GOAL[1]*cellSize + cellSize/2;
+            const gy = offsetY + GOAL[0]*cellSize + cellSize/2;
+            drawStar(gx, gy, 5, 14, 7, '#ffd700', '#333');
+
+            // Agent
+            const ax = offsetX + currentState[1]*cellSize + cellSize/2;
+            const ay = offsetY + currentState[0]*cellSize + cellSize/2;
+            ctx.beginPath(); ctx.arc(ax, ay, 12, 0, 2*Math.PI);
+            ctx.fillStyle = '#2ecc71'; ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+
+        function drawStar(cx, cy, spikes, outerR, innerR, fill, stroke) {
+            ctx.beginPath();
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = i % 2 === 0 ? outerR : innerR;
+                const angle = (i * Math.PI / spikes) - Math.PI/2;
+                if (i === 0) ctx.moveTo(cx + r*Math.cos(angle), cy + r*Math.sin(angle));
+                else ctx.lineTo(cx + r*Math.cos(angle), cy + r*Math.sin(angle));
+            }
+            ctx.closePath();
+            ctx.fillStyle = fill; ctx.fill();
+            ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke();
+        }
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            if (currentState[0]===GOAL[0] && currentState[1]===GOAL[1]) return;
+            const policy = document.getElementById('policySelect').value;
+            const gamma = parseInt(document.getElementById('gammaSlider').value) / 100;
+            let a;
+            if (policy === 'greedy') a = greedyAction(V, currentState, gamma);
+            else if (policy === 'random') a = Math.floor(Math.random() * 4);
+            else a = parseInt(document.getElementById('actionSelect').value);
+            const {next, reward} = step(currentState, a);
+            currentState = next;
+            totalReward += reward;
+            draw();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            currentState = [...START];
+            totalReward = 0;
+            draw();
+        });
+
+        document.getElementById('gammaSlider').addEventListener('input', () => {
+            const gamma = parseInt(document.getElementById('gammaSlider').value) / 100;
+            V = computeV(gamma);
+            draw();
+        });
+
+        ['policySelect','arrowsCheck','actionSelect'].forEach(id =>
+            document.getElementById(id).addEventListener('change', draw));
+        draw();
+    })();
+    </script>
+</body>
+</html>

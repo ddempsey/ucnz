@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Function Approximation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 16px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 120px; }
+        .control-group select { font-size: 13px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        #eqnDiv { text-align: center; margin-bottom: 10px; font-size: 15px; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        #statusMsg { text-align: center; font-size: 13px; color: #666; margin-top: 5px; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        h3 { color: #333; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Deep Learning: Function Approximation</h1>
+
+    <div class="section">
+        <h3>9. Function Approximation</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> function_approximation
+<span class="fn">function_approximation</span>()</pre>
+        </details>
+    </div>
+
+    <div class="explainer">
+        <p>Neural networks are <strong>universal function approximators</strong>: with enough layers and neurons, they can approximate any continuous function. Increase network complexity to fit harder functions.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>Hidden layers:</label>
+                <input type="range" id="layersSlider" min="1" max="8" step="1" value="1">
+                <span id="layersVal">1</span>
+            </div>
+            <div class="control-group">
+                <label>Neurons/layer:</label>
+                <input type="range" id="widthSlider" min="4" max="24" step="5" value="4">
+                <span id="widthVal">4</span>
+            </div>
+            <div class="control-group">
+                <label>Complexity:</label>
+                <select id="complexSelect">
+                    <option value="1" selected>1-term</option>
+                    <option value="2">2-term</option>
+                    <option value="3">3-term</option>
+                </select>
+            </div>
+        </div>
+        <div id="eqnDiv"></div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="900" height="320"></canvas>
+        </div>
+        <div id="statusMsg"></div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> For each function, find the minimum polynomial degree such that training error is approximately zero. Note, when training error goes to zero, we say the model has "memorised" the data.</p>
+        <p><strong>TASK 2:</strong> For each function, find the polynomial degree that MINIMISES TEST ERROR. Is it the same degree as the one that minimises training error?</p>
+        <p><strong>TASK 3:</strong> Increase to degree = 10. Does the fit look reasonable? What is happening and why?</p>
+    </div>
+
+    <script>
+    (function(){
+        // Target functions
+        function targetFn(x, nTerms) {
+            let y = Math.sin(2*Math.PI*x);
+            if (nTerms >= 2) y += 0.4*Math.sin(6*Math.PI*x);
+            if (nTerms >= 3) y += 0.2*Math.sin(12*Math.PI*x);
+            return y;
+        }
+
+        // Simple MLP with tanh activation, trained with basic SGD
+        function trainMLP(nLayers, nWidth, nTerms) {
+            // Generate training data
+            const nPts = 200;
+            const xTrain = [], yTrain = [];
+            for (let i = 0; i < nPts; i++) {
+                const x = -1 + 2*i/(nPts-1);
+                xTrain.push(x);
+                yTrain.push(targetFn(x, nTerms));
+            }
+
+            // Initialize weights with seeded PRNG
+            let seed = 42;
+            function rng() { seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff*2-1; }
+
+            // Layer sizes: [1, nWidth, nWidth, ..., 1]
+            const sizes = [1];
+            for (let i = 0; i < nLayers; i++) sizes.push(nWidth);
+            sizes.push(1);
+
+            // Initialize weights and biases
+            const W = [], B = [];
+            for (let l = 0; l < sizes.length-1; l++) {
+                const fan = sizes[l];
+                const scale = Math.sqrt(2.0/fan);
+                const w = [];
+                for (let i = 0; i < sizes[l]; i++) {
+                    const row = [];
+                    for (let j = 0; j < sizes[l+1]; j++) row.push(rng()*scale);
+                    w.push(row);
+                }
+                W.push(w);
+                const b = [];
+                for (let j = 0; j < sizes[l+1]; j++) b.push(0);
+                B.push(b);
+            }
+
+            // Forward pass
+            function forward(x) {
+                const acts = [[x]]; // activations at each layer
+                for (let l = 0; l < W.length; l++) {
+                    const prev = acts[acts.length-1];
+                    const out = new Array(sizes[l+1]).fill(0);
+                    for (let j = 0; j < sizes[l+1]; j++) {
+                        let s = B[l][j];
+                        for (let i = 0; i < sizes[l]; i++) s += prev[i] * W[l][i][j];
+                        out[j] = (l < W.length-1) ? Math.tanh(s) : s; // tanh hidden, linear output
+                    }
+                    acts.push(out);
+                }
+                return acts;
+            }
+
+            // Train with SGD + backprop
+            const lr = 0.005;
+            const epochs = 800;
+            const batchSize = nPts;
+
+            for (let epoch = 0; epoch < epochs; epoch++) {
+                // Accumulate gradients
+                const dW = W.map(w => w.map(r => r.map(() => 0)));
+                const dB = B.map(b => b.map(() => 0));
+
+                for (let n = 0; n < batchSize; n++) {
+                    const acts = forward(xTrain[n]);
+                    const yPred = acts[acts.length-1][0];
+                    let err = yPred - yTrain[n];
+
+                    // Backprop
+                    let delta = [err]; // output layer (linear: deriv=1)
+                    for (let l = W.length-1; l >= 0; l--) {
+                        // Gradient for this layer
+                        for (let j = 0; j < sizes[l+1]; j++) {
+                            dB[l][j] += delta[j];
+                            for (let i = 0; i < sizes[l]; i++) {
+                                dW[l][i][j] += acts[l][i] * delta[j];
+                            }
+                        }
+                        if (l > 0) {
+                            // Propagate delta to previous layer
+                            const newDelta = new Array(sizes[l]).fill(0);
+                            for (let i = 0; i < sizes[l]; i++) {
+                                let s = 0;
+                                for (let j = 0; j < sizes[l+1]; j++) s += W[l][i][j] * delta[j];
+                                newDelta[i] = s * (1 - acts[l][i]*acts[l][i]); // tanh derivative
+                            }
+                            delta = newDelta;
+                        }
+                    }
+                }
+
+                // Update weights
+                const scale = lr / batchSize;
+                for (let l = 0; l < W.length; l++) {
+                    for (let j = 0; j < sizes[l+1]; j++) {
+                        B[l][j] -= scale * dB[l][j];
+                        for (let i = 0; i < sizes[l]; i++) {
+                            W[l][i][j] -= scale * dW[l][i][j];
+                        }
+                    }
+                }
+            }
+
+            // Predict
+            const xPred = [], yPred = [], yTrue = [];
+            for (let i = 0; i < 400; i++) {
+                const x = -1 + 2*i/399;
+                xPred.push(x);
+                yTrue.push(targetFn(x, nTerms));
+                yPred.push(forward(x)[W.length][0]);
+            }
+            const mse = yPred.reduce((s,y,i) => s + (y-yTrue[i])**2, 0) / 400;
+            return { xPred, yTrue, yPred, mse, sizes };
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 900, cssH = 320;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        const PL = {x:60, y:30, w:420, h:250};
+        const PR = {x:560, y:30, w:300, h:250};
+
+        function draw() {
+            const nLayers = parseInt(document.getElementById('layersSlider').value);
+            const nWidth = parseInt(document.getElementById('widthSlider').value);
+            const nTerms = parseInt(document.getElementById('complexSelect').value);
+            document.getElementById('layersVal').textContent = nLayers;
+            document.getElementById('widthVal').textContent = nWidth;
+
+            // Update equation
+            const colors = ['black','black','black'];
+            for (let i = nTerms; i < 3; i++) colors[i] = 'gray';
+            document.getElementById('eqnDiv').innerHTML =
+                `\\(f(x) = {\\color{${colors[0]}}\\sin(2\\pi x)} + {\\color{${colors[1]}}0.4\\sin(6\\pi x)} + {\\color{${colors[2]}}0.2\\sin(12\\pi x)}\\)`;
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise)
+                MathJax.typesetPromise([document.getElementById('eqnDiv')]);
+
+            document.getElementById('statusMsg').textContent = 'Training...';
+
+            setTimeout(() => {
+                const result = trainMLP(nLayers, nWidth, nTerms);
+                document.getElementById('statusMsg').textContent = '';
+
+                ctx.clearRect(0, 0, cssW, cssH);
+
+                // ===== Left panel: function fit =====
+                const yMin = -2, yMax = 2;
+                function txP(v) { return PL.x + (v+1)/2 * PL.w; }
+                function tyP(v) { return PL.y + PL.h - (v - yMin)/(yMax - yMin) * PL.h; }
+
+                ctx.save();
+                ctx.beginPath(); ctx.rect(PL.x, PL.y, PL.w, PL.h); ctx.clip();
+
+                // Target
+                ctx.strokeStyle = '#ff7f0e'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < result.xPred.length; i++) {
+                    if (i === 0) ctx.moveTo(txP(result.xPred[i]), tyP(result.yTrue[i]));
+                    else ctx.lineTo(txP(result.xPred[i]), tyP(result.yTrue[i]));
+                }
+                ctx.stroke();
+
+                // Prediction
+                ctx.strokeStyle = '#1f77b4'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < result.xPred.length; i++) {
+                    if (i === 0) ctx.moveTo(txP(result.xPred[i]), tyP(result.yPred[i]));
+                    else ctx.lineTo(txP(result.xPred[i]), tyP(result.yPred[i]));
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                // Axes
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.strokeRect(PL.x, PL.y, PL.w, PL.h);
+                ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                ctx.fillText('x', PL.x+PL.w/2, PL.y+PL.h+6);
+                ctx.save(); ctx.translate(PL.x-28, PL.y+PL.h/2); ctx.rotate(-Math.PI/2);
+                ctx.fillText('f(x)', 0, 0); ctx.restore();
+
+                // Grid
+                ctx.strokeStyle = '#eee'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(PL.x, tyP(0)); ctx.lineTo(PL.x+PL.w, tyP(0)); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(txP(0), PL.y); ctx.lineTo(txP(0), PL.y+PL.h); ctx.stroke();
+
+                // Title
+                const titles = ['simple','moderate','complex'];
+                ctx.font = '13px Segoe UI'; ctx.fillStyle = '#333'; ctx.textBaseline = 'bottom';
+                ctx.fillText(`Function approximation: ${titles[nTerms-1]}`, PL.x+PL.w/2, PL.y-4);
+
+                // Legend
+                const lx = PL.x+PL.w-130, ly = PL.y+8;
+                ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+                ctx.fillRect(lx, ly, 125, 48); ctx.strokeRect(lx, ly, 125, 48);
+                ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.strokeStyle = '#ff7f0e'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(lx+5, ly+12); ctx.lineTo(lx+25, ly+12); ctx.stroke();
+                ctx.fillStyle = '#333'; ctx.fillText('Target', lx+30, ly+12);
+                ctx.strokeStyle = '#1f77b4'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(lx+5, ly+30); ctx.lineTo(lx+25, ly+30); ctx.stroke();
+                ctx.fillStyle = '#333'; ctx.fillText(`NN (${nLayers}x${nWidth}) MSE=${result.mse.toFixed(4)}`, lx+30, ly+30);
+
+                // ===== Right panel: network diagram =====
+                const sizes = result.sizes;
+                const maxN = Math.max(...sizes);
+                const layerSpacing = PR.w / (sizes.length - 1);
+                const nodeR = Math.min(12, PR.h / (maxN * 2.5));
+
+                ctx.font = '13px Segoe UI'; ctx.fillStyle = '#333';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText('Network architecture', PR.x + PR.w/2, PR.y - 4);
+
+                for (let l = 0; l < sizes.length; l++) {
+                    const nx = PR.x + l * layerSpacing;
+                    const nCount = sizes[l];
+                    const spread = Math.min(PR.h / (nCount + 1), 30);
+                    for (let n = 0; n < nCount; n++) {
+                        const ny = PR.y + PR.h/2 + (n - (nCount-1)/2) * spread;
+
+                        // Connections to next layer
+                        if (l < sizes.length - 1) {
+                            const nextCount = sizes[l+1];
+                            const nextSpread = Math.min(PR.h / (nextCount + 1), 30);
+                            for (let m = 0; m < nextCount; m++) {
+                                const mx = PR.x + (l+1) * layerSpacing;
+                                const my = PR.y + PR.h/2 + (m - (nextCount-1)/2) * nextSpread;
+                                ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.4;
+                                ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(mx, my); ctx.stroke();
+                            }
+                        }
+                    }
+                }
+                // Nodes on top
+                for (let l = 0; l < sizes.length; l++) {
+                    const nx = PR.x + l * layerSpacing;
+                    const nCount = sizes[l];
+                    const spread = Math.min(PR.h / (nCount + 1), 30);
+                    for (let n = 0; n < nCount; n++) {
+                        const ny = PR.y + PR.h/2 + (n - (nCount-1)/2) * spread;
+                        ctx.beginPath(); ctx.arc(nx, ny, nodeR, 0, 2*Math.PI);
+                        ctx.fillStyle = 'white'; ctx.fill();
+                        ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
+                    }
+                }
+                // Labels
+                ctx.fillStyle = '#333'; ctx.font = '9px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                const nodeY0 = PR.y + PR.h/2 + (sizes[0]-1)/2 * 30 + nodeR + 4;
+                ctx.fillText('x', PR.x, PR.y + PR.h/2 + nodeR + 4);
+                ctx.fillText('f(x)', PR.x + (sizes.length-1)*layerSpacing, PR.y + PR.h/2 + nodeR + 4);
+            }, 20);
+        }
+
+        ['layersSlider','widthSlider'].forEach(id =>
+            document.getElementById(id).addEventListener('input', draw));
+        document.getElementById('complexSelect').addEventListener('change', draw);
+        draw();
+    })();
+    </script>
+</body>
+</html>

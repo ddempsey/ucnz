@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - ROC Curve & Confusion Matrix</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .canvas-container { flex: 0 0 auto; }
+        canvas { border: 1px solid #ddd; background: white; }
+        .controls { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; min-width: 70px; }
+        .control-group input[type="range"] { width: 120px; }
+        .control-group select { font-size: 13px; }
+        .status { font-size: 13px; margin-top: 6px; line-height: 1.8; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        h3 { color: #333; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>ROC Curve & Confusion Matrix</h1>
+
+    <div class="section">
+        <h3>7.1 Classification models</h3>
+        <p>Consider a classification problem where we are trying to predict whether a site will be contaminated based on environmental indicators. 'contamination'= 1 denotes a contaminated site.</p>
+    </div>
+
+    <div class="section">
+        <p>We'll use a RandomForest model to fit these data and try solve the classification problem.</p>
+        <ul>
+            <li>A random forest comprises lots of decision trees.</li>
+            <li>The number of trees in the forest is a hyperparameter.</li>
+            <li>The model output is a number between 0 and 1.</li>
+            <li>We convert the output to a binary prediction by comparing against a threshold value.</li>
+        </ul>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> roc
+<span class="fn">roc</span>()</pre>
+        </details>
+    </div>
+
+    <div class="explainer">
+        <p>A <strong>Random Forest</strong> classifier predicts contamination risk from 13 environmental features (297 samples, 70/30 train-test split). Adjust the decision <strong>threshold</strong> to trade off between false positives and false negatives. Change <strong># trees</strong> to see how ensemble size affects discriminatory power. The faded curve shows the baseline (10 trees).</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="layout">
+            <div class="canvas-container">
+                <canvas id="canvasROC" width="340" height="340"></canvas>
+            </div>
+            <div class="canvas-container">
+                <canvas id="canvasCM" width="260" height="260"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Threshold:</label>
+                    <input type="range" id="threshold" min="10" max="95" step="5" value="50">
+                    <span id="thresholdVal">0.50</span>
+                </div>
+                <div class="control-group">
+                    <label># Trees:</label>
+                    <select id="ntrees">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                    </select>
+                </div>
+                <div class="status" id="statusText"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> For the default settings, referring to the confusion matrix: how many contaminated sites are in the dataset? How many contaminated sites are predicted by the model? What is the "rate" of correct model predictions?</p>
+        <p><strong>TASK 2:</strong> Change the slider so the threshold to predict contamination is lower. Which column gains more counts? Does the sum across a row change? Why/why not? Which square in the confusion matrix is for false positives? Increase the threshold to minimize false positives — what is the tradeoff?</p>
+        <p><strong>TASK 3:</strong> Change the number of trees. How does hyperparameter selection affect model performance?</p>
+    </div>
+
+    <script>
+    (function(){
+        // === DATA (297 rows, 13 features) ===
+        const DATA_X = [
+[63,1,1,145,233,1,2,150,0,2.3,3,0,6],[67,1,4,160,286,0,2,108,1,1.5,2,3,3],[67,1,4,120,229,0,2,129,1,2.6,2,2,7],[37,1,3,130,250,0,0,187,0,3.5,3,0,3],[41,0,2,130,204,0,2,172,0,1.4,1,0,3],[56,1,2,120,236,0,0,178,0,0.8,1,0,3],[62,0,4,140,268,0,2,160,0,3.6,3,2,3],[57,0,4,120,354,0,0,163,1,0.6,1,0,3],[63,1,4,130,254,0,2,147,0,1.4,2,1,7],[53,1,4,140,203,1,2,155,1,3.1,3,0,7],
+[57,1,4,140,192,0,0,148,0,0.4,2,0,6],[56,0,2,140,294,0,2,153,0,1.3,2,0,3],[56,1,3,130,256,1,2,142,1,0.6,2,1,6],[44,1,2,120,263,0,0,173,0,0,1,0,7],[52,1,3,172,199,1,0,162,0,0.5,1,0,7],[57,1,3,150,168,0,0,174,0,1.6,1,0,3],[48,1,2,110,229,0,0,168,0,1,3,0,7],[54,1,4,140,239,0,0,160,0,1.2,1,0,3],[48,0,3,130,275,0,0,139,0,0.2,1,0,3],[49,1,2,130,266,0,0,171,0,0.6,1,0,3],
+[64,1,1,110,211,0,2,144,1,1.8,2,0,3],[58,0,1,150,283,1,2,162,0,1,1,0,3],[58,1,2,120,284,0,2,160,0,1.8,2,0,3],[58,1,3,132,224,0,2,173,0,3.2,1,2,7],[60,1,4,130,206,0,2,132,1,2.4,2,2,7],[50,0,3,120,219,0,0,158,0,1.6,2,0,3],[58,0,3,120,340,0,0,172,0,0,1,0,3],[66,0,1,150,226,0,0,114,0,2.6,3,0,3],[43,1,4,150,247,0,0,171,0,1.5,1,0,3],[40,1,4,110,167,0,2,114,1,2,2,0,7],
+[69,0,1,140,239,0,0,151,0,1.8,1,2,3],[60,1,4,117,230,1,0,160,1,1.4,1,2,7],[64,1,3,140,335,0,0,158,0,0,1,0,3],[59,1,4,135,234,0,0,161,0,0.5,2,0,7],[44,1,3,130,233,0,0,179,1,0.4,1,0,3],[42,1,4,140,226,0,0,178,0,0,1,0,3],[43,1,4,120,177,0,2,120,1,2.5,2,0,7],[57,1,4,150,276,0,2,112,1,0.6,2,1,6],[55,1,4,132,353,0,0,132,1,1.2,2,1,7],[61,1,3,150,243,1,0,137,1,1,2,0,3],
+[65,0,4,150,225,0,2,114,0,1,2,3,7],[40,1,1,140,199,0,0,178,1,1.4,1,0,7],[71,0,2,160,302,0,0,162,0,0.4,1,2,3],[59,1,3,150,212,1,0,157,0,1.6,1,0,3],[61,0,4,130,330,0,2,169,0,0,1,0,3],[58,1,3,112,230,0,2,165,0,2.5,2,1,7],[51,1,3,110,175,0,0,123,0,0.6,1,0,3],[50,1,4,150,243,0,2,128,0,2.6,2,0,7],[65,0,3,140,417,1,2,157,0,0.8,1,1,3],[53,1,3,130,197,1,2,152,0,1.2,3,0,3],
+[41,0,2,105,198,0,0,168,0,0,1,1,3],[65,1,4,120,177,0,0,140,0,0.4,1,0,7],[44,1,4,112,290,0,2,153,0,0,1,1,3],[44,1,2,130,219,0,2,188,0,0,1,0,3],[60,1,4,130,253,0,0,144,1,1.4,1,1,7],[54,1,4,124,266,0,2,109,1,2.2,2,1,7],[50,1,3,140,233,0,0,163,0,0.6,2,1,7],[41,1,4,110,172,0,2,158,0,0,1,0,7],[54,1,3,125,273,0,2,152,0,0.5,3,1,3],[51,1,1,125,213,0,2,125,1,1.4,1,1,3],
+[51,0,4,130,305,0,0,142,1,1.2,2,0,7],[46,0,3,142,177,0,2,160,1,1.4,3,0,3],[58,1,4,128,216,0,2,131,1,2.2,2,3,7],[54,0,3,135,304,1,0,170,0,0,1,0,3],[54,1,4,120,188,0,0,113,0,1.4,2,1,7],[60,1,4,145,282,0,2,142,1,2.8,2,2,7],[60,1,3,140,185,0,2,155,0,3,2,0,3],[54,1,3,150,232,0,2,165,0,1.6,1,0,7],[59,1,4,170,326,0,2,140,1,3.4,3,0,7],[46,1,3,150,231,0,0,147,0,3.6,2,0,3],
+[65,0,3,155,269,0,0,148,0,0.8,1,0,3],[67,1,4,125,254,1,0,163,0,0.2,2,2,7],[62,1,4,120,267,0,0,99,1,1.8,2,2,7],[65,1,4,110,248,0,2,158,0,0.6,1,2,6],[44,1,4,110,197,0,2,177,0,0,1,1,3],[65,0,3,160,360,0,2,151,0,0.8,1,0,3],[60,1,4,125,258,0,2,141,1,2.8,2,1,7],[51,0,3,140,308,0,2,142,0,1.5,1,1,3],[48,1,2,130,245,0,2,180,0,0.2,2,0,3],[58,1,4,150,270,0,2,111,1,0.8,1,0,7],
+[45,1,4,104,208,0,2,148,1,3,2,0,3],[53,0,4,130,264,0,2,143,0,0.4,2,0,3],[39,1,3,140,321,0,2,182,0,0,1,0,3],[68,1,3,180,274,1,2,150,1,1.6,2,0,7],[52,1,2,120,325,0,0,172,0,0.2,1,0,3],[44,1,3,140,235,0,2,180,0,0,1,0,3],[47,1,3,138,257,0,2,156,0,0,1,0,3],[53,0,4,138,234,0,2,160,0,0,1,0,3],[51,0,3,130,256,0,2,149,0,0.5,1,0,3],[66,1,4,120,302,0,2,151,0,0.4,2,0,3],
+[62,0,4,160,164,0,2,145,0,6.2,3,3,7],[62,1,3,130,231,0,0,146,0,1.8,2,3,7],[44,0,3,108,141,0,0,175,0,0.6,2,0,3],[63,0,3,135,252,0,2,172,0,0,1,0,3],[52,1,4,128,255,0,0,161,1,0,1,1,7],[59,1,4,110,239,0,2,142,1,1.2,2,1,7],[60,0,4,150,258,0,2,157,0,2.6,2,2,7],[52,1,2,134,201,0,0,158,0,0.8,1,1,3],[48,1,4,122,222,0,2,186,0,0,1,0,3],[45,1,4,115,260,0,2,185,0,0,1,0,3],
+[34,1,1,118,182,0,2,174,0,0,1,0,3],[57,0,4,128,303,0,2,159,0,0,1,1,3],[71,0,3,110,265,1,2,130,0,0,1,1,3],[49,1,3,120,188,0,0,139,0,2,2,3,7],[54,1,2,108,309,0,0,156,0,0,1,0,7],[59,1,4,140,177,0,0,162,1,0,1,1,7],[57,1,3,128,229,0,2,150,0,0.4,2,1,7],[61,1,4,120,260,0,0,140,1,3.6,2,1,7],[39,1,4,118,219,0,0,140,0,1.2,2,0,7],[61,0,4,145,307,0,2,146,1,1,2,0,7],
+[56,1,4,125,249,1,2,144,1,1.2,2,1,3],[52,1,1,118,186,0,2,190,0,0,2,0,6],[43,0,4,132,341,1,2,136,1,3,2,0,7],[62,0,3,130,263,0,0,97,0,1.2,2,1,7],[41,1,2,135,203,0,0,132,0,0,2,0,6],[58,1,3,140,211,1,2,165,0,0,1,0,3],[35,0,4,138,183,0,0,182,0,1.4,1,0,3],[63,1,4,130,330,1,2,132,1,1.8,1,3,7],[65,1,4,135,254,0,2,127,0,2.8,2,1,7],[48,1,4,130,256,1,2,150,1,0,1,2,7],
+[63,0,4,150,407,0,2,154,0,4,2,3,7],[51,1,3,100,222,0,0,143,1,1.2,2,0,3],[55,1,4,140,217,0,0,111,1,5.6,3,0,7],[65,1,1,138,282,1,2,174,0,1.4,2,1,3],[45,0,2,130,234,0,2,175,0,0.6,2,0,3],[56,0,4,200,288,1,2,133,1,4,3,2,7],[54,1,4,110,239,0,0,126,1,2.8,2,1,7],[44,1,2,120,220,0,0,170,0,0,1,0,3],[62,0,4,124,209,0,0,163,0,0,1,0,3],[54,1,3,120,258,0,2,147,0,0.4,2,0,7],
+[51,1,3,94,227,0,0,154,1,0,1,1,7],[29,1,2,130,204,0,2,202,0,0,1,0,3],[51,1,4,140,261,0,2,186,1,0,1,0,3],[43,0,3,122,213,0,0,165,0,0.2,2,0,3],[55,0,2,135,250,0,2,161,0,1.4,2,0,3],[70,1,4,145,174,0,0,125,1,2.6,3,0,7],[62,1,2,120,281,0,2,103,0,1.4,2,1,7],[35,1,4,120,198,0,0,130,1,1.6,2,0,7],[51,1,3,125,245,1,2,166,0,2.4,2,0,3],[59,1,2,140,221,0,0,164,1,0,1,0,3],
+[59,1,1,170,288,0,2,159,0,0.2,2,0,7],[52,1,2,128,205,1,0,184,0,0,1,0,3],[64,1,3,125,309,0,0,131,1,1.8,2,0,7],[58,1,3,105,240,0,2,154,1,0.6,2,0,7],[47,1,3,108,243,0,0,152,0,0,1,0,3],[57,1,4,165,289,1,2,124,0,1,2,3,7],[41,1,3,112,250,0,0,179,0,0,1,0,3],[45,1,2,128,308,0,2,170,0,0,1,0,3],[60,0,3,102,318,0,0,160,0,0,1,1,3],[52,1,1,152,298,1,0,178,0,1.2,2,0,7],
+[42,0,4,102,265,0,2,122,0,0.6,2,0,3],[67,0,3,115,564,0,2,160,0,1.6,2,0,7],[55,1,4,160,289,0,2,145,1,0.8,2,1,7],[64,1,4,120,246,0,2,96,1,2.2,3,1,3],[70,1,4,130,322,0,2,109,0,2.4,2,3,3],[51,1,4,140,299,0,0,173,1,1.6,1,0,7],[58,1,4,125,300,0,2,171,0,0,1,2,7],[60,1,4,140,293,0,2,170,0,1.2,2,2,7],[68,1,3,118,277,0,0,151,0,1,1,1,7],[46,1,2,101,197,1,0,156,0,0,1,0,7],
+[77,1,4,125,304,0,2,162,1,0,1,3,3],[54,0,3,110,214,0,0,158,0,1.6,2,0,3],[58,0,4,100,248,0,2,122,0,1,2,0,3],[48,1,3,124,255,1,0,175,0,0,1,2,3],[57,1,4,132,207,0,0,168,1,0,1,0,7],[54,0,2,132,288,1,2,159,1,0,1,1,3],[35,1,4,126,282,0,2,156,1,0,1,0,7],[45,0,2,112,160,0,0,138,0,0,2,0,3],[70,1,3,160,269,0,0,112,1,2.9,2,1,7],[53,1,4,142,226,0,2,111,1,0,1,0,7],
+[59,0,4,174,249,0,0,143,1,0,2,0,3],[62,0,4,140,394,0,2,157,0,1.2,2,0,3],[64,1,4,145,212,0,2,132,0,2,2,2,6],[57,1,4,152,274,0,0,88,1,1.2,2,1,7],[52,1,4,108,233,1,0,147,0,0.1,1,3,7],[56,1,4,132,184,0,2,105,1,2.1,2,1,6],[43,1,3,130,315,0,0,162,0,1.9,1,1,3],[53,1,3,130,246,1,2,173,0,0,1,3,3],[48,1,4,124,274,0,2,166,0,0.5,2,0,7],[56,0,4,134,409,0,2,150,1,1.9,2,2,7],
+[42,1,1,148,244,0,2,178,0,0.8,1,2,3],[59,1,1,178,270,0,2,145,0,4.2,3,0,7],[60,0,4,158,305,0,2,161,0,0,1,0,3],[63,0,2,140,195,0,0,179,0,0,1,2,3],[42,1,3,120,240,1,0,194,0,0.8,3,0,7],[66,1,2,160,246,0,0,120,1,0,2,3,6],[54,1,2,192,283,0,2,195,0,0,1,1,7],[69,1,3,140,254,0,2,146,0,2,2,3,7],[50,1,3,129,196,0,0,163,0,0,1,0,3],[51,1,4,140,298,0,0,122,1,4.2,2,3,7],
+[62,0,4,138,294,1,0,106,0,1.9,2,3,3],[68,0,3,120,211,0,2,115,0,1.5,2,0,3],[67,1,4,100,299,0,2,125,1,0.9,2,2,3],[69,1,1,160,234,1,2,131,0,0.1,2,1,3],[45,0,4,138,236,0,2,152,1,0.2,2,0,3],[50,0,2,120,244,0,0,162,0,1.1,1,0,3],[59,1,1,160,273,0,2,125,0,0,1,0,3],[50,0,4,110,254,0,2,159,0,0,1,0,3],[64,0,4,180,325,0,0,154,1,0,1,0,3],[57,1,3,150,126,1,0,173,0,0.2,1,1,7],
+[64,0,3,140,313,0,0,133,0,0.2,1,0,7],[43,1,4,110,211,0,0,161,0,0,1,0,7],[45,1,4,142,309,0,2,147,1,0,2,3,7],[58,1,4,128,259,0,2,130,1,3,2,2,7],[50,1,4,144,200,0,2,126,1,0.9,2,0,7],[55,1,2,130,262,0,0,155,0,0,1,0,3],[62,0,4,150,244,0,0,154,1,1.4,2,0,3],[37,0,3,120,215,0,0,170,0,0,1,0,3],[38,1,1,120,231,0,0,182,1,3.8,2,0,7],[41,1,3,130,214,0,2,168,0,2,2,0,3],
+[66,0,4,178,228,1,0,165,1,1,2,2,7],[52,1,4,112,230,0,0,160,0,0,1,1,3],[56,1,1,120,193,0,2,162,0,1.9,2,0,7],[46,0,2,105,204,0,0,172,0,0,1,0,3],[46,0,4,138,243,0,2,152,1,0,2,0,3],[64,0,4,130,303,0,0,122,0,2,2,2,3],[59,1,4,138,271,0,2,182,0,0,1,0,3],[41,0,3,112,268,0,2,172,1,0,1,0,3],[54,0,3,108,267,0,2,167,0,0,1,0,3],[39,0,3,94,199,0,0,179,0,0,1,0,3],
+[53,1,4,123,282,0,0,95,1,2,2,2,7],[63,0,4,108,269,0,0,169,1,1.8,2,2,3],[34,0,2,118,210,0,0,192,0,0.7,1,0,3],[47,1,4,112,204,0,0,143,0,0.1,1,0,3],[67,0,3,152,277,0,0,172,0,0,1,1,3],[54,1,4,110,206,0,2,108,1,0,2,1,3],[66,1,4,112,212,0,2,132,1,0.1,1,1,3],[52,0,3,136,196,0,2,169,0,0.1,2,0,3],[55,0,4,180,327,0,1,117,1,3.4,2,0,3],[49,1,3,118,149,0,2,126,0,0.8,1,3,3],
+[74,0,2,120,269,0,2,121,1,0.2,1,1,3],[54,0,3,160,201,0,0,163,0,0,1,1,3],[54,1,4,122,286,0,2,116,1,3.2,2,2,3],[56,1,4,130,283,1,2,103,1,1.6,3,0,7],[46,1,4,120,249,0,2,144,0,0.8,1,0,7],[49,0,2,134,271,0,0,162,0,0,2,0,3],[42,1,2,120,295,0,0,162,0,0,1,0,3],[41,1,2,110,235,0,0,153,0,0,1,0,3],[41,0,2,126,306,0,0,163,0,0,1,0,3],[49,0,4,130,269,0,0,163,0,0,1,0,3],
+[61,1,1,134,234,0,0,145,0,2.6,2,2,3],[60,0,3,120,178,1,0,96,0,0,1,0,3],[67,1,4,120,237,0,0,71,0,1,2,0,3],[58,1,4,100,234,0,0,156,0,0.1,1,1,7],[47,1,4,110,275,0,2,118,1,1,2,1,3],[52,1,4,125,212,0,0,168,0,1,1,2,7],[62,1,2,128,208,1,2,140,0,0,1,0,3],[57,1,4,110,201,0,0,126,1,1.5,2,0,6],[58,1,4,146,218,0,0,105,0,2,2,1,7],[64,1,4,128,263,0,0,105,1,0.2,2,1,7],
+[51,0,3,120,295,0,2,157,0,0.6,1,0,3],[43,1,4,115,303,0,0,181,0,1.2,2,0,3],[42,0,3,120,209,0,0,173,0,0,2,0,3],[67,0,4,106,223,0,0,142,0,0.3,1,2,3],[76,0,3,140,197,0,1,116,0,1.1,2,0,3],[70,1,2,156,245,0,2,143,0,0,1,0,3],[57,1,2,124,261,0,0,141,0,0.3,1,0,7],[44,0,3,118,242,0,0,149,0,0.3,2,1,3],[58,0,2,136,319,1,2,152,0,0,1,2,3],[60,0,1,150,240,0,0,171,0,0.9,1,0,3],
+[44,1,3,120,226,0,0,169,0,0,1,0,3],[61,1,4,138,166,0,2,125,1,3.6,2,1,3],[42,1,4,136,315,0,0,125,1,1.8,2,0,6],[59,1,3,126,218,1,0,134,0,2.2,2,1,6],[40,1,4,152,223,0,0,181,0,0,1,0,7],[42,1,3,130,180,0,0,150,0,0,1,0,3],[61,1,4,140,207,0,2,138,1,1.9,1,1,7],[66,1,4,160,228,0,2,138,0,2.3,1,0,6],[46,1,4,140,311,0,0,120,1,1.8,2,2,7],[71,0,4,112,149,0,0,125,0,1.6,2,0,3],
+[59,1,1,134,204,0,0,162,0,0.8,1,2,3],[64,1,1,170,227,0,2,155,0,0.6,2,0,7],[66,0,3,146,278,0,2,152,0,0,2,1,3],[39,0,3,138,220,0,0,152,0,0,2,0,3],[57,1,2,154,232,0,2,164,0,0,1,1,3],[58,0,4,130,197,0,0,131,0,0.6,2,0,3],[57,1,4,110,335,0,0,143,1,3,2,1,7],[47,1,3,130,253,0,0,179,0,0,1,0,3],[55,0,4,128,205,0,1,130,1,2,2,1,7],[35,1,2,122,192,0,0,174,0,0,1,0,3],
+[61,1,4,148,203,0,0,161,0,0,1,1,7],[58,1,4,114,318,0,1,140,0,4.4,3,3,6],[58,0,4,170,225,1,2,146,1,2.8,2,2,6],[56,1,2,130,221,0,2,163,0,0,1,0,7],[56,1,2,120,240,0,0,169,0,0,3,0,3],[67,1,3,152,212,0,2,150,0,0.8,2,0,7],[55,0,2,132,342,0,0,166,0,1.2,1,0,3],[44,1,4,120,169,0,0,144,1,2.8,3,0,6],[63,1,4,140,187,0,2,144,1,4,1,2,7],[63,0,4,124,197,0,0,136,1,0,2,0,3],
+[41,1,2,120,157,0,0,182,0,0,1,0,3],[59,1,4,164,176,1,2,90,0,1,2,2,6],[57,0,4,140,241,0,0,123,1,0.2,2,0,7],[45,1,1,110,264,0,0,132,0,1.2,2,0,7],[68,1,4,144,193,1,0,141,0,3.4,2,2,7],[57,1,4,130,131,0,0,115,1,1.2,2,1,7],[57,0,2,130,236,0,2,174,0,0,2,1,3]
+        ];
+        const DATA_Y = [0,1,1,0,0,0,1,0,1,1,0,0,1,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,1,0,1,1,0,0,0,1,1,1,0,1,0,0,0,1,1,0,1,0,0,0,0,1,0,1,1,1,1,0,0,1,0,1,0,1,1,1,0,1,1,0,1,1,1,1,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,1,1,0,0,0,1,1,1,1,0,1,1,0,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,1,0,1,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,0,1,0,1,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,0,1,1,1,0,1,1,0,1,0,0,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,1,1,0,0,1,1,1,0,0,0,0,0,1,0,1,1,1,1,0,0,1,0,0,0,0,0,0,0,1,0,1,0,0,1,1,1,1,0,1,0,1,0,1,0,0,0,1,0,1,0,1,0,1,1,1,0,0,1,0,1,1,1,0,1,1,1,1,1,1];
+
+        // === SEEDED PRNG ===
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        // === TRAIN/TEST SPLIT ===
+        function trainTestSplit(X, y, testSize, seed) {
+            const n = X.length;
+            const rng = mulberry32(seed);
+            const idx = Array.from({length: n}, (_, i) => i);
+            for (let i = n - 1; i > 0; i--) {
+                const j = Math.floor(rng() * (i + 1));
+                [idx[i], idx[j]] = [idx[j], idx[i]];
+            }
+            const split = Math.floor(n * (1 - testSize));
+            return {
+                xTr: idx.slice(0, split).map(i => X[i]),
+                yTr: idx.slice(0, split).map(i => y[i]),
+                xTe: idx.slice(split).map(i => X[i]),
+                yTe: idx.slice(split).map(i => y[i])
+            };
+        }
+
+        // === DECISION TREE ===
+        function buildTree(X, y, depth, maxDepth, maxFeatures, minLeaf, rng) {
+            const n = y.length;
+            const nPos = y.reduce((s, v) => s + v, 0);
+            if (depth >= maxDepth || n < 2 * minLeaf || nPos === 0 || nPos === n) {
+                return { leaf: true, p: n > 0 ? nPos / n : 0 };
+            }
+            const nF = X[0].length;
+            const avail = Array.from({length: nF}, (_, i) => i);
+            const feats = [];
+            for (let i = 0; i < Math.min(maxFeatures, avail.length); i++) {
+                const j = Math.floor(rng() * avail.length);
+                feats.push(avail[j]);
+                avail.splice(j, 1);
+            }
+            let bestG = Infinity, bestF = -1, bestT = 0;
+            for (const f of feats) {
+                const pairs = [];
+                for (let i = 0; i < n; i++) pairs.push([X[i][f], y[i]]);
+                pairs.sort((a, b) => a[0] - b[0]);
+                let lPos = 0, lTot = 0;
+                for (let i = 0; i < pairs.length - 1; i++) {
+                    lTot++;
+                    if (pairs[i][1] === 1) lPos++;
+                    if (lTot < minLeaf) continue;
+                    if (n - lTot < minLeaf) break;
+                    if (pairs[i][0] === pairs[i + 1][0]) continue;
+                    const thr = (pairs[i][0] + pairs[i + 1][0]) / 2;
+                    const rTot = n - lTot, rPos = nPos - lPos;
+                    const pL = lPos / lTot, pR = rPos / rTot;
+                    const gL = 1 - pL * pL - (1 - pL) * (1 - pL);
+                    const gR = 1 - pR * pR - (1 - pR) * (1 - pR);
+                    const w = (lTot * gL + rTot * gR) / n;
+                    if (w < bestG) { bestG = w; bestF = f; bestT = thr; }
+                }
+            }
+            if (bestF === -1) return { leaf: true, p: nPos / n };
+            const lX = [], lY = [], rX = [], rY = [];
+            for (let i = 0; i < n; i++) {
+                if (X[i][bestF] <= bestT) { lX.push(X[i]); lY.push(y[i]); }
+                else { rX.push(X[i]); rY.push(y[i]); }
+            }
+            return {
+                leaf: false, f: bestF, t: bestT,
+                left: buildTree(lX, lY, depth + 1, maxDepth, maxFeatures, minLeaf, rng),
+                right: buildTree(rX, rY, depth + 1, maxDepth, maxFeatures, minLeaf, rng)
+            };
+        }
+
+        function predictOne(tree, x) {
+            if (tree.leaf) return tree.p;
+            return x[tree.f] <= tree.t ? predictOne(tree.left, x) : predictOne(tree.right, x);
+        }
+
+        // === RANDOM FOREST ===
+        function trainForest(X, y, nTrees, rng) {
+            const trees = [], n = X.length;
+            for (let t = 0; t < nTrees; t++) {
+                const bX = [], bY = [];
+                for (let i = 0; i < n; i++) {
+                    const j = Math.floor(rng() * n);
+                    bX.push(X[j]); bY.push(y[j]);
+                }
+                trees.push(buildTree(bX, bY, 0, 3, 2, 10, rng));
+            }
+            return trees;
+        }
+
+        function predictForest(trees, X) {
+            return X.map(x => trees.reduce((s, t) => s + predictOne(t, x), 0) / trees.length);
+        }
+
+        // === ROC ===
+        function computeROC(yTrue, yProbs) {
+            const pairs = yTrue.map((y, i) => ({ p: yProbs[i], y }));
+            pairs.sort((a, b) => b.p - a.p);
+            const nPos = yTrue.filter(y => y === 1).length;
+            const nNeg = yTrue.length - nPos;
+            const fpr = [0], tpr = [0], thr = [1.01];
+            let tp = 0, fp = 0;
+            for (let i = 0; i < pairs.length; i++) {
+                if (pairs[i].y === 1) tp++; else fp++;
+                if (i === pairs.length - 1 || pairs[i].p !== pairs[i + 1].p) {
+                    fpr.push(fp / nNeg);
+                    tpr.push(tp / nPos);
+                    thr.push(pairs[i].p);
+                }
+            }
+            return { fpr, tpr, thr };
+        }
+
+        function computeAUC(fpr, tpr) {
+            let a = 0;
+            for (let i = 1; i < fpr.length; i++) a += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2;
+            return a;
+        }
+
+        // === PRE-COMPUTE ===
+        const { xTr, yTr, xTe, yTe } = trainTestSplit(DATA_X, DATA_Y, 0.3, 42);
+        const cache = {};
+        for (const nt of [10, 20, 30]) {
+            const rng = mulberry32(42);
+            const forest = trainForest(xTr, yTr, nt, rng);
+            const probs = predictForest(forest, xTe);
+            const roc = computeROC(yTe, probs);
+            roc.auc = computeAUC(roc.fpr, roc.tpr);
+            roc.probs = probs;
+            cache[nt] = roc;
+        }
+
+        // === CANVAS SETUP ===
+        const canvasROC = document.getElementById('canvasROC');
+        const ctxR = canvasROC.getContext('2d');
+        const canvasCM = document.getElementById('canvasCM');
+        const ctxC = canvasCM.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        function setupCanvas(cv, ctx, cssW, cssH) {
+            cv.width = cssW * dpr; cv.height = cssH * dpr;
+            cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+            ctx.scale(dpr, dpr);
+        }
+        setupCanvas(canvasROC, ctxR, 340, 340);
+        setupCanvas(canvasCM, ctxC, 260, 260);
+
+        // === DRAW ===
+        function draw() {
+            const threshold = parseInt(document.getElementById('threshold').value) / 100;
+            const ntrees = parseInt(document.getElementById('ntrees').value);
+            document.getElementById('thresholdVal').textContent = threshold.toFixed(2);
+
+            const roc = cache[ntrees];
+            const roc10 = cache[10];
+
+            // Confusion matrix
+            let tp = 0, fp = 0, fn = 0, tn = 0;
+            for (let i = 0; i < yTe.length; i++) {
+                const pred = roc.probs[i] >= threshold ? 1 : 0;
+                if (pred === 1 && yTe[i] === 1) tp++;
+                else if (pred === 1 && yTe[i] === 0) fp++;
+                else if (pred === 0 && yTe[i] === 1) fn++;
+                else tn++;
+            }
+
+            // Find closest point on ROC to threshold
+            let closestIdx = 0, minDist = Infinity;
+            for (let i = 0; i < roc.thr.length; i++) {
+                const d = Math.abs(roc.thr[i] - threshold);
+                if (d < minDist) { minDist = d; closestIdx = i; }
+            }
+
+            document.getElementById('statusText').innerHTML =
+                `AUC = ${roc.auc.toFixed(3)}<br>` +
+                `TP=${tp} &nbsp; FP=${fp}<br>` +
+                `FN=${fn} &nbsp; TN=${tn}<br>` +
+                `Accuracy = ${((tp + tn) / yTe.length).toFixed(3)}`;
+
+            // --- ROC CURVE ---
+            const W = 340, H = 340;
+            const pad = { l: 50, r: 15, t: 30, b: 40 };
+            const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+            ctxR.clearRect(0, 0, W, H);
+
+            // Title
+            ctxR.fillStyle = '#333'; ctxR.font = 'bold 14px Segoe UI';
+            ctxR.textAlign = 'center'; ctxR.fillText('ROC Curve', W / 2, 18);
+
+            // Axes
+            ctxR.strokeStyle = '#333'; ctxR.lineWidth = 1;
+            ctxR.beginPath();
+            ctxR.moveTo(pad.l, pad.t); ctxR.lineTo(pad.l, pad.t + ph);
+            ctxR.lineTo(pad.l + pw, pad.t + ph); ctxR.stroke();
+
+            // Ticks and labels
+            ctxR.fillStyle = '#666'; ctxR.font = '11px Segoe UI'; ctxR.textAlign = 'center';
+            for (let v = 0; v <= 1; v += 0.2) {
+                const x = pad.l + v * pw;
+                ctxR.fillText(v.toFixed(1), x, pad.t + ph + 15);
+                ctxR.strokeStyle = '#eee'; ctxR.beginPath();
+                ctxR.moveTo(x, pad.t); ctxR.lineTo(x, pad.t + ph); ctxR.stroke();
+            }
+            ctxR.fillStyle = '#333'; ctxR.font = '12px Segoe UI';
+            ctxR.fillText('False Positive Rate', W / 2, H - 3);
+
+            ctxR.textAlign = 'right'; ctxR.fillStyle = '#666'; ctxR.font = '11px Segoe UI';
+            for (let v = 0; v <= 1; v += 0.2) {
+                const y = pad.t + ph - v * ph;
+                ctxR.fillText(v.toFixed(1), pad.l - 5, y + 4);
+                ctxR.strokeStyle = '#eee'; ctxR.beginPath();
+                ctxR.moveTo(pad.l, y); ctxR.lineTo(pad.l + pw, y); ctxR.stroke();
+            }
+            ctxR.save(); ctxR.translate(12, pad.t + ph / 2);
+            ctxR.rotate(-Math.PI / 2); ctxR.textAlign = 'center';
+            ctxR.fillStyle = '#333'; ctxR.font = '12px Segoe UI';
+            ctxR.fillText('True Positive Rate', 0, 0);
+            ctxR.restore();
+
+            // Diagonal
+            ctxR.strokeStyle = '#bbb'; ctxR.lineWidth = 1; ctxR.setLineDash([5, 5]);
+            ctxR.beginPath();
+            ctxR.moveTo(pad.l, pad.t + ph); ctxR.lineTo(pad.l + pw, pad.t);
+            ctxR.stroke(); ctxR.setLineDash([]);
+
+            // Baseline ROC (10 trees, faded)
+            if (ntrees !== 10) {
+                ctxR.strokeStyle = 'rgba(41,128,185,0.35)'; ctxR.lineWidth = 1.5;
+                ctxR.beginPath();
+                for (let i = 0; i < roc10.fpr.length; i++) {
+                    const x = pad.l + roc10.fpr[i] * pw;
+                    const y = pad.t + ph - roc10.tpr[i] * ph;
+                    i === 0 ? ctxR.moveTo(x, y) : ctxR.lineTo(x, y);
+                }
+                ctxR.stroke();
+            }
+
+            // Current ROC
+            ctxR.strokeStyle = '#2980b9'; ctxR.lineWidth = 2.5;
+            ctxR.beginPath();
+            for (let i = 0; i < roc.fpr.length; i++) {
+                const x = pad.l + roc.fpr[i] * pw;
+                const y = pad.t + ph - roc.tpr[i] * ph;
+                i === 0 ? ctxR.moveTo(x, y) : ctxR.lineTo(x, y);
+            }
+            ctxR.stroke();
+
+            // Threshold point
+            const ptX = pad.l + roc.fpr[closestIdx] * pw;
+            const ptY = pad.t + ph - roc.tpr[closestIdx] * ph;
+            ctxR.fillStyle = '#e74c3c';
+            ctxR.beginPath(); ctxR.arc(ptX, ptY, 5, 0, 2 * Math.PI); ctxR.fill();
+            ctxR.strokeStyle = '#333'; ctxR.lineWidth = 1; ctxR.stroke();
+
+            // Legend
+            ctxR.font = '11px Segoe UI'; ctxR.textAlign = 'left';
+            const lx = pad.l + pw - 130, ly = pad.t + ph - 40;
+            ctxR.fillStyle = 'rgba(255,255,255,0.85)';
+            ctxR.fillRect(lx - 5, ly - 12, 140, ntrees !== 10 ? 38 : 25);
+            ctxR.strokeStyle = '#ccc'; ctxR.lineWidth = 0.5;
+            ctxR.strokeRect(lx - 5, ly - 12, 140, ntrees !== 10 ? 38 : 25);
+
+            ctxR.strokeStyle = '#2980b9'; ctxR.lineWidth = 2.5;
+            ctxR.beginPath(); ctxR.moveTo(lx, ly); ctxR.lineTo(lx + 20, ly); ctxR.stroke();
+            ctxR.fillStyle = '#333';
+            ctxR.fillText(`AUC = ${roc.auc.toFixed(2)} (${ntrees} trees)`, lx + 25, ly + 4);
+
+            if (ntrees !== 10) {
+                ctxR.strokeStyle = 'rgba(41,128,185,0.35)'; ctxR.lineWidth = 1.5;
+                ctxR.beginPath(); ctxR.moveTo(lx, ly + 15); ctxR.lineTo(lx + 20, ly + 15); ctxR.stroke();
+                ctxR.fillStyle = '#333';
+                ctxR.fillText(`AUC = ${roc10.auc.toFixed(2)} (10 trees)`, lx + 25, ly + 19);
+            }
+
+            // --- CONFUSION MATRIX ---
+            const CW = 260, CH = 260;
+            const cp = { l: 55, r: 15, t: 45, b: 45 };
+            const cw = (CW - cp.l - cp.r) / 2, ch = (CH - cp.t - cp.b) / 2;
+            ctxC.clearRect(0, 0, CW, CH);
+
+            ctxC.fillStyle = '#333'; ctxC.font = 'bold 14px Segoe UI';
+            ctxC.textAlign = 'center'; ctxC.fillText('Confusion Matrix', CW / 2, 18);
+
+            const cm = [[tn, fp], [fn, tp]];
+            const maxVal = Math.max(1, tn, fp, fn, tp);
+
+            for (let r = 0; r < 2; r++) {
+                for (let c = 0; c < 2; c++) {
+                    const x = cp.l + c * cw, y = cp.t + r * ch;
+                    const intensity = cm[r][c] / maxVal;
+                    const blue = Math.round(40 + intensity * 180);
+                    ctxC.fillStyle = `rgb(${230 - intensity * 170},${230 - intensity * 120},${blue})`;
+                    ctxC.fillRect(x, y, cw, ch);
+                    ctxC.strokeStyle = '#999'; ctxC.lineWidth = 1;
+                    ctxC.strokeRect(x, y, cw, ch);
+
+                    ctxC.fillStyle = intensity > 0.5 ? 'white' : '#333';
+                    ctxC.font = 'bold 22px Segoe UI'; ctxC.textAlign = 'center';
+                    ctxC.fillText(cm[r][c].toString(), x + cw / 2, y + ch / 2 + 8);
+                }
+            }
+
+            // Labels
+            ctxC.fillStyle = '#333'; ctxC.font = '12px Segoe UI'; ctxC.textAlign = 'center';
+            ctxC.fillText('Predicted 0', cp.l + cw / 2, cp.t + 2 * ch + 18);
+            ctxC.fillText('Predicted 1', cp.l + cw + cw / 2, cp.t + 2 * ch + 18);
+            ctxC.fillText('Predicted label', CW / 2, CH - 5);
+
+            ctxC.save(); ctxC.translate(12, cp.t + ch); ctxC.rotate(-Math.PI / 2);
+            ctxC.fillText('True label', 0, 0); ctxC.restore();
+
+            ctxC.textAlign = 'right'; ctxC.font = '12px Segoe UI';
+            ctxC.fillText('True 0', cp.l - 5, cp.t + ch / 2 + 4);
+            ctxC.fillText('True 1', cp.l - 5, cp.t + ch + ch / 2 + 4);
+        }
+
+        // === EVENT LISTENERS ===
+        document.getElementById('threshold').addEventListener('input', draw);
+        document.getElementById('ntrees').addEventListener('change', draw);
+
+        draw();
+    })();
+    </script>
+</body>
+</html>

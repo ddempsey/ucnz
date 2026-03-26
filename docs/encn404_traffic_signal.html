@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Traffic Signal MDP</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .canvas-container { flex: 0 0 auto; }
+        canvas { border: 1px solid #ddd; background: white; }
+        .controls { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; min-width: 90px; }
+        .control-group input[type="range"] { width: 100px; }
+        button { padding: 6px 16px; border: 1px solid #999; border-radius: 4px; background: #f8f8f8; cursor: pointer; font-size: 13px; }
+        button:hover { background: #e8e8e8; }
+        .status { font-size: 13px; margin-top: 6px; line-height: 1.6; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+        h3 { color: #333; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Traffic Signal MDP</h1>
+
+    <div class="section">
+        <h3>11.2 Traffic Signal</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">from</span> encn404 <span class="kw">import</span> traffic_signal
+<span class="fn">traffic_signal</span>()</pre>
+        </details>
+    </div>
+
+    <div class="explainer">
+        <p>A single intersection where traffic flows NS or EW. Vehicles arrive at Poisson rate &lambda; and cross at 2 veh/s on green. Changing phase triggers a 2-second yellow interval. The (negative) reward accumulates from vehicle wait time.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="layout">
+            <div class="canvas-container">
+                <canvas id="canvas" width="340" height="340"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>NS green (s):</label>
+                    <input type="range" id="durNS" min="1" max="60" step="1" value="10">
+                    <span id="durNSVal">10</span>
+                </div>
+                <div class="control-group">
+                    <label>EW green (s):</label>
+                    <input type="range" id="durEW" min="1" max="60" step="1" value="10">
+                    <span id="durEWVal">10</span>
+                </div>
+                <div class="control-group">
+                    <label>&lambda; NS (veh/s):</label>
+                    <input type="range" id="lamNS" min="0" max="100" step="5" value="30">
+                    <span id="lamNSVal">0.30</span>
+                </div>
+                <div class="control-group">
+                    <label>&lambda; EW (veh/s):</label>
+                    <input type="range" id="lamEW" min="0" max="100" step="5" value="30">
+                    <span id="lamEWVal">0.30</span>
+                </div>
+                <div class="control-group">
+                    <label>Phase:</label>
+                    <select id="phaseSelect">
+                        <option value="0" selected>NS-green</option>
+                        <option value="1">EW-green</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="stepBtn">Step (1 s)</button>
+                    <button id="step20Btn">Step x20</button>
+                </div>
+                <button id="resetBtn" style="width:fit-content;">Reset</button>
+                <div class="status" id="statusText"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 1:</strong> Set epsilon to zero (0) and train the model for 100 episodes. What does a "greedy" strategy look like? Use the "show Q values" checkbox to visualise the decision-making.</p>
+        <p><strong>TASK 2:</strong> Gradually increase epsilon. How does exploration change the Q-values and the signal behavior? What epsilon gives the best trade-off between exploration and exploitation?</p>
+        <p><strong>TASK 3:</strong> With epsilon = 0.2, train for 200 episodes. What does the signal controller learn about managing traffic flow? Which states does it learn to switch the signal?</p>
+        <p><strong>TASK 4:</strong> Try different learning rates (by modifying the code) and observe the effect on learning speed.</p>
+    </div>
+
+    <script>
+    (function(){
+        // Poisson random
+        function poisson(lambda) {
+            if (lambda <= 0) return 0;
+            const L = Math.exp(-lambda);
+            let k = 0, p = 1;
+            do { k++; p *= Math.random(); } while (p > L);
+            return k - 1;
+        }
+
+        let queues = {N:0, S:0, E:0, W:0};
+        let phase = 0; // 0=NS, 1=EW
+        let timeInPhase = 0;
+        let inYellow = false, yellowElapsed = 0;
+        let t = 0, totalReward = 0;
+        let justServed = {N:0, S:0, E:0, W:0};
+
+        function tick() {
+            justServed = {N:0, S:0, E:0, W:0};
+            const lamNS = parseInt(document.getElementById('lamNS').value)/100;
+            const lamEW = parseInt(document.getElementById('lamEW').value)/100;
+
+            // Arrivals
+            queues.N += poisson(lamNS); queues.S += poisson(lamNS);
+            queues.E += poisson(lamEW); queues.W += poisson(lamEW);
+
+            // Departures
+            const green = phase === 0 ? ['N','S'] : ['E','W'];
+            if (!inYellow) {
+                for (const k of green) {
+                    const served = Math.min(queues[k], 2);
+                    queues[k] -= served;
+                    justServed[k] = served;
+                }
+            }
+
+            let reward = -(queues.N + queues.S + queues.E + queues.W);
+
+            // Phase timing
+            if (inYellow) {
+                yellowElapsed++;
+                if (yellowElapsed >= 2) {
+                    inYellow = false;
+                    phase = 1 - phase;
+                    document.getElementById('phaseSelect').value = phase;
+                    timeInPhase = 0;
+                }
+            } else {
+                timeInPhase++;
+                const dur = phase === 0 ? parseInt(document.getElementById('durNS').value) : parseInt(document.getElementById('durEW').value);
+                if (timeInPhase >= dur) {
+                    inYellow = true;
+                    yellowElapsed = 0;
+                    reward -= 2;
+                }
+            }
+
+            totalReward += reward;
+            t++;
+        }
+
+        function simulate(n) {
+            for (let i = 0; i < n; i++) { if (t >= 300) break; tick(); }
+            draw();
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssS = 340;
+        canvas.width = cssS * dpr; canvas.height = cssS * dpr;
+        canvas.style.width = cssS + 'px'; canvas.style.height = cssS + 'px';
+        ctx.scale(dpr, dpr);
+
+        function draw() {
+            document.getElementById('durNSVal').textContent = document.getElementById('durNS').value;
+            document.getElementById('durEWVal').textContent = document.getElementById('durEW').value;
+            document.getElementById('lamNSVal').textContent = (parseInt(document.getElementById('lamNS').value)/100).toFixed(2);
+            document.getElementById('lamEWVal').textContent = (parseInt(document.getElementById('lamEW').value)/100).toFixed(2);
+
+            const sumQ = queues.N + queues.S + queues.E + queues.W;
+            document.getElementById('statusText').innerHTML =
+                `t = ${t}s &nbsp; phase time = ${timeInPhase}s<br>` +
+                `&Sigma;Q = ${sumQ} &nbsp; reward = ${totalReward.toFixed(1)}`;
+
+            ctx.clearRect(0, 0, cssS, cssS);
+
+            // Scale: 5x5 grid mapped to canvas
+            const S = 60, ox = 20, oy = 30;
+            // Intersection box
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(ox + 2*S, oy + 2*S, S, S);
+            ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
+            ctx.strokeRect(ox + 2*S, oy + 2*S, S, S);
+
+            // Queue bars
+            const maxQ = Math.max(1, queues.N, queues.S, queues.E, queues.W);
+            const greenLanes = phase === 0 ? ['N','S'] : ['E','W'];
+            const laneGeom = {
+                N: {x:2*S+5+ox, y:2*S+oy, dx:0, dy:-1, bw:20, dir:'v'},
+                S: {x:2*S+35+ox, y:3*S+oy, dx:0, dy:1, bw:20, dir:'v'},
+                E: {x:3*S+ox, y:2*S+5+oy, dx:1, dy:0, bw:20, dir:'h'},
+                W: {x:2*S+ox, y:2*S+35+oy, dx:-1, dy:0, bw:20, dir:'h'}
+            };
+
+            for (const k of ['N','S','E','W']) {
+                const g = laneGeom[k];
+                let fc;
+                if (inYellow && greenLanes.includes(k)) fc = '#f0c040';
+                else if (greenLanes.includes(k)) fc = '#27ae60';
+                else fc = '#e74c3c';
+
+                const len = 1.5 * S * (queues[k] / maxQ);
+                let rx, ry, rw, rh;
+                if (g.dir === 'v') {
+                    rw = g.bw;
+                    rh = len * (g.dy < 0 ? -1 : 1);
+                    rx = g.x; ry = g.y;
+                } else {
+                    rw = len * (g.dx < 0 ? -1 : 1);
+                    rh = g.bw;
+                    rx = g.x; ry = g.y;
+                }
+                ctx.fillStyle = fc;
+                ctx.fillRect(rx, ry, rw, rh);
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5;
+                ctx.strokeRect(rx, ry, rw, rh);
+
+                // Queue count text
+                const tx = rx + rw/2, ty = ry + rh/2;
+                ctx.fillStyle = 'white'; ctx.font = 'bold 12px Segoe UI';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                if (queues[k] > 0) ctx.fillText(queues[k].toString(), tx, ty);
+            }
+
+            // Direction labels
+            ctx.fillStyle = '#666'; ctx.font = '14px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('N', ox + 2.5*S, oy + 10);
+            ctx.fillText('S', ox + 2.5*S, oy + 5*S - 10);
+            ctx.fillText('W', ox + 10, oy + 2.5*S);
+            ctx.fillText('E', ox + 5*S - 10, oy + 2.5*S);
+        }
+
+        document.getElementById('stepBtn').addEventListener('click', () => simulate(1));
+        document.getElementById('step20Btn').addEventListener('click', () => simulate(20));
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            queues = {N:0, S:0, E:0, W:0};
+            phase = 0; timeInPhase = 0; inYellow = false; yellowElapsed = 0;
+            t = 0; totalReward = 0;
+            document.getElementById('phaseSelect').value = 0;
+            draw();
+        });
+        draw();
+    })();
+    </script>
+</body>
+</html>

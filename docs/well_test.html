@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Well Testing - ENCN342</title>
+    <script>
+    MathJax = {
+        tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] }
+    };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; margin-bottom: 2px; }
+        h2 { color: #333; margin-top: 35px; }
+        h3 { color: #444; }
+        .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+        .institution { text-align: center; color: #555; margin-bottom: 25px; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.7; }
+        .explainer p { margin: 0.9em 0; }
+        .explainer blockquote { border-left: 3px solid #ccc; margin: 1em 0; padding-left: 15px; color: #555; font-style: italic; }
+        .explainer sup { font-size: 0.75em; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 5px; }
+        .control-group label { font-weight: 500; font-size: 13px; min-width: 30px; white-space: nowrap; }
+        .control-group input[type="range"] { width: 120px; cursor: pointer; }
+        .control-group select { font-size: 13px; padding: 2px 4px; }
+        .control-group .val { font-size: 12px; color: #666; min-width: 45px; text-align: right; }
+        .cb-group { display: flex; align-items: center; gap: 3px; cursor: pointer; }
+        .cb-group input { cursor: pointer; }
+        .cb-group label { font-size: 13px; cursor: pointer; }
+        canvas { display: block; margin: 0 auto; max-width: 100%; }
+        .mjx-chtml { font-size: 100% !important; }
+    </style>
+</head>
+<body>
+    <h1>Well Testing</h1>
+    <div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+    <div class="institution">University of Canterbury</div>
+
+    <!-- ==================== PREAMBLE ==================== -->
+    <h2>Preamble</h2>
+    <div class="explainer">
+        <p>Consider a simple groundwater system that comprises a <strong>confining layer</strong> and a <strong>confined aquifer</strong> beneath it. The <strong>piezometric surface</strong><sup>1</sup> sits just below the ground surface.</p>
+        <p>A <strong>pumping well</strong> has been drilled that is screened across the entire depth of the aquifer. An <strong>observation well</strong> has also been drilled with the water level in this well reflecting the piezometric surface at that location.</p>
+        <blockquote>Use the controls below to explore the conceptual model.</blockquote>
+        <p><sup>1</sup> The piezometric surface for a confined aquifer is <strong>not necessarily</strong> the same as the water table. It reflects the relative pressure in the confined aquifer and could be higher or lower than the water table depending on land surface elevation or past abstraction. In an <strong>unconfined aquifer</strong> the piezometric surface <strong>does</strong> coincide with the water table.</p>
+    </div>
+    <div class="widget-container" id="w-conceptual"></div>
+
+    <!-- ==================== SECTION 1 ==================== -->
+    <h2>1. Pumping a confined aquifer</h2>
+    <div class="explainer">
+        <p>The purpose of well testing is to <strong>measure</strong> specific properties of the nearby rock that contains groundwater, principally <strong>storage</strong>, $S$, and <strong>transmissivity</strong>, $T$. These help us to later <strong>predict</strong> how an aquifer will respond to future abstraction.</p>
+        <p>For a <strong>confined aquifer</strong>, the Theis equation can be used to estimate $S$ and $T$ from observations of <strong>drawdown</strong>, $h$.</p>
+        \[h = \frac{1}{4\pi} \frac{Q}{T} W\!\left(\frac{r^2 S}{4Tt}\right) \quad\approx\; 0.183\frac{Q}{T}\log\!\left(\frac{2.25\,Tt}{r^2 S}\right) \quad\text{when}\quad \frac{r^2 S}{4Tt} &lt; 0.05\]
+        <p>where $W(\cdot)$ is the well function, $r$ is distance to the observation well, $t$ is time, $S$ is storage, $Q$ is pumping rate, and $T$ is transmissivity.</p>
+        <blockquote>The widget below uses the <strong>log</strong> approximation above to model drawdown. Uncheck &ldquo;approx.&rdquo; to use the exact Theis well function.</blockquote>
+    </div>
+    <div class="widget-container" id="w-confined"></div>
+
+    <!-- ==================== SECTION 2 ==================== -->
+    <h2>2. Pumping a semi-confined aquifer</h2>
+    <div class="explainer">
+        <p>Some confining layers allow a little bit of water to pass through. These leaky aquifers have a different response to drawdown, because now recharge can be drawn from above, in addition to radially.</p>
+        <p>Leaky aquifers are characterized by flattening of the drawdown&ndash;time curve. The Hantush&ndash;Jacob analytical solution describes this curve.</p>
+        \[h = \frac{1}{4\pi} \frac{Q}{T} W_h\!\left(u,\,\frac{r}{L}\right), \qquad L = \sqrt{Tc}\]
+        <p>where $W_h(\cdot)$ is the Hantush well function and $c$ is the hydraulic resistance of the aquitard.</p>
+        <blockquote>The widget below implements the Hantush&ndash;Jacob solution.</blockquote>
+    </div>
+    <div class="widget-container" id="w-leaky"></div>
+
+    <!-- ==================== SECTION 3 ==================== -->
+    <h2>3. Pumping a laterally constrained aquifer</h2>
+
+    <h3>Flow boundaries</h3>
+    <div class="explainer">
+        <p>Aquifers can be horizontally truncated in the presence of low permeability faults or where fault movement has laterally juxtaposed a confining unit against the aquifer. In either case, flow barriers affect the groundwater near the well and therefore the response to pumping.</p>
+        <p>At a flow barrier, the hydraulic gradient must be zero (if it wasn&rsquo;t, there would be flow, which there can&rsquo;t&hellip;). This can be enforced in a model by adding an image well at the same distance on the other side of the flow barrier &mdash; any attempt to steepen the hydraulic gradient towards the real well will then be offset by the effect of the image well.</p>
+        <p>For a well at $\mathbf{x}_w=[R,0]$ and a boundary on the $y$-axis, the drawdown is</p>
+        \[h = \frac{1}{4\pi} \frac{Q}{T} W\!\left(\frac{|\mathbf{x}-\mathbf{x}_w|^2 S}{4Tt}\right) + \frac{1}{4\pi} \frac{Q}{T} W\!\left(\frac{|\mathbf{x}+\mathbf{x}_w|^2 S}{4Tt}\right)\]
+        <p>where the second term is the Theis solution due to extraction from an image well located at $-\mathbf{x}_w$.</p>
+        <p>Superposition in this manner requires that the constitutive solutions be derived from linear governing equations. This condition is satisfied for both Theis and Hantush&ndash;Jacob solutions.</p>
+        <blockquote>The widget below demonstrates the image well approximation to a flow barrier.</blockquote>
+    </div>
+    <div class="widget-container" id="w-barrier"></div>
+
+    <h3>Recharge source</h3>
+    <div class="explainer">
+        <p>A source of recharge can be thought of as a boundary of zero drawdown. This drawdown can be modelled by adding an image well on the other side of the boundary that is injecting at $-Q$. For a well at $\mathbf{x}_w=[R,0]$ and a line of recharge (e.g., the coastline) on the $y$-axis, the drawdown is</p>
+        \[h = \frac{1}{4\pi} \frac{Q}{T} W\!\left(\frac{|\mathbf{x}-\mathbf{x}_w|^2 S}{4Tt}\right) - \frac{1}{4\pi} \frac{Q}{T} W\!\left(\frac{|\mathbf{x}+\mathbf{x}_w|^2 S}{4Tt}\right)\]
+        <p>where the second term is the Theis solution due to injection (hence negative) into an image well located at $-\mathbf{x}_w$.</p>
+        <p>For any location on the $y$-axis, $\mathbf{x}=[0,y]$, then the radii in both terms becomes $|\mathbf{x}-\mathbf{x}_w|^2 = R^2+y^2 = |\mathbf{x}+\mathbf{x}_w|^2$ and therefore the two terms cancel so that $h=0$.</p>
+        <blockquote>The widget below demonstrates the image well approximation to a source of recharge.</blockquote>
+    </div>
+    <div class="widget-container" id="w-recharge"></div>
+
+    <!-- ==================== SECTION 4 ==================== -->
+    <h2>4. Pumping an unconfined aquifer</h2>
+    <div class="explainer">
+        <p>In an unconfined aquifer, we must contend with both changes of the hydraulic gradient AND a reduction of the saturated thickness. Furthermore, there are two storage responses: early on, it is the elastic storage that yields water to the well, with water table drawdown occurring later. The solution assumes that vertical flow in the aquifer can be neglected and that drawdown is small compared to saturated thickness.</p>
+        <p>Neuman (1975) formulated a semi-analytical solution to this problem, which was later updated by a more computationally efficient solution from Moench (1996).</p>
+        <blockquote>The widget below demonstrates the Moench&ndash;Neuman flow solution in an unconfined aquifer.</blockquote>
+    </div>
+    <div class="widget-container" id="w-unconfined"></div>
+
+    <!-- ==================== ALL OPTIONS ==================== -->
+    <h2>All pumping tests</h2>
+    <div class="widget-container" id="w-all"></div>
+
+<script>
+(function() {
+'use strict';
+
+// ======================== CONSTANTS ========================
+var PI = Math.PI, LN2 = Math.LN2;
+var YL = 0.8, DYC = 0.1, WX = 0.2, WW = 0.02, DW = 0.13, DW2 = 0.02;
+var S0 = 0.05, S_BASE = 1.9e-3, SY = 0.19;
+
+// ======================== MATH FUNCTIONS ========================
+
+// Theis well function W(u) = E1(u) using Abramowitz & Stegun
+function W(u) {
+    if (u <= 0) return 1e10;
+    if (u <= 1) {
+        return -Math.log(u) + (-0.57721566 + u*(0.99999193 + u*(-0.24991055
+            + u*(0.05519968 + u*(-0.00976004 + u*0.00107857)))));
+    } else {
+        var n = u*u*u*u + 8.5733287401*u*u*u + 18.059016973*u*u + 8.6347608925*u + 0.2677737343;
+        var d = u*u*u*u + 9.5733223454*u*u*u + 25.6329561486*u*u + 21.0996530827*u + 3.9584969228;
+        return (n / d) / (u * Math.exp(u));
+    }
+}
+
+// Theis log approximation
+function W_approx(r, t, Q, T, S) {
+    var arg = 2.25 * T * t / (r * r * S);
+    if (arg <= 0) return 0;
+    return 2.3 * Q / (4 * PI * T) * Math.log10(arg);
+}
+
+// Hantush well function via numerical integration
+// Substitution y = u*exp(s) transforms [u, inf) to [0, inf)
+function Wh(u, rp) {
+    if (u <= 0) return 1e10;
+    if (rp <= 0) return W(u);
+    var sMax = Math.max(5, Math.log(40 / Math.max(u, 1e-15) + 1));
+    var N = 200, ds = sMax / N, sum = 0;
+    for (var i = 0; i <= N; i++) {
+        var es = Math.exp(i * ds);
+        var ues = u * es;
+        var f = Math.exp(-ues - rp * rp / (4 * ues));
+        var w = (i === 0 || i === N) ? 1 : (i % 2 === 0) ? 2 : 4;
+        sum += w * f;
+    }
+    return sum * ds / 3;
+}
+
+// Modified Bessel I0 (A&S 9.8.1, 9.8.2)
+function I0(x) {
+    x = Math.abs(x);
+    if (x <= 3.75) {
+        var t = (x / 3.75); t *= t;
+        return 1 + t*(3.5156229 + t*(3.0899424 + t*(1.2067492
+            + t*(0.2659732 + t*(0.0360768 + t*0.0045813)))));
+    } else {
+        var t = 3.75 / x;
+        return (0.39894228 + t*(0.01328592 + t*(0.00225319 + t*(-0.00157565
+            + t*(0.00916281 + t*(-0.02057706 + t*(0.02635537
+            + t*(-0.01647633 + t*0.00392377)))))))) * Math.exp(x) / Math.sqrt(x);
+    }
+}
+
+// Modified Bessel K0 (A&S 9.8.5, 9.8.6)
+function K0(x) {
+    if (x <= 0) return 1e10;
+    if (x <= 2) {
+        var t = x / 2; t *= t;
+        return -Math.log(x / 2) * I0(x) + (-0.57721566 + t*(0.42278420
+            + t*(0.23069756 + t*(0.03488590 + t*(0.00262698
+            + t*(0.00010750 + t*0.00000740))))));
+    } else {
+        var t = 2 / x;
+        return (1.25331414 + t*(-0.07832358 + t*(0.02189568 + t*(-0.01062446
+            + t*(0.00587872 + t*(-0.00251540 + t*0.00053208))))))
+            * Math.exp(-x) / Math.sqrt(x);
+    }
+}
+
+// Stehfest algorithm for numerical Laplace inversion
+var STEHFEST_N = 10;
+var STEHFEST_V = null;
+
+function factorial(n) {
+    var f = 1;
+    for (var i = 2; i <= n; i++) f *= i;
+    return f;
+}
+
+function computeStehfestCoeffs(N) {
+    var N2 = Math.floor(N / 2), V = [];
+    for (var i = 1; i <= N; i++) {
+        var sum = 0, kMin = Math.floor((i + 1) / 2), kMax = Math.min(i, N2);
+        for (var k = kMin; k <= kMax; k++) {
+            sum += Math.pow(k, N2) * factorial(2 * k) /
+                (factorial(N2 - k) * factorial(k) * factorial(k - 1) *
+                 factorial(i - k) * factorial(2 * k - i));
+        }
+        V.push(Math.pow(-1, N2 + i) * sum);
+    }
+    return V;
+}
+
+function stehfestInvert(F, t) {
+    var sum = 0, ln2t = LN2 / t;
+    for (var k = 0; k < STEHFEST_N; k++) sum += STEHFEST_V[k] * F((k + 1) * ln2t);
+    return sum * ln2t;
+}
+
+// Moench-Neuman Laplace domain solution
+function hdLaplace(g, b, s, p) {
+    var c = p / (s * b);
+    var rhs = p / (s * b + p / g);
+    var NTMS = 30;
+    var N = Math.max(4, Math.floor(NTMS * Math.pow(2, -Math.log10(Math.max(b, 1e-15)) - 2)));
+    N = Math.min(N, 80);
+    var out = 0, en = null, en0;
+
+    for (var n = 0; n < N; n++) {
+        if (en === null) {
+            en0 = (rhs < 1) ? Math.sqrt(Math.max(rhs, 1e-12)) : Math.atan(rhs);
+        } else {
+            en0 = en + PI;
+        }
+        var lo = n * PI + 1e-10, hi = (n + 0.5) * PI - 1e-10;
+        var x = Math.max(lo, Math.min(hi, en0));
+        for (var iter = 0; iter < 60; iter++) {
+            var cosx = Math.cos(x), tanx = Math.tan(x);
+            var fx = x * tanx - c;
+            var dfx = tanx + x / (cosx * cosx);
+            if (Math.abs(dfx) < 1e-30) break;
+            var dx = fx / dfx;
+            x -= dx;
+            x = Math.max(lo, Math.min(hi, x));
+            if (Math.abs(dx) < 1e-12 * Math.max(1, Math.abs(x))) break;
+        }
+        en = x;
+        var xn = Math.sqrt(b * en * en + p);
+        xn = Math.min(708, xn);
+        var sinEn = Math.sin(en), sin2En = Math.sin(2 * en);
+        var denom = p * en * (0.5 * en + 0.25 * sin2En);
+        if (Math.abs(denom) < 1e-30) continue;
+        out += 2 * K0(xn) * sinEn * sinEn / denom;
+    }
+    return out;
+}
+
+// Full Neuman drawdown
+function neumanDrawdown(r, t, Q, T, S, H) {
+    var Kr = T / H, Kz = Kr * 0.001;
+    var rd = r / H;
+    var td = T * t / (r * r * S);
+    var g = 1e9 * H * SY / Kz;
+    var b = Kz * rd * rd / Kr;
+    var s = S / SY;
+    return stehfestInvert(function(p) { return hdLaplace(g, b, s, p); }, td) * Q / (4 * PI * T);
+}
+
+// ======================== DRAWDOWN COMPUTATIONS ========================
+
+function computeSpatial(xArr, params) {
+    var Q = params.Q, T = params.T, t = params.t, H = params.H || 2;
+    var itest = params.itest, approx = params.approx, image = params.image;
+    var S = S_BASE;
+    if (itest === 5) S *= H / 2;
+    var result = new Float64Array(xArr.length);
+    var s0Arr = null, s1Arr = null;
+
+    for (var i = 0; i < xArr.length; i++) {
+        var x = xArr[i], r = Math.abs(x - WX) * 750, s;
+        if (r < 750 * WW / 2) { result[i] = NaN; continue; }
+
+        if (itest === 0) {
+            s = S0;
+        } else if (itest === 1) {
+            if (approx) {
+                s = W_approx(r, t, Q, T, S) / 10 + S0;
+            } else {
+                s = Q / (4 * PI * T) * W(r*r*S/(4*T*t)) / 10 + S0;
+            }
+        } else if (itest === 2) {
+            s = Q / (4 * PI * T) * Wh(r*r*S/(4*T*t), r/Math.sqrt(T*params.c)) / 10 + S0;
+        } else if (itest === 3) {
+            var sm = Q / (4 * PI * T) * W(r*r*S/(4*T*t)) / 10 + S0;
+            if (!s0Arr) { s0Arr = new Float64Array(xArr.length); s1Arr = new Float64Array(xArr.length); }
+            s0Arr[i] = sm;
+            if (image) {
+                var r1 = Math.abs(x - 0.9) * 750;
+                var si = Q / (4 * PI * T) * W(r1*r1*S/(4*T*t)) / 10 + S0;
+                s1Arr[i] = si; s = sm + si - S0;
+            } else { s = sm; }
+            if (x > 0.55) s = S0;
+        } else if (itest === 4) {
+            var sm4 = Q / (4 * PI * T) * W(r*r*S/(4*T*t)) / 10 + S0;
+            if (!s0Arr) { s0Arr = new Float64Array(xArr.length); s1Arr = new Float64Array(xArr.length); }
+            s0Arr[i] = sm4;
+            if (image) {
+                var r14 = Math.abs(x - 0.9) * 750;
+                var si4 = -Q / (4 * PI * T) * W(r14*r14*S/(4*T*t)) / 10 + S0;
+                s1Arr[i] = si4; s = sm4 + si4 - S0;
+            } else { s = sm4; }
+            if (x > 0.55) s = S0;
+        } else if (itest === 5) {
+            if (r < 1) { result[i] = S0; continue; }
+            s = neumanDrawdown(r, t, Q, T, S, H) / 10 + S0;
+        } else { s = S0; }
+        result[i] = s;
+    }
+    return { s: result, s0: s0Arr, s1: s1Arr };
+}
+
+function computeTemporal(tv, params) {
+    var Q = params.Q, T = params.T, r = params.r, H = params.H || 2;
+    var itest = params.itest, image = params.image;
+    var S = S_BASE;
+    if (itest === 5) S *= H / 2;
+    var s = new Float64Array(tv.length), s0 = null, s1 = null;
+
+    for (var i = 0; i < tv.length; i++) {
+        var t = tv[i], u = r*r*S/(4*T*t);
+        if (itest === 1) {
+            if (params.approx) {
+                s[i] = 2.3 * Q / (4 * PI * T) * Math.log10(2.25 * T * t / (r * r * S));
+            } else {
+                s[i] = Q / (4 * PI * T) * W(u);
+            }
+        } else if (itest === 2) {
+            s[i] = Q / (4 * PI * T) * Wh(u, r / Math.sqrt(T * params.c));
+        } else if (itest === 3) {
+            var obsX = WX + r / 750;
+            var ri = Math.abs(obsX - 0.9) * 750, ui = ri*ri*S/(4*T*t);
+            s[i] = Q / (4 * PI * T) * W(u);
+            if (image) s[i] += Q / (4 * PI * T) * W(ui);
+            if (obsX > 0.55) s[i] = 0;
+        } else if (itest === 4) {
+            var obsX4 = WX + r / 750;
+            var ri4 = Math.abs(obsX4 - 0.9) * 750, ui4 = ri4*ri4*S/(4*T*t);
+            s[i] = Q / (4 * PI * T) * W(u);
+            if (image) s[i] -= Q / (4 * PI * T) * W(ui4);
+            if (obsX4 > 0.55) s[i] = 0;
+        } else if (itest === 5) {
+            s[i] = neumanDrawdown(r, tv[i], Q, T, S, H);
+        }
+    }
+    if (itest === 5) {
+        s0 = new Float64Array(tv.length);
+        s1 = new Float64Array(tv.length);
+        for (var j = 0; j < tv.length; j++) {
+            s0[j] = Q / (4 * PI * T) * W(r*r*S/(4*T*tv[j]));
+            s1[j] = Q / (4 * PI * T) * W(r*r*SY/(4*T*tv[j]));
+        }
+    }
+    return { s: s, s0: s0, s1: s1 };
+}
+
+function logspace(minE, maxE, n) {
+    var a = new Float64Array(n);
+    for (var i = 0; i < n; i++) a[i] = Math.pow(10, minE + (maxE - minE) * i / (n - 1));
+    return a;
+}
+
+// ======================== CANVAS DRAWING ========================
+
+function setupCanvas(canvas, cssW, cssH) {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+}
+
+function makeMap(reg) {
+    return {
+        x: function(v) { return reg.x + v * reg.w; },
+        y: function(v) { return reg.y + (1 - v) * reg.h; },
+        dx: function(v) { return v * reg.w; },
+        dy: function(v) { return -v * reg.h; }
+    };
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, alpha, hl) {
+    hl = hl || 8;
+    ctx.save(); ctx.globalAlpha = alpha || 1;
+    var dx = x2 - x1, dy = y2 - y1, a = Math.atan2(dy, dx);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - hl*Math.cos(a-PI/6), y2 - hl*Math.sin(a-PI/6));
+    ctx.lineTo(x2 - hl*Math.cos(a+PI/6), y2 - hl*Math.sin(a+PI/6));
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+    ctx.restore();
+}
+
+// ---- Scene drawing ----
+function drawScene(ctx, reg, params) {
+    var m = makeMap(reg);
+    var itest = params.itest, H = params.H || 2;
+    var barrier = params.barrier, image = params.image, labels = params.labels;
+    var YCu = YL - H / 10, YCl = YCu - DYC;
+
+    // Sky
+    ctx.fillStyle = 'rgba(0,0,255,0.1)';
+    ctx.fillRect(m.x(0), m.y(1), m.dx(1), m.dy(YL-1));
+    // Ground
+    ctx.fillStyle = 'rgba(209,179,127,0.7)';
+    ctx.fillRect(m.x(0), m.y(YL), m.dx(1), -m.dy(YL));
+    // Land surface
+    ctx.beginPath(); ctx.moveTo(m.x(0), m.y(YL)); ctx.lineTo(m.x(1), m.y(YL));
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Confining layer
+    ctx.fillStyle = 'rgba(100,100,100,0.7)';
+    ctx.fillRect(m.x(0), m.y(YCu), m.dx(1), m.dy(YCl-YCu));
+
+    // Pumping well body
+    ctx.fillStyle = 'rgb(200,200,200)';
+    ctx.fillRect(m.x(WX-WW/2), m.y(YL), m.dx(WW), -m.dy(YL));
+
+    // Well casing lines
+    ctx.lineWidth = 1; ctx.strokeStyle = '#000';
+    if (itest === 5) {
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(m.x(WX-WW/2), m.y(0)); ctx.lineTo(m.x(WX-WW/2), m.y(YCu));
+        ctx.moveTo(m.x(WX+WW/2), m.y(0)); ctx.lineTo(m.x(WX+WW/2), m.y(YCu));
+        ctx.stroke();
+        ctx.setLineDash([4,3]);
+        ctx.beginPath();
+        ctx.moveTo(m.x(WX-WW/2), m.y(YCu)); ctx.lineTo(m.x(WX-WW/2), m.y(YL));
+        ctx.moveTo(m.x(WX+WW/2), m.y(YCu)); ctx.lineTo(m.x(WX+WW/2), m.y(YL));
+        ctx.stroke(); ctx.setLineDash([]);
+    } else {
+        ctx.setLineDash([4,3]);
+        ctx.beginPath();
+        ctx.moveTo(m.x(WX-WW/2), m.y(0)); ctx.lineTo(m.x(WX-WW/2), m.y(YCl));
+        ctx.moveTo(m.x(WX+WW/2), m.y(0)); ctx.lineTo(m.x(WX+WW/2), m.y(YCl));
+        ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(m.x(WX-WW/2), m.y(YCl)); ctx.lineTo(m.x(WX-WW/2), m.y(YL));
+        ctx.moveTo(m.x(WX+WW/2), m.y(YCl)); ctx.lineTo(m.x(WX+WW/2), m.y(YL));
+        ctx.stroke();
+    }
+
+    // Flow arrows
+    if (itest !== 0) {
+        var ay1, ay2;
+        if (itest === 5) { ay1 = YCu+(YL-YCu)/3; ay2 = YCu+(YL-YCu)*2/3; }
+        else { ay1 = YCl/3; ay2 = YCl*2/3; }
+        drawArrow(ctx, m.x(WX+4*WW), m.y(ay1), m.x(WX+WW), m.y(ay1), 'blue', 1);
+        drawArrow(ctx, m.x(WX+4*WW), m.y(ay2), m.x(WX+WW), m.y(ay2), 'blue', 1);
+        drawArrow(ctx, m.x(WX-4*WW), m.y(ay1), m.x(WX-WW), m.y(ay1), 'blue', 1);
+        drawArrow(ctx, m.x(WX-4*WW), m.y(ay2), m.x(WX-WW), m.y(ay2), 'blue', 1);
+    }
+
+    // Observation well body
+    var obsXp = WX + params.r / 750;
+    ctx.fillStyle = 'rgb(200,200,200)'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+    ctx.fillRect(m.x(obsXp-WW/4), m.y(YL), m.dx(WW/2), -m.dy(YL));
+    ctx.strokeRect(m.x(obsXp-WW/4), m.y(YL), m.dx(WW/2), -m.dy(YL));
+
+    // Wellhead
+    var wh = [[WX-WW,YL],[WX-WW,YL+DW],[WX+WW,YL+DW],[WX+WW,YL+DW-DW2],
+        [WX+WW+DW2,YL+DW-DW2],[WX+WW+DW2,YL+DW-3*DW2],[WX+WW,YL+DW-3*DW2],[WX+WW,YL]];
+    ctx.beginPath(); ctx.moveTo(m.x(wh[0][0]), m.y(wh[0][1]));
+    for (var i = 1; i < wh.length; i++) ctx.lineTo(m.x(wh[i][0]), m.y(wh[i][1]));
+    ctx.closePath(); ctx.fillStyle = 'rgb(200,200,200)'; ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Water discharge
+    var Qv = 0.05 * params.Q / 1000;
+    var wp = [[WX+WW+DW2, YL+DW-1.25*DW2],[WX+WW+DW2+3*Qv, YL],
+        [WX+WW+DW2+0.5*Qv, YL],[WX+WW+DW2, YL+DW-2.75*DW2]];
+    ctx.beginPath(); ctx.moveTo(m.x(wp[0][0]), m.y(wp[0][1]));
+    for (var i = 1; i < wp.length; i++) ctx.lineTo(m.x(wp[i][0]), m.y(wp[i][1]));
+    ctx.closePath(); ctx.fillStyle = '#99CCFF'; ctx.fill();
+
+    // Flow barrier - extends DOWNWARD from confining layer to base
+    if (barrier) {
+        ctx.fillStyle = 'rgba(100,100,100,0.7)';
+        ctx.fillRect(m.x(0.55-WW/2), m.y(YCl), m.dx(WW), -m.dy(YCl));
+    }
+
+    // Image well
+    if (image && (itest === 3 || itest === 4)) {
+        var ix = 0.9;
+        ctx.save(); ctx.globalAlpha = 0.5;
+        ctx.fillStyle = 'rgb(200,200,200)';
+        ctx.fillRect(m.x(ix-WW/2), m.y(YL), m.dx(WW), -m.dy(YL));
+        ctx.setLineDash([4,3]); ctx.strokeStyle = '#000';
+        ctx.beginPath();
+        ctx.moveTo(m.x(ix-WW/2), m.y(0)); ctx.lineTo(m.x(ix-WW/2), m.y(YCl));
+        ctx.moveTo(m.x(ix+WW/2), m.y(0)); ctx.lineTo(m.x(ix+WW/2), m.y(YCl));
+        ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(m.x(ix-WW/2), m.y(YCl)); ctx.lineTo(m.x(ix-WW/2), m.y(YL));
+        ctx.moveTo(m.x(ix+WW/2), m.y(YCl)); ctx.lineTo(m.x(ix+WW/2), m.y(YL));
+        ctx.stroke();
+        var iay1 = YCl/3, iay2 = YCl*2/3;
+        drawArrow(ctx, m.x(ix+4*WW), m.y(iay1), m.x(ix+WW), m.y(iay1), 'blue', 0.5);
+        drawArrow(ctx, m.x(ix+4*WW), m.y(iay2), m.x(ix+WW), m.y(iay2), 'blue', 0.5);
+        drawArrow(ctx, m.x(ix-4*WW), m.y(iay1), m.x(ix-WW), m.y(iay1), 'blue', 0.5);
+        drawArrow(ctx, m.x(ix-4*WW), m.y(iay2), m.x(ix-WW), m.y(iay2), 'blue', 0.5);
+        // Image wellhead (mirrored)
+        var iwh = [[ix+WW,YL],[ix+WW,YL+DW],[ix-WW,YL+DW],[ix-WW,YL+DW-DW2],
+            [ix-WW-DW2,YL+DW-DW2],[ix-WW-DW2,YL+DW-3*DW2],[ix-WW,YL+DW-3*DW2],[ix-WW,YL]];
+        ctx.beginPath(); ctx.moveTo(m.x(iwh[0][0]), m.y(iwh[0][1]));
+        for (var j = 1; j < iwh.length; j++) ctx.lineTo(m.x(iwh[j][0]), m.y(iwh[j][1]));
+        ctx.closePath(); ctx.fillStyle = 'rgb(200,200,200)'; ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+        // Image water - for injection (itest 4), flip vertically so water comes from above
+        var iqv = Qv;
+        var iwp;
+        if (itest === 4) {
+            // Injection: water enters from above the wellhead
+            var flipC = YL + DW - 2*DW2; // center of flip
+            iwp = [[ix-WW-DW2, 2*flipC-(YL+DW-1.25*DW2)],
+                [ix-WW-DW2-3*iqv, 2*flipC-YL],
+                [ix-WW-DW2-0.5*iqv, 2*flipC-YL],
+                [ix-WW-DW2, 2*flipC-(YL+DW-2.75*DW2)]];
+        } else {
+            iwp = [[ix-WW-DW2,YL+DW-1.25*DW2],[ix-WW-DW2-3*iqv,YL],
+                [ix-WW-DW2-0.5*iqv,YL],[ix-WW-DW2,YL+DW-2.75*DW2]];
+        }
+        ctx.beginPath(); ctx.moveTo(m.x(iwp[0][0]), m.y(iwp[0][1]));
+        for (var j = 1; j < iwp.length; j++) ctx.lineTo(m.x(iwp[j][0]), m.y(iwp[j][1]));
+        ctx.closePath(); ctx.fillStyle = '#99CCFF'; ctx.fill();
+        ctx.restore();
+    }
+
+    // Recharge water body
+    if (itest === 4) {
+        ctx.save(); ctx.globalAlpha = 0.6; ctx.fillStyle = '#99CCFF';
+        ctx.fillRect(m.x(0.55), m.y(YL-S0), m.dx(0.45), m.dy(-(YL-S0)));
+        ctx.restore();
+    }
+
+    // Compute spatial drawdown
+    var nPts = (itest === 5) ? 101 : 201;
+    var xArr = new Float64Array(nPts);
+    for (var i = 0; i < nPts; i++) xArr[i] = i * 1.01 / (nPts - 1);
+    var sp = computeSpatial(xArr, params);
+    var sArr = sp.s;
+
+    // Fill under piezometric surface
+    ctx.beginPath();
+    var started = false;
+    for (var i = 0; i < nPts; i++) {
+        if (isNaN(sArr[i])) continue;
+        if (!started) { ctx.moveTo(m.x(xArr[i]), m.y(0)); started = true; }
+        ctx.lineTo(m.x(xArr[i]), m.y(YL - sArr[i]));
+    }
+    for (var i = nPts-1; i >= 0; i--) {
+        if (!isNaN(sArr[i])) { ctx.lineTo(m.x(xArr[i]), m.y(0)); break; }
+    }
+    ctx.closePath(); ctx.fillStyle = 'rgba(0,0,0,0.08)'; ctx.fill();
+
+    // Piezometric surface line - continuous across pumping well
+    var lc = (params.approx && itest !== 0) ? '#000' : '#0066cc';
+    ctx.beginPath(); ctx.setLineDash([5,3]); started = false;
+    for (var i = 0; i < nPts; i++) {
+        if (isNaN(sArr[i])) continue; // skip NaN but don't break line
+        if (!started) { ctx.moveTo(m.x(xArr[i]), m.y(YL-sArr[i])); started = true; }
+        else ctx.lineTo(m.x(xArr[i]), m.y(YL-sArr[i]));
+    }
+    ctx.strokeStyle = lc; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+
+    // Individual contributions for image well cases
+    if ((itest === 3 || itest === 4) && sp.s0) {
+        ctx.beginPath(); ctx.setLineDash([5,3]); started = false;
+        for (var i = 0; i < nPts; i++) {
+            if (!sp.s0[i] || isNaN(sp.s0[i])) continue;
+            if (!started) { ctx.moveTo(m.x(xArr[i]), m.y(YL-sp.s0[i])); started = true; }
+            else ctx.lineTo(m.x(xArr[i]), m.y(YL-sp.s0[i]));
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+        if (image && sp.s1) {
+            ctx.beginPath(); ctx.setLineDash([5,3]); started = false;
+            for (var i = 0; i < nPts; i++) {
+                if (!sp.s1[i] || isNaN(sp.s1[i])) continue;
+                if (!started) { ctx.moveTo(m.x(xArr[i]), m.y(YL-sp.s1[i])); started = true; }
+                else ctx.lineTo(m.x(xArr[i]), m.y(YL-sp.s1[i]));
+            }
+            ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+        }
+    }
+
+    // Blue water fill in pumping well
+    var pumpS = S0;
+    var pumpDist = 999;
+    for (var i = 0; i < nPts; i++) {
+        if (!isNaN(sArr[i]) && Math.abs(xArr[i]-WX) < pumpDist) {
+            pumpDist = Math.abs(xArr[i]-WX); pumpS = sArr[i];
+        }
+    }
+    if (itest !== 0) {
+        var pumpWt = YL - pumpS;
+        ctx.fillStyle = '#99CCFF';
+        ctx.fillRect(m.x(WX-WW/2), m.y(pumpWt), m.dx(WW), m.dy(-pumpWt));
+    }
+
+    // Water in observation well
+    var oi = 0, md = 999;
+    for (var i = 0; i < nPts; i++) { var d = Math.abs(xArr[i]-obsXp); if (d < md) { md = d; oi = i; } }
+    var os = isNaN(sArr[oi]) ? S0 : sArr[oi];
+    var wt = YL - os;
+    ctx.fillStyle = '#99CCFF';
+    ctx.fillRect(m.x(obsXp-WW/4), m.y(wt), m.dx(WW/2), m.dy(-wt));
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+    ctx.strokeRect(m.x(obsXp-WW/4), m.y(wt), m.dx(WW/2), m.dy(-wt));
+
+    // Leakage arrows
+    if (itest === 2) {
+        [0.1, 0.3, 0.5, 0.7, 0.9].forEach(function(lx) {
+            var li = 0, ld = 999;
+            for (var i = 0; i < nPts; i++) { var d = Math.abs(xArr[i]-lx); if (d < ld) { ld = d; li = i; } }
+            var ls = isNaN(sArr[li]) ? S0 : sArr[li];
+            var asy = 0.75*YCl + 0.25*YCu;
+            drawArrow(ctx, m.x(lx), m.y(asy), m.x(lx), m.y(asy - ls*0.8 - DYC/4), 'blue', 1, 6);
+        });
+    }
+
+    // ALL LABELS drawn last so they appear in front of everything
+    if (labels) {
+        ctx.fillStyle = '#000'; ctx.font = '12px Segoe UI, sans-serif';
+        // Layer labels
+        ctx.textAlign = 'right';
+        ctx.fillText('confining layer', m.x(0.98), m.y((YCl+YCu)/2)+4);
+        ctx.fillText('confined aquifer', m.x(0.98), m.y((YCl+YCu)/2-DYC)+4);
+        ctx.fillText('unconfined aquifer', m.x(0.98), m.y((YCl+YCu)/2+DYC)+4);
+        // Observation well label
+        ctx.textAlign = 'center';
+        ctx.fillText('observation', m.x(obsXp), m.y(YL+DYC/1.5)-2);
+        ctx.fillText('well', m.x(obsXp), m.y(YL+DYC/1.5)+12);
+        // Piezometric surface label
+        ctx.textAlign = 'left';
+        ctx.fillText('piezometric', m.x(0.02), m.y(YL-S0-DYC/4));
+        ctx.fillText('surface', m.x(0.02), m.y(YL-S0-DYC/4)+14);
+        // Pumping well label
+        ctx.fillText('pumping', m.x(WX+WW+DW2*2), m.y(YL+DW-2*DW2)-6);
+        ctx.fillText('well', m.x(WX+WW+DW2*2), m.y(YL+DW-2*DW2)+8);
+        // Flow barrier label
+        if (barrier) {
+            ctx.fillText('flow barrier', m.x(0.55+WW), m.y(0.02));
+        }
+    }
+}
+
+// ---- Curve drawing ----
+function drawCurve(ctx, reg, params) {
+    var itest = params.itest;
+    var logX = params.semilog || (itest >= 2);
+    var logY = (itest === 5);
+
+    var tMinE = (itest === 5) ? -2 : -1, tMaxE = 2;
+    var nT = Math.round((tMaxE - tMinE) / 0.2) + 1;
+    var tv = logspace(tMinE, tMaxE, nT);
+
+    var it = 0, md = 1e10;
+    for (var i = 0; i < tv.length; i++) { if (Math.abs(tv[i]-params.t) < md) { md = Math.abs(tv[i]-params.t); it = i; } }
+
+    var res = computeTemporal(tv, params);
+    var s = res.s;
+
+    var xMin = 0.9*tv[0], xMax = 1.1*tv[tv.length-1];
+    var yMin, yMax;
+    if (logY) {
+        yMin = 0.0001; yMax = 2;
+    } else {
+        yMin = 0; yMax = 6;
+        // Extend y-axis below 0 to show negative drawdown from approximation
+        for (var i = 0; i <= it; i++) {
+            if (!isNaN(s[i]) && s[i] < yMin) yMin = Math.floor(s[i] - 0.5);
+        }
+    }
+
+    var pL = 55, pR = 15, pT = 15, pB = 40;
+    var aL = reg.x + pL, aT = reg.y + pT, aW = reg.w - pL - pR, aH = reg.h - pT - pB;
+
+    function mx(v) {
+        if (logX) return aL + (Math.log10(v)-Math.log10(xMin))/(Math.log10(xMax)-Math.log10(xMin)) * aW;
+        return aL + (v-xMin)/(xMax-xMin) * aW;
+    }
+    function my(v) {
+        if (logY) { v = Math.max(v, yMin); return aT + aH - (Math.log10(v)-Math.log10(yMin))/(Math.log10(yMax)-Math.log10(yMin)) * aH; }
+        return aT + aH - (v-yMin)/(yMax-yMin) * aH;
+    }
+
+    // Background
+    ctx.fillStyle = '#fff'; ctx.fillRect(aL, aT, aW, aH);
+
+    // Grid
+    ctx.lineWidth = 0.5;
+    if (logX) {
+        for (var e = Math.floor(Math.log10(xMin)); e <= Math.ceil(Math.log10(xMax)); e++) {
+            var xv = Math.pow(10, e);
+            if (xv >= xMin && xv <= xMax) { ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(mx(xv), aT); ctx.lineTo(mx(xv), aT+aH); ctx.stroke(); }
+            for (var mm = 2; mm <= 9; mm++) {
+                var xvm = mm * Math.pow(10, e);
+                if (xvm >= xMin && xvm <= xMax) { ctx.strokeStyle = '#f0f0f0'; ctx.beginPath(); ctx.moveTo(mx(xvm), aT); ctx.lineTo(mx(xvm), aT+aH); ctx.stroke(); }
+            }
+        }
+    } else {
+        for (var xv = 0; xv <= xMax; xv += 20) {
+            if (xv >= xMin) { ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(mx(xv), aT); ctx.lineTo(mx(xv), aT+aH); ctx.stroke(); }
+        }
+    }
+    if (logY) {
+        for (var e = Math.floor(Math.log10(yMin)); e <= Math.ceil(Math.log10(yMax)); e++) {
+            var yv = Math.pow(10, e);
+            if (yv >= yMin && yv <= yMax) { ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(aL, my(yv)); ctx.lineTo(aL+aW, my(yv)); ctx.stroke(); }
+        }
+    } else {
+        for (var yv = Math.ceil(yMin); yv <= yMax; yv++) {
+            ctx.strokeStyle = (yv === 0 && yMin < 0) ? '#999' : '#ddd';
+            ctx.lineWidth = (yv === 0 && yMin < 0) ? 1 : 0.5;
+            ctx.beginPath(); ctx.moveTo(aL, my(yv)); ctx.lineTo(aL+aW, my(yv)); ctx.stroke();
+            ctx.lineWidth = 0.5;
+        }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.strokeRect(aL, aT, aW, aH);
+
+    // Tick labels
+    ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    if (logX) {
+        for (var e = Math.ceil(Math.log10(xMin)); e <= Math.floor(Math.log10(xMax)); e++) {
+            ctx.fillText(fmtN(Math.pow(10, e)), mx(Math.pow(10, e)), aT+aH+15);
+        }
+    } else {
+        for (var xv = 0; xv <= xMax; xv += 20) { if (xv >= xMin) ctx.fillText(xv+'', mx(xv), aT+aH+15); }
+    }
+    ctx.textAlign = 'right';
+    if (logY) {
+        for (var e = Math.ceil(Math.log10(yMin)); e <= Math.floor(Math.log10(yMax)); e++) {
+            ctx.fillText(fmtN(Math.pow(10, e)), aL-5, my(Math.pow(10, e))+4);
+        }
+    } else {
+        for (var yv = Math.ceil(yMin); yv <= yMax; yv++) ctx.fillText(yv+'', aL-5, my(yv)+4);
+    }
+
+    // Axis titles
+    ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('time [days]', aL+aW/2, aT+aH+32);
+    ctx.save(); ctx.translate(reg.x+12, aT+aH/2); ctx.rotate(-PI/2);
+    ctx.fillText('drawdown [m]', 0, 0); ctx.restore();
+
+    // Neuman comparison curves - clamp to yMin so lines extend to plot bottom
+    if (itest === 5 && res.s0 && res.s1) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(aL, aT, aW, aH);
+        ctx.clip();
+        // Theis S=bSs
+        ctx.beginPath(); ctx.setLineDash([6,3]); ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 1.5;
+        var st = false;
+        for (var i = 0; i < tv.length; i++) {
+            if (res.s0[i] <= 0) continue;
+            var val = Math.max(res.s0[i], yMin * 0.1); // allow drawing below yMin, clip handles it
+            var xp = mx(tv[i]), yp = my(val);
+            if (!st) { ctx.moveTo(xp, yp); st = true; } else ctx.lineTo(xp, yp);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+        // Theis S=Sy
+        ctx.beginPath(); ctx.setLineDash([6,3]); ctx.strokeStyle = '#0066cc'; st = false;
+        for (var i = 0; i < tv.length; i++) {
+            if (res.s1[i] <= 0) continue;
+            var val = Math.max(res.s1[i], yMin * 0.1);
+            var xp = mx(tv[i]), yp = my(val);
+            if (!st) { ctx.moveTo(xp, yp); st = true; } else ctx.lineTo(xp, yp);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+        ctx.restore();
+        // Legend
+        var lx = aL+aW-140, ly = aT+18;
+        ctx.font = '11px Segoe UI, sans-serif'; ctx.textAlign = 'left';
+        ctx.setLineDash([6,3]); ctx.strokeStyle = '#cc0000'; ctx.beginPath();
+        ctx.moveTo(lx, ly); ctx.lineTo(lx+20, ly); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#333'; ctx.fillText('Theis, S=bS\u209B', lx+25, ly+4);
+        ly += 16;
+        ctx.setLineDash([6,3]); ctx.strokeStyle = '#0066cc'; ctx.beginPath();
+        ctx.moveTo(lx, ly); ctx.lineTo(lx+20, ly); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillText('Theis, S=S\u1D67', lx+25, ly+4);
+    }
+
+    // Data points
+    var dc = (params.approx && itest !== 5) ? '#000' : '#0066cc';
+    ctx.lineWidth = 1.5;
+    for (var i = 0; i <= it; i++) {
+        if (logY && s[i] <= 0) continue;
+        if (s[i] < yMin || isNaN(s[i])) continue;
+        var xp = mx(tv[i]), yp = my(s[i]);
+        if (xp < aL || xp > aL+aW || yp < aT || yp > aT+aH) continue;
+        ctx.beginPath(); ctx.arc(xp, yp, 4.5, 0, 2*PI);
+        ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.strokeStyle = dc; ctx.stroke();
+    }
+}
+
+function fmtN(v) {
+    if (v >= 1000) return v.toFixed(0);
+    if (v >= 1) return v.toFixed(0);
+    if (v >= 0.01) return v.toFixed(2);
+    if (v >= 0.001) return v.toFixed(3);
+    return v.toExponential(0);
+}
+
+// ======================== WIDGET SETUP ========================
+
+var ctrlDefs = {
+    Q:   { label: 'Q [m\u00B3/d]', min: 500, max: 1500, step: 500, value: 1000, log: false },
+    t:   { label: 't [day]', min: -1, max: 2, step: 0.2, value: 0, log: true },
+    t_n: { label: 't [day]', min: -2, max: 2, step: 0.2, value: 0, log: true },
+    r:   { label: 'r [m]', min: 100, max: 500, step: 100, value: 200, log: false },
+    T:   { label: 'T [m\u00B2/d]', min: 100, max: 500, step: 100, value: 300, log: false },
+    c:   { label: 'c [day]', min: 2, max: 6, step: 1, value: 5, log: true },
+    H:   { label: 'b [m]', min: 2, max: 5, step: 1.5, value: 2, log: false }
+};
+
+function mkCtrl(cont, def, id) {
+    var g = document.createElement('div'); g.className = 'control-group';
+    var l = document.createElement('label'); l.textContent = def.label; l.setAttribute('for', id);
+    g.appendChild(l);
+    var inp = document.createElement('input'); inp.type = 'range'; inp.id = id;
+    inp.min = def.min; inp.max = def.max; inp.step = def.step; inp.value = def.value;
+    g.appendChild(inp);
+    var v = document.createElement('span'); v.className = 'val';
+    v.textContent = fmtSV(def.log ? Math.pow(10, parseFloat(inp.value)) : parseFloat(inp.value));
+    g.appendChild(v);
+    cont.appendChild(g);
+    return { input: inp, valSpan: v, isDef: def };
+}
+
+function mkCB(cont, label, checked, id) {
+    var g = document.createElement('div'); g.className = 'cb-group';
+    var inp = document.createElement('input'); inp.type = 'checkbox'; inp.id = id; inp.checked = checked;
+    g.appendChild(inp);
+    var l = document.createElement('label'); l.textContent = label; l.setAttribute('for', id);
+    g.appendChild(l);
+    cont.appendChild(g);
+    return inp;
+}
+
+function mkDD(cont, opts, val, id) {
+    var g = document.createElement('div'); g.className = 'control-group';
+    var l = document.createElement('label'); l.textContent = 'Aquifer'; l.setAttribute('for', id);
+    g.appendChild(l);
+    var sel = document.createElement('select'); sel.id = id;
+    opts.forEach(function(o) {
+        var op = document.createElement('option'); op.value = o.v; op.textContent = o.l;
+        if (o.v === val) op.selected = true;
+        sel.appendChild(op);
+    });
+    g.appendChild(sel); cont.appendChild(g);
+    return sel;
+}
+
+function fmtSV(v) {
+    if (v >= 10000) return v.toExponential(0);
+    if (v >= 100) return v.toFixed(0);
+    if (v >= 1) return v.toPrecision(3);
+    if (v >= 0.01) return v.toFixed(2);
+    return v.toFixed(3);
+}
+
+function gv(c) { var v = parseFloat(c.input.value); return c.isDef.log ? Math.pow(10, v) : v; }
+
+function setupWidget(cid, cfg) {
+    var cont = document.getElementById(cid);
+    if (!cont) return;
+    var uid = cid + '-', cs = {};
+
+    var rows = [cfg.row1 || [], cfg.row2 || [], cfg.row3 || []];
+    var dd = null;
+
+    for (var ri = 0; ri < rows.length; ri++) {
+        if (rows[ri].length === 0 && !cfg.dropdown) continue;
+        var row = document.createElement('div'); row.className = 'controls';
+        if (ri === 0 && cfg.dropdown) {
+            dd = mkDD(row, [
+                {l:'confined',v:'1'},{l:'leaky aquifer',v:'2'},{l:'flow barrier',v:'3'},
+                {l:'recharge source',v:'4'},{l:'unconfined',v:'5'}
+            ], '1', uid+'type');
+        }
+        rows[ri].forEach(function(k) {
+            if (k === 'approx') cs.approx = mkCB(row, 'approx.', cfg.approxDef !== false, uid+'approx');
+            else if (k === 'semilog') cs.semilog = mkCB(row, 'SemiLog', cfg.semilogDef || false, uid+'semilog');
+            else if (k === 'image') cs.image = mkCB(row, 'image well', cfg.imageDef || false, uid+'image');
+            else if (k === 'barrier') cs.barrier = mkCB(row, 'Flow barrier', false, uid+'barrier');
+            else if (k === 'analysis') cs.analysis = mkCB(row, 'analysis', cfg.analysisDef || false, uid+'analysis');
+            else cs[k] = mkCtrl(row, ctrlDefs[k], uid+k);
+        });
+        cont.appendChild(row);
+    }
+
+    var canvas = document.createElement('canvas');
+    var cW = cfg.showCurve ? 950 : 560, cH = 400;
+    var ctx = setupCanvas(canvas, cW, cH);
+    cont.appendChild(canvas);
+
+    var sR = cfg.showCurve ? {x:10,y:10,w:520,h:370} : {x:10,y:10,w:540,h:370};
+    var cR = {x:570,y:10,w:370,h:370};
+
+    function render() {
+        var dpr = window.devicePixelRatio || 1;
+        ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.clearRect(0, 0, cW, cH);
+
+        var itest = cfg.itest;
+        if (dd) itest = parseInt(dd.value);
+
+        var p = {
+            Q: cs.Q ? gv(cs.Q) : 1000,
+            t: cs.t ? gv(cs.t) : (cs.t_n ? gv(cs.t_n) : 1),
+            r: cs.r ? gv(cs.r) : 200,
+            T: cs.T ? gv(cs.T) : 300,
+            c: cs.c ? gv(cs.c) : 1e5,
+            H: cs.H ? gv(cs.H) : 2,
+            itest: itest,
+            approx: cs.approx ? cs.approx.checked : (cfg.approxDef !== false),
+            semilog: cs.semilog ? cs.semilog.checked : (itest >= 2),
+            image: cs.image ? cs.image.checked : false,
+            barrier: cs.barrier ? cs.barrier.checked : (cfg.barrier || false),
+            labels: cfg.labels || false
+        };
+        if (itest === 3) p.barrier = true;
+
+        drawScene(ctx, sR, p);
+        var showCurveNow = cfg.showCurve;
+        if (cs.analysis) showCurveNow = cs.analysis.checked;
+        if (showCurveNow) drawCurve(ctx, cR, p);
+        ctx.restore();
+    }
+
+    function onChange() {
+        for (var k in cs) {
+            if (cs[k] && cs[k].input && cs[k].valSpan) {
+                var v = parseFloat(cs[k].input.value);
+                if (cs[k].isDef.log) v = Math.pow(10, v);
+                cs[k].valSpan.textContent = fmtSV(v);
+            }
+        }
+        render();
+    }
+
+    for (var k in cs) {
+        if (cs[k] && cs[k].input) cs[k].input.addEventListener('input', onChange);
+        else if (cs[k] && cs[k].addEventListener) cs[k].addEventListener('change', onChange);
+    }
+    if (dd) dd.addEventListener('change', onChange);
+
+    render();
+}
+
+// ======================== INIT ========================
+
+function init() {
+    STEHFEST_V = computeStehfestCoeffs(STEHFEST_N);
+
+    setupWidget('w-conceptual', {
+        itest: 0, showCurve: false, labels: true,
+        row1: ['r'], row2: ['barrier'], approxDef: true
+    });
+    setupWidget('w-confined', {
+        itest: 1, showCurve: true, labels: false,
+        row1: ['Q', 't', 'approx'], row2: ['T', 'r', 'semilog', 'analysis'],
+        approxDef: true, semilogDef: false, analysisDef: false
+    });
+    setupWidget('w-leaky', {
+        itest: 2, showCurve: true, labels: false,
+        row1: ['Q', 't', 'c'], row2: ['T', 'r'],
+        approxDef: true
+    });
+    setupWidget('w-barrier', {
+        itest: 3, showCurve: true, labels: false, barrier: true,
+        row1: ['Q', 't', 'image'], row2: ['T', 'r'],
+        approxDef: true, imageDef: true
+    });
+    setupWidget('w-recharge', {
+        itest: 4, showCurve: true, labels: false,
+        row1: ['Q', 't', 'image'], row2: ['T', 'r'],
+        approxDef: true, imageDef: false
+    });
+    setupWidget('w-unconfined', {
+        itest: 5, showCurve: true, labels: false,
+        row1: ['Q', 't_n', 'H'], row2: ['T', 'r'],
+        approxDef: true
+    });
+    setupWidget('w-all', {
+        dropdown: true, showCurve: true, labels: false,
+        row1: ['Q', 't', 'approx'], row2: ['T', 'r', 'semilog'],
+        row3: ['H', 'c', 'image'],
+        approxDef: true, semilogDef: false, imageDef: false
+    });
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>

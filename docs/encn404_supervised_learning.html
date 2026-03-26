@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Supervised Learning</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        .canvas-container { display: flex; justify-content: center; margin: 10px 0; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Supervised Learning</h1>
+
+    <!-- ==================== Imports ==================== -->
+    <div class="section">
+        <details>
+            <summary>Show Python code — imports and data</summary>
+            <pre><span class="cm"># imports and data definitions</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> scipy.optimize <span class="kw">import</span> minimize     <span class="cm"># find parameters that minimize the input</span>
+<span class="kw">from</span> functools <span class="kw">import</span> partial           <span class="cm"># locks the first N inputs to the function to particular values</span>
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression     <span class="cm"># multi-variate linear model</span>
+X=np.<span class="fn">array</span>([[<span class="num">1.87</span>,<span class="num">6.66</span>,<span class="num">0.78</span>,<span class="num">8.34</span>],[<span class="num">4.75</span>,<span class="num">2.99</span>,<span class="num">0.78</span>,<span class="num">5.91</span>]])
+y=np.<span class="fn">array</span>([<span class="num">15.28</span>,<span class="num">17.04</span>,<span class="num">3.85</span>,<span class="num">17.52</span>])</pre>
+        </details>
+    </div>
+
+    <!-- ==================== 5.1 Model 1A ==================== -->
+    <div class="section">
+        <h3>5.1 Model 1A</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># extract the training set (three data points)</span>
+rain=X[<span class="num">0</span>,:3]
+runoff=y[:<span class="num">3</span>]
+
+<span class="cm"># find the best-fitting linear model</span>
+    <span class="cm"># define the loss function</span>
+<span class="kw">def</span> <span class="fn">sum_of_squared_differences</span>(feature, runoff, pars):
+    m,c=pars
+    <span class="kw">return</span> np.<span class="fn">sum</span>([(runoff_i-m*feature_i-c)**<span class="num">2</span> <span class="kw">for</span> runoff_i,feature_i <span class="kw">in</span> <span class="fn">zip</span>(runoff,feature)])
+    <span class="cm"># training</span>
+m_best, c_best=<span class="fn">minimize</span>(<span class="fn">partial</span>(sum_of_squared_differences, rain, runoff), [<span class="num">1</span>,<span class="num">1</span>]).x
+
+<span class="cm"># show the result</span>
+f,ax=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">1</span>,figsize=(<span class="num">6</span>,<span class="num">3</span>))
+ax.<span class="fn">plot</span>(X[<span class="num">0</span>,:], y, <span class="str">'o'</span>, ms=<span class="num">5</span>, color=[<span class="num">1.</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">'all'</span>)
+ax.<span class="fn">plot</span>(X[<span class="num">0</span>,:<span class="num">3</span>], y[:<span class="num">3</span>], <span class="str">'o'</span>, ms=<span class="num">3</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">'train'</span>)
+ax.<span class="fn">plot</span>([<span class="num">0</span>,<span class="num">10</span>], [c_best,m_best*<span class="num">10</span>+c_best], <span class="str">':'</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">f'y={m_best:3.2f}x+{c_best:3.2f}'</span>)
+ax.<span class="fn">set_xlim</span>([<span class="num">0</span>,<span class="num">10</span>]);ax.<span class="fn">set_xlabel</span>(<span class="str">'rain'</span>)
+ax.<span class="fn">set_ylim</span>([<span class="num">0</span>,<span class="num">25</span>]);ax.<span class="fn">set_ylabel</span>(<span class="str">'runoff'</span>)
+ax.<span class="fn">set_title</span>(<span class="str">f'sum of squares = {sum_of_squared_differences(X[0,:], y, [m_best, c_best]):3.2f}'</span>)
+ax.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="canvas1a" width="585" height="290"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== 5.2 Model 1B ==================== -->
+    <div class="section">
+        <h3>5.2 Model 1B</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># extract the training set (all data points)</span>
+rain=X[<span class="num">0</span>,:]
+runoff=y
+
+<span class="cm"># find the best-fitting linear model</span>
+    <span class="cm"># use loss function defined above</span>
+    <span class="cm"># training</span>
+m_best, c_best=<span class="fn">minimize</span>(<span class="fn">partial</span>(sum_of_squared_differences, rain, runoff), [<span class="num">1</span>,<span class="num">1</span>]).x
+
+<span class="cm"># show the result</span>
+f,ax=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">1</span>,figsize=(<span class="num">6</span>,<span class="num">3</span>))
+ax.<span class="fn">plot</span>(X[<span class="num">0</span>,:], y, <span class="str">'o'</span>, ms=<span class="num">5</span>, color=[<span class="num">1.</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">'all'</span>)
+ax.<span class="fn">plot</span>(X[<span class="num">0</span>,:], y[:], <span class="str">'o'</span>, ms=<span class="num">3</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">'train'</span>)
+ax.<span class="fn">plot</span>([<span class="num">0</span>,<span class="num">10</span>], [c_best,m_best*<span class="num">10</span>+c_best], <span class="str">':'</span>, color=[<span class="num">1</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">f'y={m_best:3.2f}x+{c_best:3.2f}'</span>)
+ax.<span class="fn">set_xlim</span>([<span class="num">0</span>,<span class="num">10</span>]);ax.<span class="fn">set_xlabel</span>(<span class="str">'rain'</span>)
+ax.<span class="fn">set_ylim</span>([<span class="num">0</span>,<span class="num">25</span>]);ax.<span class="fn">set_ylabel</span>(<span class="str">'runoff'</span>)
+ax.<span class="fn">set_title</span>(<span class="str">f'sum of squares = {sum_of_squared_differences(X[0,:], y, [m_best, c_best]):3.2f}'</span>)
+ax.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="canvas1b" width="585" height="290"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== 5.3 Model 2A ==================== -->
+    <div class="section">
+        <h3>5.3 Model 2A</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># extract the training set (three data points)</span>
+soil_condition=X[<span class="num">1</span>,:<span class="num">3</span>]
+runoff=y[:<span class="num">3</span>]
+
+<span class="cm"># find the best-fitting linear model</span>
+    <span class="cm"># define the loss function</span>
+<span class="kw">def</span> <span class="fn">sum_of_squared_differences</span>(feature, runoff, pars):
+    m,c=pars
+    <span class="kw">return</span> np.<span class="fn">sum</span>([(runoff_i-m*feature_i-c)**<span class="num">2</span> <span class="kw">for</span> runoff_i,feature_i <span class="kw">in</span> <span class="fn">zip</span>(runoff,feature)])
+    <span class="cm"># training</span>
+m_best, c_best=<span class="fn">minimize</span>(<span class="fn">partial</span>(sum_of_squared_differences, soil_condition, runoff), [<span class="num">1</span>,<span class="num">1</span>]).x
+
+<span class="cm"># show the result</span>
+f,ax=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">1</span>,figsize=(<span class="num">6</span>,<span class="num">3</span>))
+ax.<span class="fn">plot</span>(X[<span class="num">1</span>,:], y, <span class="str">'o'</span>, ms=<span class="num">5</span>, color=[<span class="num">1.</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">'all'</span>)
+ax.<span class="fn">plot</span>(X[<span class="num">1</span>,:<span class="num">3</span>], y[:<span class="num">3</span>], <span class="str">'o'</span>, ms=<span class="num">3</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">'train'</span>)
+ax.<span class="fn">plot</span>([<span class="num">0</span>,<span class="num">7</span>], [c_best,m_best*<span class="num">7</span>+c_best], <span class="str">':'</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">f'y={m_best:3.2f}x+{c_best:3.2f}'</span>)
+ax.<span class="fn">set_xlim</span>([<span class="num">0</span>,<span class="num">7</span>]);ax.<span class="fn">set_xlabel</span>(<span class="str">'soil condition'</span>)
+ax.<span class="fn">set_ylim</span>([<span class="num">0</span>,<span class="num">25</span>]);ax.<span class="fn">set_ylabel</span>(<span class="str">'runoff'</span>)
+ax.<span class="fn">set_title</span>(<span class="str">f'sum of squares = {sum_of_squared_differences(X[1,:], y, [m_best, c_best]):3.2f}'</span>)
+ax.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="canvas2a" width="585" height="290"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== 5.4 Model 2B ==================== -->
+    <div class="section">
+        <h3>5.4 Model 2B</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># extract the training set (all data points)</span>
+soil_condition=X[<span class="num">1</span>,:]
+runoff=y
+
+<span class="cm"># find the best-fitting linear model</span>
+    <span class="cm"># use loss function defined above</span>
+    <span class="cm"># training</span>
+<span class="kw">from</span> scipy.optimize <span class="kw">import</span> minimize     <span class="cm"># find parameters that minimize the input</span>
+<span class="kw">from</span> functools <span class="kw">import</span> partial           <span class="cm"># locks the first N inputs to the function to particular values</span>
+m_best, c_best=<span class="fn">minimize</span>(<span class="fn">partial</span>(sum_of_squared_differences, soil_condition, runoff), [<span class="num">1</span>,<span class="num">1</span>]).x
+
+<span class="cm"># show the result</span>
+f,ax=plt.<span class="fn">subplots</span>(<span class="num">1</span>,<span class="num">1</span>,figsize=(<span class="num">6</span>,<span class="num">3</span>))
+ax.<span class="fn">plot</span>(X[<span class="num">1</span>,:], y, <span class="str">'o'</span>, ms=<span class="num">5</span>, color=[<span class="num">1.</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">'all'</span>)
+ax.<span class="fn">plot</span>(X[<span class="num">1</span>,:], y[:], <span class="str">'o'</span>, ms=<span class="num">3</span>, color=[<span class="num">0.2</span>, <span class="num">0.2</span>, <span class="num">0.8</span>], label=<span class="str">'train'</span>)
+ax.<span class="fn">plot</span>([<span class="num">0</span>,<span class="num">7</span>], [c_best,m_best*<span class="num">7</span>+c_best], <span class="str">':'</span>, color=[<span class="num">1</span>, <span class="num">0.5</span>, <span class="num">0.5</span>], label=<span class="str">f'y={m_best:3.2f}x+{c_best:3.2f}'</span>)
+ax.<span class="fn">set_xlim</span>([<span class="num">0</span>,<span class="num">7</span>]);ax.<span class="fn">set_xlabel</span>(<span class="str">'soil_condition'</span>)
+ax.<span class="fn">set_ylim</span>([<span class="num">0</span>,<span class="num">25</span>]);ax.<span class="fn">set_ylabel</span>(<span class="str">'runoff'</span>)
+ax.<span class="fn">set_title</span>(<span class="str">f'sum of squares = {sum_of_squared_differences(X[1,:], y, [m_best, c_best]):3.2f}'</span>)
+ax.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="canvas-container">
+            <canvas id="canvas2b" width="585" height="290"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== 5.5 Model 3 ==================== -->
+    <div class="section">
+        <h3>5.5 Model 3</h3>
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Create feature matrix and label vector for training set</span>
+X_train = X[:,:<span class="num">3</span>].T
+y_train = y[:<span class="num">3</span>]
+
+<span class="cm"># Create a linear regression model</span>
+model = <span class="fn">LinearRegression</span>()
+
+<span class="cm"># Train the model</span>
+model.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="cm"># Generate an out-of-sample point for prediction</span>
+X_test = np.<span class="fn">array</span>([[<span class="num">8.34</span>, <span class="num">5.91</span>]])  <span class="cm"># Test point with two features</span>
+
+<span class="cm"># Make predictions</span>
+y_pred = model.<span class="fn">predict</span>(X_test)
+
+<span class="cm"># Plot the data points and the linear regression plane</span>
+fig = plt.<span class="fn">figure</span>()
+ax = fig.<span class="fn">add_subplot</span>(<span class="num">111</span>, projection=<span class="str">'3d'</span>)
+ax.<span class="fn">scatter</span>(X_train[:, <span class="num">0</span>], X_train[:, <span class="num">1</span>], y_train, color=<span class="str">'blue'</span>, label=<span class="str">'Training data'</span>)
+ax.<span class="fn">scatter</span>(X_test[:, <span class="num">0</span>], X_test[:, <span class="num">1</span>], y_pred, color=<span class="str">'red'</span>, label=<span class="str">'Test prediction'</span>)
+
+<span class="cm"># Create a meshgrid for plotting the regression plane</span>
+x_grid, y_grid = np.<span class="fn">meshgrid</span>(np.<span class="fn">linspace</span>(<span class="num">0</span>, <span class="num">9</span>, <span class="num">50</span>), np.<span class="fn">linspace</span>(<span class="num">0</span>, <span class="num">6</span>, <span class="num">50</span>))
+z_grid = model.<span class="fn">predict</span>(np.<span class="fn">c_</span>[x_grid.<span class="fn">ravel</span>(), y_grid.<span class="fn">ravel</span>()]).<span class="fn">reshape</span>(x_grid.shape)
+ax.<span class="fn">plot_surface</span>(x_grid, y_grid, z_grid, alpha=<span class="num">0.5</span>, cmap=<span class="str">'viridis'</span>)
+
+ax.<span class="fn">set_xlabel</span>(<span class="str">'rainfall'</span>)
+ax.<span class="fn">set_ylabel</span>(<span class="str">'soil condition'</span>)
+ax.<span class="fn">set_zlabel</span>(<span class="str">'runoff'</span>)
+ax.<span class="fn">set_title</span>(<span class="str">'Simple Linear Regression with Two Features'</span>)
+ax.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()
+
+<span class="cm"># Print the prediction result</span>
+<span class="fn">print</span>(<span class="str">f"Predicted value for X_test: {y_pred[0]:3.2f}. Sum of squares = {(y_pred[0]-y[-1])**2:3.2f}"</span>)</pre>
+        </details>
+        <div class="output">Predicted value for X_test: 26.58. Sum of squares = 82.16</div>
+        <p style="font-size:13px; color:#666; margin-top:8px;">Run this code in Python to see the 3D regression plane visualisation — the 3D plot is not shown here.</p>
+    </div>
+
+    <!-- ==================== JavaScript: Canvas Plots ==================== -->
+    <script>
+    (function(){
+        // Shared data
+        const rain = [1.87, 6.66, 0.78, 8.34];
+        const soil = [4.75, 2.99, 0.78, 5.91];
+        const runoff = [15.28, 17.04, 3.85, 17.52];
+
+        // Model fits (pre-computed from Python)
+        const models = {
+            '1a': { m: 1.6769, c: 6.8526, ss: 58.55, xFeat: rain, trainIdx: [0,1,2], xLabel: 'rain',           xMax: 10, lineColor: 'rgba(51,51,204,1)' },
+            '1b': { m: 1.3522, c: 7.4558, ss: 51.57, xFeat: rain, trainIdx: [0,1,2,3], xLabel: 'rain',         xMax: 10, lineColor: 'rgba(255,128,128,1)' },
+            '2a': { m: 3.0085, c: 3.5126, ss: 45.17, xFeat: soil, trainIdx: [0,1,2], xLabel: 'soil condition',  xMax: 7,  lineColor: 'rgba(51,51,204,1)' },
+            '2b': { m: 2.4287, c: 4.6609, ss: 36.58, xFeat: soil, trainIdx: [0,1,2,3], xLabel: 'soil_condition', xMax: 7, lineColor: 'rgba(255,128,128,1)' }
+        };
+
+        function drawPlot(canvasId, key) {
+            const mod = models[key];
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const cssW = 585, cssH = 290;
+            canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+            canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+            ctx.scale(dpr, dpr);
+
+            const P = { x: 60, y: 30, w: 480, h: 220 };
+            const xMin = 0, xMax = mod.xMax, yMin = 0, yMax = 25;
+
+            function tx(v) { return P.x + (v - xMin)/(xMax - xMin) * P.w; }
+            function ty(v) { return P.y + P.h - (v - yMin)/(yMax - yMin) * P.h; }
+
+            // Title
+            ctx.fillStyle = '#333'; ctx.font = '13px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText(`sum of squares = ${mod.ss.toFixed(2)}`, P.x + P.w/2, P.y - 4);
+
+            // Plot area
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.strokeRect(P.x, P.y, P.w, P.h);
+
+            // Grid lines
+            ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+            for (let v = 5; v <= 20; v += 5) {
+                ctx.beginPath(); ctx.moveTo(P.x, ty(v)); ctx.lineTo(P.x + P.w, ty(v)); ctx.stroke();
+            }
+
+            // X-axis ticks
+            ctx.fillStyle = '#333'; ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            const xStep = xMax <= 7 ? 1 : 2;
+            for (let v = 0; v <= xMax; v += xStep) {
+                const px = tx(v);
+                ctx.beginPath(); ctx.moveTo(px, P.y + P.h); ctx.lineTo(px, P.y + P.h + 4); ctx.stroke();
+                ctx.fillText(v, px, P.y + P.h + 5);
+            }
+            // X label
+            ctx.font = '12px Segoe UI';
+            ctx.fillText(mod.xLabel, P.x + P.w/2, P.y + P.h + 20);
+
+            // Y-axis ticks
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let v = 0; v <= 25; v += 5) {
+                const py = ty(v);
+                ctx.beginPath(); ctx.moveTo(P.x, py); ctx.lineTo(P.x - 4, py); ctx.stroke();
+                ctx.fillText(v, P.x - 6, py);
+            }
+            // Y label
+            ctx.font = '12px Segoe UI';
+            ctx.save(); ctx.translate(14, P.y + P.h/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.fillText('runoff', 0, 0); ctx.restore();
+
+            // Clip plot area
+            ctx.save();
+            ctx.beginPath(); ctx.rect(P.x, P.y, P.w, P.h); ctx.clip();
+
+            // Best-fit line (dotted)
+            ctx.strokeStyle = mod.lineColor; ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 4]);
+            const lx0 = 0, lx1 = xMax;
+            ctx.beginPath(); ctx.moveTo(tx(lx0), ty(mod.m*lx0 + mod.c)); ctx.lineTo(tx(lx1), ty(mod.m*lx1 + mod.c)); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // "All" data points (pink, larger)
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath(); ctx.arc(tx(mod.xFeat[i]), ty(runoff[i]), 5, 0, 2*Math.PI);
+                ctx.fillStyle = 'rgba(255,128,128,1)'; ctx.fill();
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+            // "Train" data points (blue, smaller, on top)
+            for (const i of mod.trainIdx) {
+                ctx.beginPath(); ctx.arc(tx(mod.xFeat[i]), ty(runoff[i]), 3.5, 0, 2*Math.PI);
+                ctx.fillStyle = 'rgba(51,51,204,1)'; ctx.fill();
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Legend
+            const lgX = P.x + P.w - 160, lgY = P.y + 8;
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.fillRect(lgX, lgY, 155, 54); ctx.strokeRect(lgX, lgY, 155, 54);
+
+            // all
+            ctx.beginPath(); ctx.arc(lgX + 10, lgY + 10, 4, 0, 2*Math.PI);
+            ctx.fillStyle = 'rgba(255,128,128,1)'; ctx.fill();
+            ctx.fillStyle = '#333'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('all', lgX + 18, lgY + 10);
+
+            // train
+            ctx.beginPath(); ctx.arc(lgX + 10, lgY + 26, 3, 0, 2*Math.PI);
+            ctx.fillStyle = 'rgba(51,51,204,1)'; ctx.fill();
+            ctx.fillStyle = '#333'; ctx.fillText('train', lgX + 18, lgY + 26);
+
+            // line
+            ctx.strokeStyle = mod.lineColor; ctx.lineWidth = 1.5; ctx.setLineDash([5,3]);
+            ctx.beginPath(); ctx.moveTo(lgX + 5, lgY + 42); ctx.lineTo(lgX + 15, lgY + 42); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#333';
+            ctx.fillText(`y=${mod.m.toFixed(2)}x+${mod.c.toFixed(2)}`, lgX + 18, lgY + 42);
+        }
+
+        drawPlot('canvas1a', '1a');
+        drawPlot('canvas1b', '1b');
+        drawPlot('canvas2a', '2a');
+        drawPlot('canvas2b', '2b');
+    })();
+    </script>
+</body>
+</html>

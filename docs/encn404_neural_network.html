@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENCN404 - Neural Networks</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .explainer { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .explainer p { margin: 1em 0; }
+        .section { background: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+        .section p { margin: 1em 0; }
+        .output { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; line-height: 1.5; color: #333; overflow-x: auto; white-space: pre-wrap; }
+        .widget-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .controls { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
+        .control-group label { font-weight: 500; font-size: 13px; }
+        .control-group input[type="range"] { width: 140px; }
+        .canvas-container { display: flex; justify-content: center; }
+        canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
+        .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; margin-bottom: 20px; }
+        .questions p { margin: 0.8em 0; color: #555; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Neural Networks</h1>
+
+    <!-- ==================== 6.2 Data Setup ==================== -->
+    <div class="section">
+        <h3>6.2 Neural Networks</h3>
+
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="cm"># Neural network prediction of runoff, based on current and previous rainfall</span>
+<span class="cm"># note, all numbers have been normalized for convenience</span>
+
+<span class="cm"># feature matrix</span>
+<span class="cm"># columns: current rainfall, previous hour rainfall, previous runoff</span>
+X = np.<span class="fn">array</span>([[<span class="num">0</span>,<span class="num">0</span>,<span class="num">1</span>],        <span class="cm"># rainfall has stopped, some runoff remains</span>
+            [<span class="num">0</span>,<span class="num">1</span>,<span class="num">1</span>],          <span class="cm"># **describe**</span>
+            [<span class="num">1</span>,<span class="num">1</span>,<span class="num">0</span>],          <span class="cm"># **describe**</span>
+            [<span class="num">1</span>,<span class="num">1</span>,<span class="num">1</span>]])         <span class="cm"># **describe**</span>
+
+<span class="cm"># label vector: amount of current runoff</span>
+y = np.<span class="fn">array</span>([[<span class="num">0.1</span>],
+              [<span class="num">0.6</span>],
+              [<span class="num">0.4</span>],
+              [<span class="num">1.0</span>]])
+
+<span class="cm"># prediction: what will be the runoff for these features?</span>
+predict=np.<span class="fn">array</span>([[<span class="num">0.5</span>, <span class="num">0.3</span>, <span class="num">0.8</span>],])</pre>
+        </details>
+    </div>
+
+    <!-- ==================== Interactive Widget ==================== -->
+    <div class="explainer">
+        <p>A simple neural network with one hidden layer (3 inputs, 4 hidden neurons, 1 output). Each connector has a <strong>weight</strong> &mdash; its colour (red=positive, blue=negative) and thickness indicate magnitude. Use the training slider to watch weights adjust during learning.</p>
+    </div>
+
+    <div class="widget-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>training steps (x100):</label>
+                <input type="range" id="stepSlider" min="0" max="10" step="1" value="0">
+                <span id="stepVal">0</span>
+            </div>
+            <div class="control-group">
+                <label>show datapoint:</label>
+                <input type="range" id="showSlider" min="0" max="4" step="1" value="0">
+                <span id="showVal">0</span>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <label><input type="checkbox" id="labelsCheck"> labels</label>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="predictCheck"> predict</label>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas" width="700" height="360"></canvas>
+        </div>
+    </div>
+
+    <div class="questions">
+        <p><strong>TASK 0:</strong> Model setup. Consider the partial description of the feature matrix above, and complete the remaining rows. Turn on the labels and read the descriptions of the model parts. Each connector is an activation function &mdash; its colour and thickness denote its weight (red=positive, blue=negative).</p>
+        <p><strong>TASK 1:</strong> Model training. (Turn on labels if you are not sure what you are looking at.) How does the number of circles in the input layer reflect the input data? Is the number of circles in the hidden layer a parameter or a hyperparameter?</p>
+        <p>The model is initialised with random weights &mdash; use the slider to start training it. How does total error change as the number of training steps is increased? How do the weights change during training?</p>
+        <p>Use the slider to visualise a datapoint (a row of the feature matrix). How does training improve the model prediction and the true label?</p>
+        <p><strong>TASK 2:</strong> Model prediction. Which feature has the greatest total weight of connectors leaving it? Turn on prediction &mdash; does the answer make sense? Try a different prediction.</p>
+        <p><strong>EXTRA:</strong> Make some changes to input features or labels and see how things change.</p>
+    </div>
+
+    <!-- ==================== sklearn MLPRegressor Demo ==================== -->
+    <div class="section">
+        <details>
+            <summary>Show sklearn MLPRegressor demo code</summary>
+            <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> sklearn.neural_network <span class="kw">import</span> MLPRegressor
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> mean_squared_error
+
+<span class="cm"># Generate synthetic data with two predictors (X1 and X2)</span>
+np.random.<span class="fn">seed</span>(<span class="num">42</span>)
+n_samples = <span class="num">100</span>
+X1 = np.random.<span class="fn">rand</span>(n_samples, <span class="num">1</span>)
+X2 = np.random.<span class="fn">rand</span>(n_samples, <span class="num">1</span>)
+y = X1**<span class="num">3</span> + <span class="num">2</span> * X2**<span class="num">2</span> + <span class="num">3</span> * X1 * X2 + np.random.<span class="fn">randn</span>(n_samples, <span class="num">1</span>) * <span class="num">2</span>
+
+<span class="cm"># Combine X1 and X2 into a single feature matrix</span>
+X = np.<span class="fn">hstack</span>((X1, X2))
+
+<span class="cm"># Split the data into training and test sets</span>
+X_train, X_test, y_train, y_test = <span class="fn">train_test_split</span>(X, y, test_size=<span class="num">0.2</span>, random_state=<span class="num">42</span>)
+
+<span class="cm"># TASK</span>
+<span class="cm"># play with the hidden_layer_sizes, e.g., (10,10,10), max_iter (e.g., 10000), and other parameters</span>
+<span class="cm"># to see if you can improve the model fit.</span>
+<span class="cm"># Create an MLPRegressor model</span>
+model = <span class="fn">MLPRegressor</span>(hidden_layer_sizes=(<span class="num">10</span>, <span class="num">5</span>), activation=<span class="str">'relu'</span>, solver=<span class="str">'adam'</span>, max_iter=<span class="num">1000</span>)
+
+<span class="cm"># Train the model</span>
+model.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="cm"># Make predictions on the test set</span>
+y_pred = model.<span class="fn">predict</span>(X_test)
+
+<span class="cm"># Evaluate the model</span>
+mse = <span class="fn">mean_squared_error</span>(y_test, y_pred)
+<span class="fn">print</span>(<span class="str">f"Mean Squared Error: {mse:.4f}"</span>)
+
+<span class="cm"># Visualize the predictions (you can modify this part as needed)</span>
+plt.<span class="fn">figure</span>(figsize=(<span class="num">8</span>, <span class="num">6</span>))
+plt.<span class="fn">scatter</span>(y_train, model.<span class="fn">predict</span>(X_train), color=<span class="str">'r'</span>, alpha=<span class="num">0.7</span>, label=<span class="str">'in-sample'</span>)
+plt.<span class="fn">scatter</span>(y_test, y_pred, color=<span class="str">'b'</span>, alpha=<span class="num">0.7</span>, label=<span class="str">'out-of-sample'</span>)
+plt.<span class="fn">plot</span>([<span class="fn">min</span>(y_test), <span class="fn">max</span>(y_test)], [<span class="fn">min</span>(y_test), <span class="fn">max</span>(y_test)], color=<span class="str">'r'</span>, linestyle=<span class="str">'--'</span>)
+plt.<span class="fn">xlabel</span>(<span class="str">"True values"</span>)
+plt.<span class="fn">ylabel</span>(<span class="str">"Predicted values"</span>)
+plt.<span class="fn">title</span>(<span class="str">"Cubic Function Regression with Neural Network"</span>)
+plt.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
+        <div class="output">Mean Squared Error: 2.8966</div>
+        <p style="font-size:13px; color:#666; margin-top:8px;">Run this code in Python to see the prediction scatter plot. Try changing hidden_layer_sizes, max_iter, and other parameters to improve the model fit.</p>
+    </div>
+
+    <!-- ==================== JavaScript: Neural Network Widget ==================== -->
+    <script>
+    (function(){
+        // Training data
+        const X = [[0,0,1],[0,1,1],[1,1,0],[1,1,1]];
+        const y = [[0.1],[0.6],[0.4],[1.0]];
+        const Xp = [[0.5, 0.3, 0.8]];
+
+        // Sigmoid
+        function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+        function sigmoidDeriv(x) { return x * (1 - x); }
+
+        // Seeded RNG
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        function trainNetwork(steps) {
+            const rng = mulberry32(1);
+            const syn0 = Array.from({length: 3}, () => Array.from({length: 4}, () => 2*rng()-1));
+            const syn1 = Array.from({length: 4}, () => [2*rng()-1]);
+
+            function dot(A, B) {
+                const rows = A.length, cols = B[0].length, inner = B.length;
+                return Array.from({length: rows}, (_, i) =>
+                    Array.from({length: cols}, (_, j) => {
+                        let s = 0; for (let k = 0; k < inner; k++) s += A[i][k] * B[k][j]; return s;
+                    }));
+            }
+            function matSigmoid(M) { return M.map(r => r.map(sigmoid)); }
+            function transpose(M) { return M[0].map((_, j) => M.map(r => r[j])); }
+
+            let l1, l2, l2_error;
+            for (let iter = 0; iter <= steps; iter++) {
+                l1 = matSigmoid(dot(X, syn0));
+                l2 = matSigmoid(dot(l1, syn1));
+                l2_error = l2.map((r, i) => [y[i][0] - r[0]]);
+
+                if (iter === steps) break;
+
+                const l2_delta = l2_error.map((r, i) => [r[0] * sigmoidDeriv(l2[i][0])]);
+                const l1_error = dot(l2_delta, transpose(syn1));
+                const l1_delta = l1_error.map((r, i) => r.map((v, j) => v * sigmoidDeriv(l1[i][j])));
+
+                const l1T = transpose(l1);
+                for (let i = 0; i < 4; i++) for (let j = 0; j < 1; j++) {
+                    let s = 0; for (let k = 0; k < 4; k++) s += l1T[i][k] * l2_delta[k][j];
+                    syn1[i][j] += s;
+                }
+                const XT = transpose(X);
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) {
+                    let s = 0; for (let k = 0; k < 4; k++) s += XT[i][k] * l1_delta[k][j];
+                    syn0[i][j] += s;
+                }
+            }
+
+            // Prediction
+            const l1pRaw = dot(Xp, syn0);
+            const l1p = l1pRaw.map(r => r.map(sigmoid));
+            const l2p = dot(l1p, syn1);
+            const yp = sigmoid(l2p[0][0]);
+
+            const meanError = l2_error.reduce((s, r) => s + Math.abs(r[0]), 0) / 4;
+            return { syn0, syn1, l1, l2, l2_error, meanError, l1p, yp };
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 700, cssH = 360;
+        canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.scale(dpr, dpr);
+
+        function draw() {
+            const steps = parseInt(document.getElementById('stepSlider').value) * 100;
+            const showDP = parseInt(document.getElementById('showSlider').value);
+            const showLabels = document.getElementById('labelsCheck').checked;
+            const showPredict = document.getElementById('predictCheck').checked;
+
+            document.getElementById('stepVal').textContent = steps;
+            document.getElementById('showVal').textContent = showDP;
+
+            const net = trainNetwork(steps);
+
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const layerSizes = [3, 4, 1];
+            const xPositions = [150, 350, 550];
+            const centerY = 170;
+
+            function neuronY(layer, idx) {
+                const n = layerSizes[layer];
+                const spread = 70;
+                return centerY + (idx - (n-1)/2) * spread;
+            }
+
+            // Draw connections
+            const wMax0 = net.syn0.flat().reduce((m, v) => Math.max(m, Math.abs(v)), 0.001);
+            const wMax1 = net.syn1.flat().reduce((m, v) => Math.max(m, Math.abs(v)), 0.001);
+
+            // Layer 0 -> 1
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const w = net.syn0[i][j];
+                    const norm = w / (2 * wMax0) + 0.5;
+                    const r = Math.round(norm * 255), b = Math.round((1-norm) * 255);
+                    const lw = Math.abs(w) * 2 + 0.25;
+                    if (Math.abs(norm - 0.5) < 0.05) {
+                        ctx.strokeStyle = '#666'; ctx.setLineDash([4, 4]);
+                    } else {
+                        ctx.strokeStyle = `rgb(${r},0,${b})`; ctx.setLineDash([]);
+                    }
+                    ctx.lineWidth = Math.min(lw, 5);
+                    ctx.beginPath();
+                    ctx.moveTo(xPositions[0], neuronY(0, i));
+                    ctx.lineTo(xPositions[1], neuronY(1, j));
+                    ctx.stroke();
+                }
+            }
+            ctx.setLineDash([]);
+
+            // Layer 1 -> 2
+            for (let i = 0; i < 4; i++) {
+                const w = net.syn1[i][0];
+                const norm = w / (2 * wMax1) + 0.5;
+                const r = Math.round(norm * 255), b = Math.round((1-norm) * 255);
+                const lw = Math.abs(w) * 2 + 0.25;
+                if (Math.abs(norm - 0.5) < 0.05) {
+                    ctx.strokeStyle = '#666'; ctx.setLineDash([4, 4]);
+                } else {
+                    ctx.strokeStyle = `rgb(${r},0,${b})`; ctx.setLineDash([]);
+                }
+                ctx.lineWidth = Math.min(lw, 5);
+                ctx.beginPath();
+                ctx.moveTo(xPositions[1], neuronY(1, i));
+                ctx.lineTo(xPositions[2], neuronY(2, 0));
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Draw neurons
+            const nodeR = 22;
+            for (let layer = 0; layer < 3; layer++) {
+                for (let idx = 0; idx < layerSizes[layer]; idx++) {
+                    const nx = xPositions[layer], ny = neuronY(layer, idx);
+                    ctx.beginPath(); ctx.arc(nx, ny, nodeR, 0, 2*Math.PI);
+                    ctx.fillStyle = 'white'; ctx.fill();
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.stroke();
+
+                    // Values inside neurons
+                    ctx.font = '11px Segoe UI';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+                    if (showPredict) {
+                        ctx.fillStyle = '#e74c3c';
+                        if (layer === 0) ctx.fillText(Xp[0][idx].toFixed(1), nx, ny);
+                        else if (layer === 1) ctx.fillText(net.l1p[0][idx].toFixed(3), nx, ny);
+                        else ctx.fillText(net.yp.toFixed(2), nx, ny);
+                    } else if (showDP > 0) {
+                        const di = showDP - 1;
+                        ctx.fillStyle = '#000';
+                        if (layer === 0) ctx.fillText(X[di][idx].toFixed(1), nx, ny);
+                        else if (layer === 1) ctx.fillText(net.l1[di][idx].toFixed(3), nx, ny);
+                        else {
+                            ctx.fillText(net.l2[di][0].toFixed(2), nx, ny - 7);
+                            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.font = '10px Segoe UI';
+                            ctx.fillText(`(${y[di][0].toFixed(2)})`, nx, ny + 9);
+                        }
+                    }
+                }
+            }
+
+            // Error text
+            ctx.fillStyle = '#333'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(`training`, xPositions[2], neuronY(2, 0) + 35);
+            ctx.fillText(`error`, xPositions[2], neuronY(2, 0) + 50);
+            ctx.fillText(`=${net.meanError.toFixed(2)}`, xPositions[2], neuronY(2, 0) + 65);
+
+            // Labels
+            if (showLabels) {
+                ctx.font = 'italic 11px Segoe UI'; ctx.fillStyle = '#555';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText('input', xPositions[0], 25);
+                ctx.fillText('layer', xPositions[0], 40);
+                ctx.fillText('(features)', xPositions[0], 55);
+                ctx.fillText('hidden', xPositions[1], 25);
+                ctx.fillText('layer', xPositions[1], 40);
+                ctx.fillText('output', xPositions[2], 25);
+                ctx.fillText('layer', xPositions[2], 40);
+                ctx.fillText('(label)', xPositions[2], 55);
+
+                ctx.textAlign = 'right';
+                ctx.fillText('current', xPositions[0] - 30, neuronY(0, 0) - 3);
+                ctx.fillText('rainfall', xPositions[0] - 30, neuronY(0, 0) + 12);
+                ctx.fillText('previous', xPositions[0] - 30, neuronY(0, 1) - 3);
+                ctx.fillText('rainfall', xPositions[0] - 30, neuronY(0, 1) + 12);
+                ctx.fillText('previous', xPositions[0] - 30, neuronY(0, 2) - 3);
+                ctx.fillText('runoff', xPositions[0] - 30, neuronY(0, 2) + 12);
+
+                ctx.textAlign = 'left';
+                ctx.fillText('current', xPositions[2] + 30, neuronY(2, 0) + 5);
+                ctx.fillText('runoff', xPositions[2] + 30, neuronY(2, 0) + 18);
+            }
+        }
+
+        ['stepSlider','showSlider'].forEach(id =>
+            document.getElementById(id).addEventListener('input', draw));
+        ['labelsCheck','predictCheck'].forEach(id =>
+            document.getElementById(id).addEventListener('change', draw));
+        draw();
+    })();
+    </script>
+</body>
+</html>

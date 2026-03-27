@@ -19,6 +19,16 @@
         canvas { border: 1px solid #ddd; background: white; max-width: 100%; }
         .questions { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.8; }
         .questions p { margin: 0.8em 0; color: #555; }
+        /* Collapsible code blocks */
+        details { margin: 10px 0; }
+        summary { cursor: pointer; font-size: 13px; font-weight: 500; color: #4285f4; padding: 4px 0; user-select: none; }
+        summary:hover { color: #2060c0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0 0; }
+        pre .kw { color: #569cd6; }
+        pre .fn { color: #dcdcaa; }
+        pre .str { color: #ce9178; }
+        pre .cm { color: #6a9955; }
+        pre .num { color: #b5cea8; }
     </style>
 </head>
 <body>
@@ -27,6 +37,54 @@
     <div class="explainer">
         <p>Rolling window features are constructed by sliding a <strong>window</strong> over time series data and applying a <strong>function</strong> within that window. They highlight characteristics of the data by suppressing noise.</p>
         <p>This traffic density time series shows a strong first-order trend, overprinted by second-order patterns.</p>
+    </div>
+
+    <div class="explainer">
+        <details>
+            <summary>Show Python code</summary>
+            <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+<span class="cm"># read in some data</span>
+df = pd.<span class="fn">read_csv</span>(<span class="str">'traffic_data.csv'</span>, parse_dates=[<span class="num">0</span>]).<span class="fn">set_index</span>(<span class="str">'time'</span>)
+ts = df[<span class="str">'density'</span>]
+
+<span class="cm"># plot the raw data</span>
+f, (ax1, ax2, ax3) = plt.<span class="fn">subplots</span>(<span class="num">1</span>, <span class="num">3</span>, figsize=(<span class="num">16</span>, <span class="num">4</span>))
+<span class="kw">for</span> ax <span class="kw">in</span> [ax1, ax2, ax3]:
+    ts.<span class="fn">plot</span>(style=<span class="str">'k-'</span>, lw=<span class="num">0.5</span>, ax=ax, label=<span class="str">'raw data'</span>)
+
+<span class="cm"># Calculate a 150-day rolling mean</span>
+Tm = <span class="num">150</span>
+df[<span class="str">'density_mean'</span>] = ts.<span class="fn">rolling</span>(window=Tm).<span class="fn">mean</span>()
+df[<span class="str">'density_mean'</span>].<span class="fn">plot</span>(style=<span class="str">'b'</span>, ax=ax1)
+
+<span class="cm"># Calculate a 30-day rolling standard deviation</span>
+Tsd = <span class="num">30</span>
+df[<span class="str">'density_std'</span>] = ts.<span class="fn">rolling</span>(window=Tsd).<span class="fn">std</span>()
+df[<span class="str">'density_std'</span>].<span class="fn">plot</span>(style=<span class="str">'b'</span>, ax=ax2.<span class="fn">twinx</span>())
+
+<span class="cm"># Calculate a rolling X-day harmonic</span>
+<span class="kw">def</span> <span class="fn">rolling_fft</span>(x, ti):
+    fft = np.fft.<span class="fn">fft</span>(x) / <span class="fn">len</span>(x)
+    psd = np.<span class="fn">abs</span>(fft)**<span class="num">2</span> / <span class="num">2</span>
+    period_of_interest = ti
+    ts = <span class="num">1.</span> / (np.fft.<span class="fn">fftfreq</span>(<span class="fn">len</span>(x)))
+    i = np.<span class="fn">argmin</span>(<span class="fn">abs</span>(ts - ti))
+    <span class="kw">return</span> psd[i]
+
+Ti = <span class="num">30</span>   <span class="cm"># harmonic (days)</span>
+ts.<span class="fn">rolling</span>(window=<span class="num">120</span>).<span class="fn">apply</span>(rolling_fft, args=(Ti,)).<span class="fn">plot</span>(style=<span class="str">'b'</span>, ax=ax3.<span class="fn">twinx</span>())
+
+<span class="kw">for</span> ax <span class="kw">in</span> [ax1, ax2, ax3]:
+    ax.<span class="fn">set_ylabel</span>(<span class="str">'traffic density'</span>)
+ax1.<span class="fn">set_title</span>(<span class="str">f'feature 1: {Tm:d}-day average'</span>)
+ax2.<span class="fn">set_title</span>(<span class="str">f'feature 2: {Tsd:d}-day std. dev.'</span>)
+ax3.<span class="fn">set_title</span>(<span class="str">f'feature 3: {Ti:d}-day harmonic'</span>)
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+        </details>
     </div>
 
     <div class="widget-container">

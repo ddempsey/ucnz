@@ -663,7 +663,7 @@ function drawScene(ctx, reg, params) {
 // ---- Curve drawing ----
 function drawCurve(ctx, reg, params) {
     var itest = params.itest;
-    var logX = params.semilog || (itest >= 2);
+    var logX = params.semilog;
     var logY = (itest === 5);
 
     var tMinE = (itest === 5) ? -2 : -1, tMaxE = 2;
@@ -681,11 +681,7 @@ function drawCurve(ctx, reg, params) {
     if (logY) {
         yMin = 0.0001; yMax = 2;
     } else {
-        yMin = 0; yMax = 6;
-        // Extend y-axis below 0 to show negative drawdown from approximation
-        for (var i = 0; i <= it; i++) {
-            if (!isNaN(s[i]) && s[i] < yMin) yMin = Math.floor(s[i] - 0.5);
-        }
+        yMin = -1; yMax = 6;
     }
 
     var pL = 55, pR = 15, pT = 15, pB = 40;

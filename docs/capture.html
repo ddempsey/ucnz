@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storage, recharge and capture - ENCN342</title>
+<script>
+MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #222; }
+h1 { text-align: center; color: #333; margin-bottom: 2px; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+.institution { text-align: center; color: #555; margin-bottom: 22px; }
+.explainer { background: white; padding: 18px 26px; border-radius: 8px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.65; }
+.explainer p { margin: 0.7em 0; }
+.widget-container { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 18px; }
+.placement { font-size: 13px; color: #555; background: #eef2f6; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; }
+.refute { background: #fff; border-left: 5px solid #D55E00; padding: 16px 22px; border-radius: 6px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.65; }
+.refute p { margin: 0.7em 0; }
+.refute blockquote { margin: 0.9em 0 0.4em; padding-left: 15px; border-left: 3px solid #ccc; color: #555; font-style: italic; font-size: 13.5px; }
+.blue { color: #0072B2; font-weight: 700; }
+.verm { color: #C1541F; font-weight: 700; }
+
+.steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.steps button { font-family: inherit; font-size: 13.5px; padding: 9px 13px; min-height: 40px; border-radius: 6px; border: 1px solid #bbb; background: #fafafa; color: #333; cursor: pointer; }
+.steps button:hover { background: #eef2f6; }
+.steps button[aria-current="true"] { background: #0072B2; border-color: #0072B2; color: #fff; font-weight: 600; }
+.steptitle { font-size: 17px; font-weight: 600; margin: 4px 0 6px; }
+.stepbody { font-size: 14.5px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+
+.controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 12px 0 6px; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.control-group label { font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.control-group input[type="range"] { width: 190px; height: 26px; cursor: pointer; }
+.control-group .val { font-size: 13.5px; min-width: 80px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+input:focus-visible, button:focus-visible { outline: 3px solid #0072B2; outline-offset: 2px; }
+canvas { display: block; margin: 0 auto; max-width: 100%; }
+
+.verdict { margin-top: 10px; border-radius: 6px; padding: 12px 16px; font-size: 14px; line-height: 1.6; border: 1px solid #dce3ea; background: #f7f9fb; }
+.numstrip { display: flex; gap: 0; flex-wrap: wrap; border: 1px solid #d5dce2; border-radius: 6px; overflow: hidden; margin-top: 10px; font-size: 13px; }
+.numstrip div { padding: 9px 14px; border-right: 1px solid #e3e8ec; flex: 1 1 auto; }
+.numstrip div:last-child { border-right: none; }
+.numstrip .lab { color: #666; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+.numstrip .num { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 16px; }
+
+.predict { background: #fffdf5; border: 1px solid #e6d9a8; border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+.predict .q { font-weight: 600; margin-bottom: 8px; font-size: 14.5px; }
+.predict button { font-family: inherit; font-size: 13.5px; padding: 8px 14px; min-height: 34px; margin: 0 8px 6px 0; border-radius: 6px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
+.predict .pfb { margin-top: 10px; font-size: 13.5px; line-height: 1.6; display: none; }
+
+.qitem { border-top: 1px solid #e6e6e6; padding: 18px 0 6px; }
+.qitem:first-child { border-top: none; }
+.qnum { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #888; font-weight: 700; }
+.qtext { font-size: 15px; font-weight: 600; margin: 5px 0 12px; line-height: 1.5; }
+.opt { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 14px; line-height: 1.5; padding: 11px 14px; min-height: 40px; margin-bottom: 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.opt:hover { background: #f2f6fa; }
+.opt.sel-ok { border-color: #0072B2; background: #e8f2f9; border-width: 2px; }
+.opt.sel-no { border-color: #C1541F; background: #fdefe7; border-width: 2px; }
+.opt .mark { font-weight: 700; margin-right: 7px; }
+.fb { display: none; font-size: 13.5px; line-height: 1.65; padding: 11px 15px; border-radius: 6px; margin: 4px 0 8px; }
+.fb.ok { background: #e8f4ec; border-left: 4px solid #17823f; }
+.fb.no { background: #fdefe7; border-left: 4px solid #C1541F; }
+.fb .lab { font-weight: 700; }
+.misname { font-style: italic; color: #7a4a2a; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<h1>Storage, recharge and capture</h1>
+<div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+<div class="institution">University of Canterbury</div>
+
+<div class="refute">
+    <p>Most people start with the same picture. An aquifer holds a certain amount of water, rain tops it up each year,
+    and if you pump less than the recharge you are taking a fair share.</p>
+    <p>The water balance does not really bear that out. Once the system settles, almost none of the water in your
+    well is coming out of storage. It comes from <em>capture</em>: recharge you have increased, and discharges you
+    have taken away. Usually it is mostly the discharges, which means streams, springs and wetlands. So if you pump
+    at something like the average recharge rate, you are probably taking most of what those used to get &mdash;
+    though how much depends on how much extra recharge the pumping manages to induce.</p>
+    <p>This misconception has a name in the profession, the <em>water-budget myth</em>, and hydrogeologists have been
+    correcting it since 1940. With limited success:</p>
+    <blockquote>&ldquo;Perhaps the most common misconception in groundwater hydrology is that a water budget of an area
+    determines the magnitude of possible groundwater development. Several well-known hydrologists have addressed this
+    misconception and attempted to dispel it. Somehow, though, it persists and continues to color decisions by the
+    water-management community.&rdquo; &mdash; Bredehoeft, Papadopulos &amp; Cooper (1982)</blockquote>
+</div>
+
+<div class="placement">
+    <strong>Where this fits:</strong> after Module 1 and Tutorial 3, and after the storage widget &mdash; the argument
+    below needs you to already know what storativity is. Sources of capture come up in the conceptual sketch question
+    most years.
+</div>
+
+<div class="widget-container">
+    <div class="steps" role="tablist" aria-label="Steps">
+        <button type="button" data-step="0" role="tab">1. With and without the well</button>
+        <button type="button" data-step="1" role="tab">2. Where the water comes from</button>
+        <button type="button" data-step="2" role="tab">3. Check yourself</button>
+    </div>
+
+    <div id="steptitle" class="steptitle"></div>
+    <div id="stepbody" class="stepbody"></div>
+
+    <div id="predict" class="predict">
+        <div class="q">Before you run anything: after <strong>50 years</strong> of steady pumping, where is the water
+        in the well coming from?</div>
+        <button type="button" data-p="stor">Mostly out of aquifer storage</button>
+        <button type="button" data-p="half">About half storage, half elsewhere</button>
+        <button type="button" data-p="cap">Mostly from the stream and other discharges</button>
+        <div class="pfb" id="pfb"></div>
+    </div>
+
+    <canvas id="cv" width="940" height="440" role="img"
+        aria-label="Groundwater cross-sections and charts showing where pumped water comes from. A text summary follows below."></canvas>
+
+    <div class="controls" id="ctrls">
+        <div class="control-group" id="g-t">
+            <label for="tyr">Years since pumping started</label>
+            <input type="range" id="tyr" min="-1" max="2" step="0.02" value="1">
+            <span class="val" id="tyr-v">10.0 yr</span>
+        </div>
+        <div class="control-group" id="g-L">
+            <label for="dist">Well distance from stream $L$ [m]</label>
+            <input type="range" id="dist" min="300" max="4000" step="50" value="1750">
+            <span class="val" id="dist-v">1750 m</span>
+        </div>
+        <div class="control-group" id="g-Q">
+            <label for="qw">Pumping rate $Q$ [L/s]</label>
+            <input type="range" id="qw" min="0" max="80" step="2" value="20">
+            <span class="val" id="qw-v">20 L/s</span>
+        </div>
+    </div>
+
+    <div class="numstrip" id="numstrip"></div>
+    <div class="verdict" id="verdict"></div>
+
+    <div id="quizarea" style="display:none;"><div id="quiz"></div></div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+var BLUE = '#0072B2', VERM = '#C1541F', INK = '#222', GRID = '#e3e7ea';
+var SAND = '#d9c69c', CLAY = '#8d7f74';
+
+/* Well beside a fully penetrating stream. Glover & Balmer (1954) stream depletion,
+   which is the Theis result for this geometry. */
+var T = 400, S = 0.15;      /* m2/day, dimensionless (unconfined) */
+var QR = 40;                /* regional throughflow arriving from up-gradient, L/s.
+                               With no well this all reaches the stream, so it is also
+                               the natural baseflow. Held fixed: the regional gradient
+                               is set a long way upstream and the well does not change it. */
+var WID = 8000;             /* out-of-plane width of the modelled strip, m */
+
+var st = { step: 0, tyr: 1, L: 1750, Q: 20 };
+
+function erf(x) {
+    var s = x < 0 ? -1 : 1; x = Math.abs(x);
+    var p = 0.3275911, t = 1 / (1 + p * x);
+    return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x));
+}
+function erfc(x) { return x > 6 ? 0 : 1 - erf(x); }
+function uOf(L, td) { return Math.sqrt(L * L * S / (4 * T * Math.max(td, 1e-6))); }
+function captureFrac(L, td) { return erfc(uOf(L, td)); }
+function captureVolFrac(L, td) {
+    var u = uOf(L, td);
+    if (u > 6) return 0;
+    return (1 + 2 * u * u) * erfc(u) - (2 * u / Math.sqrt(Math.PI)) * Math.exp(-u * u);
+}
+function W(u) {
+    if (u <= 0) return 30;
+    if (u <= 1) return -Math.log(u) + (-0.57721566 + u * (0.99999193 + u * (-0.24991055 +
+        u * (0.05519968 + u * (-0.00976004 + u * 0.00107857)))));
+    var n = u * u * u * u + 8.5733287401 * u * u * u + 18.059016973 * u * u + 8.6347608925 * u + 0.2677737343;
+    var d = u * u * u * u + 9.5733223454 * u * u * u + 25.6329561486 * u * u + 21.0996530827 * u + 3.9584969228;
+    return (n / d) / (u * Math.exp(u));
+}
+function yrs() { return Math.pow(10, st.tyr); }
+function days() { return yrs() * 365.25; }
+function Qm3d() { return st.Q / 1000 * 86400; }
+
+/* ---------- canvas ---------- */
+var cv = document.getElementById('cv'), ctx;
+function setupCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = 940 * dpr; cv.height = 440 * dpr;
+    cv.style.width = '940px'; cv.style.height = '440px';
+    ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function txt(s, x, y, align, colour, weight, size) {
+    ctx.font = (weight || '400') + ' ' + (size || 12) + 'px "Segoe UI", sans-serif';
+    ctx.textAlign = align || 'left'; ctx.fillStyle = colour || INK; ctx.fillText(s, x, y);
+}
+function dash(x0, y0, x1, y1, c, w, d) {
+    ctx.save(); ctx.setLineDash(d || [6, 4]); ctx.strokeStyle = c; ctx.lineWidth = w || 2;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+function arrow(x1, y1, x2, y2, c, wid) {
+    var a = Math.atan2(y2 - y1, x2 - x1), hl = 4 + wid;
+    ctx.strokeStyle = c; ctx.lineWidth = wid; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - hl * 0.6 * Math.cos(a), y2 - hl * 0.6 * Math.sin(a)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - hl * Math.cos(a - 0.5), y2 - hl * Math.sin(a - 0.5));
+    ctx.lineTo(x2 - hl * Math.cos(a + 0.5), y2 - hl * Math.sin(a + 0.5));
+    ctx.closePath(); ctx.fillStyle = c; ctx.fill(); ctx.lineCap = 'butt';
+}
+function chip(s, x, y, bg, fg) {
+    ctx.font = '700 11.5px "Segoe UI", sans-serif';
+    var w = ctx.measureText(s).width + 14;
+    ctx.fillStyle = bg;
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y - 12, w, 18, 9); ctx.fill(); }
+    else ctx.fillRect(x, y - 12, w, 18);
+    ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.fillText(s, x + 7, y + 1);
+}
+
+/* ===================== STEP 1 : two worlds, at steady state =====================
+   A flux-balanced 1D strip, so the drawn gradient and the arrows can never disagree.
+   Regional throughflow QR arrives from up-gradient and is held fixed. At steady state
+   nothing comes from storage, so the flux reaching the stream is exactly QR - Q:
+
+       0 < x < L :  dh/dx = (QR - Q)/(T W)     the sign of this sets the regime
+       x > L     :  dh/dx =  QR /(T W)
+
+   Q < QR  the stream still gains, but less.   Q = QR  no exchange at all.
+   Q > QR  the gradient reverses and the stream starts feeding the aquifer.
+   A local log dip near the well stands in for radial convergence, which a 1D strip
+   cannot represent. It is kept clear of the stream so it never disturbs h(0) = 0. */
+var XMAX = 5000, PXM = 7;
+function headAt(m, pumped) {
+    var qr = QR / 1000 * 86400, q = pumped ? Qm3d() : 0;
+    var i1 = (qr - q) / (T * WID), i2 = qr / (T * WID);
+    var h = (m <= st.L) ? i1 * m : i1 * st.L + i2 * (m - st.L);
+    if (q > 0) {
+        var R = Math.min(500, st.L * 0.7), d = Math.abs(m - st.L);
+        if (d < R) h -= q / (2 * Math.PI * T) * Math.log(R / Math.max(d, 20));
+    }
+    return h;
+}
+
+function drawWorlds() {
+    ctx.clearRect(0, 0, 940, 440);
+    var net = QR - st.Q;                                  /* + gaining, - losing */
+    var gaining = net > 0.5, losing = net < -0.5;
+    var PXQ = 1.6;                                        /* px per L/s — one scale for every arrow */
+
+    [0, 1].forEach(function (side) {
+        var pumped = (side === 1);
+        var P = { x: 12 + side * 468, w: 448 };
+        var gy = 126, aqBot = 322, aqdBot = 352, frameBot = 409;
+        var chTop = 40, chBed = 40, chBedW = 30, wt0 = 170;
+        function X(m) { return P.x + m / XMAX * P.w; }
+        function Y(h) { return Math.max(gy + 4, Math.min(aqBot - 12, wt0 - h * PXM)); }
+        function surf(m) { return Y(headAt(m, pumped)); }
+        var nt = pumped ? net : QR;
+
+        ctx.fillStyle = pumped ? '#f6efe9' : '#eef4f8';
+        ctx.fillRect(P.x, 6, P.w, 24);
+        txt(pumped ? 'WITH YOUR WELL — long-term steady state' : 'NO PUMPING — the baseline case',
+            P.x + 11, 23, 'left', pumped ? '#8a3b13' : '#0a4a72', '700', 12.5);
+
+        ctx.fillStyle = '#eef4f8'; ctx.fillRect(P.x, 34, P.w, gy - 34);
+        ctx.fillStyle = SAND; ctx.fillRect(P.x, gy, P.w, aqBot - gy);
+        ctx.fillStyle = CLAY; ctx.fillRect(P.x, aqBot, P.w, aqdBot - aqBot);
+        ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(P.x + chTop, gy); ctx.lineTo(P.x + P.w, gy); ctx.stroke();
+        txt('ground surface', P.x + P.w - 6, gy - 6, 'right', '#666', '600', 10.5);
+        txt('aquitard', P.x + 8, aqdBot - 8, 'left', '#fff', '700', 10.5);
+
+        ctx.beginPath(); ctx.moveTo(P.x, surf(0));
+        for (var m = 0; m <= XMAX; m += 25) ctx.lineTo(X(m), surf(m));
+        ctx.lineTo(P.x + P.w, aqBot); ctx.lineTo(P.x, aqBot); ctx.closePath();
+        ctx.fillStyle = 'rgba(0,114,178,0.30)'; ctx.fill();
+
+        /* channel carved out of the left edge, water surface level with the water table */
+        ctx.beginPath();
+        ctx.moveTo(P.x, gy); ctx.lineTo(P.x + chTop, gy);
+        ctx.lineTo(P.x + chBedW, gy + chBed); ctx.lineTo(P.x, gy + chBed);
+        ctx.closePath(); ctx.fillStyle = '#eef4f8'; ctx.fill();
+        var bankX = chTop + (chBedW - chTop) * ((wt0 - gy) / chBed);
+        ctx.beginPath();
+        ctx.moveTo(P.x, wt0); ctx.lineTo(P.x + bankX, wt0);
+        ctx.lineTo(P.x + chBedW, gy + chBed); ctx.lineTo(P.x, gy + chBed);
+        ctx.closePath(); ctx.fillStyle = '#7fb9dc'; ctx.fill();
+        ctx.strokeStyle = '#8a7a58'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(P.x + chTop, gy); ctx.lineTo(P.x + chBedW, gy + chBed); ctx.stroke();
+        txt('stream', P.x + 4, gy - 6, 'left', '#22688f', '700', 11);
+
+        if (pumped) {
+            ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(80,80,80,0.9)'; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            for (var m2 = 0; m2 <= XMAX; m2 += 25) {
+                var yn = Y(headAt(m2, false));
+                if (m2 === 0) ctx.moveTo(X(m2), yn); else ctx.lineTo(X(m2), yn);
+            }
+            ctx.stroke(); ctx.restore();
+            txt('natural water table', P.x + P.w - 6, 128, 'right', '#666', '600', 10.5);
+        }
+        ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5; ctx.beginPath();
+        ctx.moveTo(P.x + bankX, wt0);
+        for (var m3 = 0; m3 <= XMAX; m3 += 25) if (X(m3) > P.x + bankX) ctx.lineTo(X(m3), surf(m3));
+        ctx.stroke();
+        ctx.strokeStyle = '#3a7ea8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(P.x, wt0); ctx.lineTo(P.x + bankX, wt0); ctx.stroke();
+
+        /* ---- three flow arrows, all at one scale: length is flow ----
+           No distributed recharge is drawn, because the 1D strip has no recharge term.
+           Every flow in the budget below is an arrow, and vice versa. */
+        var ay = 272, Lr = PXQ * QR;
+        arrow(P.x + P.w - 8, ay, P.x + P.w - 8 - Lr, ay, BLUE, 4.5);
+        txt('regional throughflow', P.x + P.w - 8, ay - 20, 'right', '#005b8f', '700', 11);
+        txt(QR + ' L/s in', P.x + P.w - 8, ay - 7, 'right', '#005b8f', '700', 12.5);
+
+        var sx = P.x + 22, Ls = PXQ * Math.abs(nt);
+        if (nt > 0.5) {
+            arrow(sx + Ls, ay, sx, ay, BLUE, 4.5);
+            txt('to the stream', sx + Ls + 8, ay - 6, 'left', '#005b8f', '700', 11);
+            txt(nt.toFixed(0) + ' L/s out', sx + Ls + 8, ay + 9, 'left', '#005b8f', '700', 12.5);
+        } else if (nt < -0.5) {
+            arrow(sx, ay, sx + Ls, ay, VERM, 4.5);
+            txt('OUT of the stream', sx + Ls + 8, ay - 6, 'left', '#8a3b13', '700', 11);
+            txt((-nt).toFixed(0) + ' L/s in', sx + Ls + 8, ay + 9, 'left', '#8a3b13', '700', 12.5);
+        } else {
+            txt('no exchange with the stream', sx + 6, ay + 4, 'left', '#777', '700', 11.5);
+        }
+
+        if (pumped) {
+            var wx = X(st.L), WL = PXQ * st.Q;
+            ctx.fillStyle = '#c9ced3'; ctx.fillRect(wx - 6, gy - 22, 12, aqBot - gy + 22);
+            ctx.strokeStyle = '#6c7278'; ctx.lineWidth = 1.4; ctx.strokeRect(wx - 6.5, gy - 22.5, 13, aqBot - gy + 23);
+            if (WL > 3) arrow(wx, gy - 20 + WL, wx, gy - 20, VERM, 4.5);
+            txt('to the well', wx + 12, gy - 34, 'left', '#8a3b13', '700', 11);
+            txt(st.Q + ' L/s out', wx + 12, gy - 21, 'left', '#8a3b13', '700', 12.5);
+            txt('L = ' + st.L + ' m', wx, aqBot + 16, 'center', '#fff', '700', 10.5);
+        }
+
+        /* ---- regime badge and budget readout ---- */
+        if (pumped) {
+            var bg = gaining ? '#e8f4ec' : (losing ? '#fdefe7' : '#f0f0f0');
+            var fg = gaining ? '#17823f' : (losing ? '#8a3b13' : '#666');
+            var lab = gaining ? 'STREAM STILL GAINING, BY LESS'
+                              : (losing ? 'STREAM NOW LOSING — the well has reversed it'
+                                        : 'DISCONNECTED — no exchange either way');
+            ctx.fillStyle = bg; ctx.fillRect(P.x + 12, 358, P.w - 24, 22);
+            ctx.strokeStyle = fg; ctx.lineWidth = 1.2; ctx.strokeRect(P.x + 12.5, 358.5, P.w - 25, 21);
+            txt(lab, P.x + P.w / 2, 373, 'center', fg, '700', 12);
+        } else {
+            ctx.fillStyle = '#e8f4ec'; ctx.fillRect(P.x + 12, 358, P.w - 24, 22);
+            ctx.strokeStyle = '#17823f'; ctx.lineWidth = 1.2; ctx.strokeRect(P.x + 12.5, 358.5, P.w - 25, 21);
+            txt('STREAM GAINING', P.x + P.w / 2, 373, 'center', '#17823f', '700', 12);
+        }
+        var inQ = QR + (losing && pumped ? -nt : 0);
+        var outQ = (pumped ? st.Q : 0) + Math.max(0, nt);
+        txt('IN  ' + inQ.toFixed(0) + ' L/s', P.x + 14, 399, 'left', '#333', '700', 13.5);
+        txt('=', P.x + 100, 399, 'left', '#777', '700', 13.5);
+        txt('OUT  ' + outQ.toFixed(0) + ' L/s', P.x + 116, 399, 'left', '#333', '700', 13.5);
+        txt('one scale for every arrow, so the lengths add up', P.x + 214, 399, 'left', '#777', '400', 10.5);
+
+        ctx.strokeStyle = '#cfcfcf'; ctx.lineWidth = 1;
+        ctx.strokeRect(P.x + .5, 34.5, P.w - 1, frameBot - 34);
+    });
+    txt('Capture is the difference between these two panels, which is why no instrument reads it directly.',
+        470, 432, 'center', '#666', '600', 12);
+}
+
+/* ===================== STEP 2 : source of water over time ===================== */
+function drawSources() {
+    ctx.clearRect(0, 0, 940, 440);
+    var a = { l: 84, t: 52, w: 796, h: 300 };
+    var e0 = -1, e1 = 2;
+    function X(lg) { return a.l + (lg - e0) / (e1 - e0) * a.w; }
+    function Y(f) { return a.t + a.h - f * a.h; }
+
+    ctx.fillStyle = '#fff'; ctx.fillRect(a.l, a.t, a.w, a.h);
+    txt('Where each litre pumped is coming from, right now', a.l + a.w / 2, a.t - 24, 'center', '#333', '700', 14);
+    txt('(fraction of the pumping rate)', a.l + a.w / 2, a.t - 8, 'center', '#777', '400', 11.5);
+
+    var pts = [];
+    for (var lg = e0; lg <= e1 + 1e-9; lg += 0.02) pts.push({ lg: lg, c: captureFrac(st.L, Math.pow(10, lg) * 365.25) });
+    ctx.beginPath(); ctx.moveTo(X(e0), Y(0));
+    pts.forEach(function (p) { ctx.lineTo(X(p.lg), Y(p.c)); });
+    ctx.lineTo(X(e1), Y(0)); ctx.closePath();
+    ctx.fillStyle = 'rgba(193,84,31,0.55)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(X(e0), Y(1));
+    pts.forEach(function (p) { ctx.lineTo(X(p.lg), Y(p.c)); });
+    ctx.lineTo(X(e1), Y(1)); ctx.closePath();
+    ctx.fillStyle = 'rgba(0,114,178,0.45)'; ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath();
+    pts.forEach(function (p, i) { if (i === 0) ctx.moveTo(X(p.lg), Y(p.c)); else ctx.lineTo(X(p.lg), Y(p.c)); });
+    ctx.stroke();
+
+    for (var e = e0; e <= e1; e++) {
+        for (var mm = 1; mm < 10; mm++) {
+            var lgm = e + Math.log10(mm);
+            if (lgm >= e0 && lgm <= e1) {
+                ctx.strokeStyle = mm === 1 ? '#c8ced3' : '#eef1f3'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(X(lgm), a.t); ctx.lineTo(X(lgm), a.t + a.h); ctx.stroke();
+            }
+        }
+        txt(['0.1', '1', '10', '100'][e + 1], X(e), a.t + a.h + 16, 'center', '#555', '400', 11);
+    }
+    for (var f = 0.25; f < 1; f += 0.25) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(a.l, Y(f)); ctx.lineTo(a.l + a.w, Y(f)); ctx.stroke();
+        txt((f * 100).toFixed(0) + '%', a.l - 7, Y(f) + 4, 'right', '#555', '400', 11);
+    }
+    txt('0%', a.l - 7, Y(0) + 4, 'right', '#555', '400', 11);
+    txt('100%', a.l - 7, Y(1) + 4, 'right', '#555', '400', 11);
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a.l + .5, a.t + .5, a.w - 1, a.h - 1);
+    txt('years of pumping  (log scale)', a.l + a.w / 2, a.t + a.h + 34, 'center', '#333', '600', 12);
+
+    /* region labels sit at fixed positions so they do not track the slider */
+    txt('FROM STORAGE', a.l + 96, Y(0.82) + 5, 'center', '#00405f', '700', 14);
+    txt('FROM CAPTURE', a.l + a.w - 96, Y(0.22) + 5, 'center', '#7a3410', '700', 14);
+
+    var capF = captureFrac(st.L, days());
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(X(st.tyr), a.t); ctx.lineTo(X(st.tyr), a.t + a.h); ctx.stroke();
+    ctx.beginPath(); ctx.arc(X(st.tyr), Y(capF), 6, 0, 6.2832);
+    ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; ctx.stroke();
+    var lab = yrs() < 1 ? (yrs() * 12).toFixed(1) + ' months' : yrs().toFixed(1) + ' years';
+    ctx.font = '700 11.5px "Segoe UI", sans-serif';
+    chip(lab, X(st.tyr) - ctx.measureText(lab).width / 2 - 7, a.t - 6, '#111', '#fff');
+
+}
+
+/* ===================== NUMBERS & VERDICT ===================== */
+function cell(lab, num, colour) {
+    return '<div><span class="lab">' + lab + '</span><br><span class="num" style="color:' + colour + '">' + num + '</span></div>';
+}
+function fmtV(v) {
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + ' Mm³';
+    if (v >= 1000) return Math.round(v).toLocaleString() + ' m³';
+    return v.toFixed(0) + ' m³';
+}
+function updNums() {
+    var capF = captureFrac(st.L, days()), capLs = capF * st.Q, stoLs = st.Q - capLs;
+    var volF = captureVolFrac(st.L, days()), totVol = Qm3d() * days();
+    document.getElementById('numstrip').innerHTML =
+        cell('Time', yrs() < 1 ? (yrs() * 12).toFixed(1) + ' months' : yrs().toFixed(1) + ' years', '#333') +
+        cell('Right now, from storage', stoLs.toFixed(1) + ' L/s  (' + (100 - capF * 100).toFixed(0) + '%)', BLUE) +
+        cell('Right now, from the stream', capLs.toFixed(1) + ' L/s  (' + (capF * 100).toFixed(0) + '%)', VERM) +
+        cell('Total pumped so far', fmtV(totVol), '#333') +
+        cell('Of that, off the stream', fmtV(totVol * volF) + '  (' + (volF * 100).toFixed(0) + '%)', VERM);
+}
+function updVerdict() {
+    var el = document.getElementById('verdict');
+    if (st.step === 0) {
+        var net = QR - st.Q, head;
+        if (net > 0.5) {
+            head = '<strong>Under ' + QR + '&nbsp;L/s: the stream still gains, by less.</strong> The water table still ' +
+                   'rises away from the stream, so groundwater still flows towards it &mdash; just ' + net.toFixed(0) +
+                   '&nbsp;L/s of it instead of ' + QR + '. Your well has taken the difference off a discharge that ' +
+                   'used to belong to the stream.';
+        } else if (net < -0.5) {
+            head = '<strong>Past ' + QR + '&nbsp;L/s: the stream has reversed.</strong> Look at the water table by the ' +
+                   'bank &mdash; it now slopes <em>down</em> away from the stream, so the gradient points inland and ' +
+                   'the stream is feeding the aquifer at ' + (-net).toFixed(0) + '&nbsp;L/s. The reach has gone from ' +
+                   'gaining to losing, and the arrow has turned round with it.';
+        } else {
+            head = '<strong>At exactly ' + QR + '&nbsp;L/s the water table is flat at the bank.</strong> No gradient ' +
+                   'means no flow either way. The stream and the aquifer have stopped exchanging water altogether, ' +
+                   'which is the changeover point between gaining and losing.';
+        }
+        el.innerHTML =
+            '<div>' + head + '</div>' +
+            '<div style="margin-top:8px">Capture works in both directions. To begin with you take away a discharge ' +
+            'that was already happening. Later, once there is no discharge left to take, you start inducing recharge ' +
+            'that was not happening at all. Storage supplies none of it, because heads have stopped falling, and the ' +
+            'throughflow arriving from up-gradient is held fixed here. That leaves the stream as the only term free ' +
+            'to move, which is why the arrow lengths add up.</div>' +
+            '<div style="margin-top:8px">Now drag the distance slider instead. The cone changes shape and the drawdown ' +
+            'at the well goes with it, but the stream arrow does not move at all. Distance decides how the drawdown is ' +
+            'spread around and how long the changeover takes. It has no say in where the water finally comes from. ' +
+            'Tab 2 deals with the timing.</div>' +
+            '<div style="margin-top:8px">So how would you measure the loss? You cannot. Put a gauge on the stream and ' +
+            'you still cannot separate your well from a dry summer, because you never get to observe the left-hand case. You ' +
+            'have to model it, which is what hydrogeological models are for.</div>';
+    } else if (st.step === 1) {
+        var capF = captureFrac(st.L, days());
+        var when = yrs() < 1 ? (yrs() * 12).toFixed(1) + ' months' : yrs().toFixed(1) + ' years';
+        el.innerHTML =
+            '<div>At ' + when + ', ' + (capF * 100).toFixed(0) + '% of what you are pumping is coming off the stream and ' +
+            (100 - capF * 100).toFixed(0) + '% out of storage. Drag the slider to the right and watch the blue band ' +
+            'squeeze down to almost nothing. Storage supplies the transient while the cone of depression spreads. After ' +
+            'that, every litre is capture.</div>' +
+            '<div style="margin-top:8px">The delay is the awkward part. At ' + st.L + '&nbsp;m from the stream it takes ' +
+            'years for the depletion to properly arrive, so a well can look harmless for a decade and still end up taking ' +
+            'most of its water from the stream. A consent granted on the first few years of monitoring is a consent ' +
+            'granted on the transient.</div>' +
+            '<div style="margin-top:8px">Drag the distance slider and see how much this depends on siting. A well 300&nbsp;m ' +
+            'from the stream is drawing on it within weeks. At 4&nbsp;km it takes decades, though it gets there in the end.</div>';
+    }
+}
+
+/* ===================== QUIZ ===================== */
+var QUIZ = [
+{
+    q: 'An aquifer has been in long-term balance. A well pumps at a constant rate for many decades, until heads stop ' +
+       'changing and a new steady state is reached. At that point, where does the pumped water come from?',
+    o: [
+      { t: 'Almost entirely from capture — increased recharge and reduced natural discharge.', ok: true,
+        f: 'This is Theis&rsquo;s 1940 result. At steady state, heads have stopped falling. If heads are not ' +
+           'falling then nothing is being released from storage, so every litre has to be a flow that changed somewhere else.' },
+      { t: 'Almost entirely from aquifer storage.', ok: false,
+        f: 'This is the <span class="misname">storage-as-a-source</span> misconception. Water only comes out of storage ' +
+           'while heads are <em>falling</em>. At steady state they have stopped falling by definition, so storage ' +
+           'contributes nothing. Storage supplies the transient period only.' },
+      { t: 'About half from storage and half from capture.', ok: false,
+        f: 'True at some point during the transient, but by steady state the storage share has gone to zero. Watch the ' +
+           'blue band in step 2 as you drag the time slider right.' },
+      { t: 'It never reaches a steady state, so the question has no answer.', ok: false,
+        f: 'A reasonable worry, since the approach really is slow. But a steady state does exist provided there is enough ' +
+           'capture available. Where there is not — a well far from any stream, in a closed basin — you are right that ' +
+           'heads simply keep falling. That situation has a name: mining.' }
+    ]
+},
+{
+    q: 'True or false: pumping a basin at exactly its average annual recharge rate guarantees the take is sustainable.',
+    o: [
+      { t: 'False — that recharge was already supporting springs, wetlands and baseflow, and pumping it takes those instead.', ok: true,
+        f: 'This is the water-budget myth, named by Bredehoeft, Papadopulos and Cooper in 1982 and still going ' +
+           'strong. In an undeveloped basin recharge equals discharge, so taking 100% of the recharge leaves 0% for the ' +
+           'discharges.' },
+      { t: 'True — that is the definition of the renewable portion of the resource.', ok: false,
+        f: 'This is the <span class="misname">water-budget myth</span> exactly. The flaw is that the recharge was never ' +
+           'spare. Before development it was already flowing out again somewhere, and that somewhere is the springs and ' +
+           'the river.' },
+      { t: 'True, provided you spread the wells out evenly.', ok: false,
+        f: 'Spreading the wells changes which discharges get captured and how fast, but not the total. At steady state ' +
+           'the sum still has to balance.' },
+      { t: 'False, because recharge varies from year to year.', ok: false,
+        f: 'Variability is real, but it is not the main problem. Even with perfectly constant recharge the argument fails, ' +
+           'because the recharge was already committed.' }
+    ]
+},
+{
+    q: 'Pumping started this morning. Where is the water coming from in the first few hours?',
+    o: [
+      { t: 'Almost entirely from storage.', ok: true,
+        f: 'The pressure disturbance has not reached the stream yet, so no discharge has changed and there is ' +
+           'nothing to capture. It is all coming from local storage.' },
+      { t: 'Almost entirely from capture.', ok: false,
+        f: 'Over-correcting. Having learned that capture dominates in the long run, it is tempting to assume it always ' +
+           'does. Capture takes time to develop, which is why the transient gets so much attention.' },
+      { t: 'From recharge falling on the aquifer that day.', ok: false,
+        f: 'Recharge is unchanged by your well. Capture here is a change in <em>discharge</em>, and the rainfall is ' +
+           'the same as it always was.' },
+      { t: 'Equally from storage and capture, always.', ok: false,
+        f: 'The split shifts continuously with time, from all-storage at the start towards all-capture at steady state.' }
+    ]
+},
+{
+    q: 'You have a graph of recharge (inflow) and total discharge (outflow) over 40 years of pumping. When is the volume ' +
+       'of water <em>stored</em> in the aquifer at its lowest?',
+    o: [
+      { t: 'When outflow stops exceeding inflow — where the two curves meet.', ok: true,
+        f: 'Storage is the accumulated difference between the two. It keeps falling for as long as outflow ' +
+           'exceeds inflow, and bottoms out at the moment they become equal.' },
+      { t: 'When the gap between outflow and inflow is largest.', ok: false,
+        f: 'This is the <span class="misname">correlation heuristic</span>. In one study ' +
+           'graduate students read the flow graphs correctly 95% of the time and still got the stock question wrong more ' +
+           'than half the time. The biggest gap is when storage is falling <em>fastest</em>, not when it is <em>lowest</em>. ' +
+           'A bath empties quickest the moment you pull the plug, and is emptiest at the end.' },
+      { t: 'When outflow is at its maximum.', ok: false,
+        f: 'Same confusion between a rate and an accumulation. What sets the storage is inflow <em>minus</em> outflow, ' +
+           'summed over all the time so far.' },
+      { t: 'At the very start, before pumping.', ok: false,
+        f: 'Before pumping the system was in balance and storage was at its highest.' }
+    ]
+},
+{
+    q: 'Why can capture not be measured with instruments, however good?',
+    o: [
+      { t: 'It is defined against a no-pumping baseline you never get to observe, so it can only be modelled.', ok: true,
+        f: 'This is why hydrogeologists build models. A gauge tells you the stream is down. Only a model ' +
+           'tells you how much of that came from your well and how much from the weather.' },
+      { t: 'It is too small to detect.', ok: false,
+        f: 'Often it is not small at all. At steady state it equals the entire pumping rate. The difficulty is the ' +
+           'absence of a control.' },
+      { t: 'It happens underground where instruments cannot reach.', ok: false,
+        f: 'Much of capture shows up at the <em>surface</em>, as reduced streamflow, and we gauge streams all the time. ' +
+           'The difficulty is knowing what the flow would have been.' },
+      { t: 'It can be — just meter the well and subtract it from the stream flow.', ok: false,
+        f: 'That would leave the misconception in place. Stream flow varies with rainfall, season and every other ' +
+           'abstraction in the catchment, so subtracting your well&rsquo;s rate from a gauge record tells you nothing ' +
+           'about what your well caused.' }
+    ]
+}
+];
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function shuffleOpts(arr, seed) {
+    var r = mulberry32(seed), a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+}
+function buildQuiz() {
+    var host = document.getElementById('quiz');
+    /* seed chosen so the correct answer lands at A C D B A rather than always first */
+    QUIZ.forEach(function (item, qi) { item.o = shuffleOpts(item.o, 1000 + qi * 175); });
+    QUIZ.forEach(function (item, qi) {
+        var d = document.createElement('div'); d.className = 'qitem';
+        var h = '<div class="qnum">Question ' + (qi + 1) + '</div><div class="qtext">' + item.q + '</div>';
+        item.o.forEach(function (op, oi) {
+            h += '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' +
+                 '<span class="mark">' + 'ABCD'[oi] + '.</span>' + op.t + '</button>';
+        });
+        h += '<div class="fb" id="fb-' + qi + '"></div>';
+        d.innerHTML = h; host.appendChild(d);
+    });
+    host.addEventListener('click', function (e) {
+        var b = e.target.closest('.opt'); if (!b) return;
+        var qi = +b.dataset.q, oi = +b.dataset.o, op = QUIZ[qi].o[oi];
+        host.querySelectorAll('.opt[data-q="' + qi + '"]').forEach(function (x) { x.classList.remove('sel-ok', 'sel-no'); });
+        b.classList.add(op.ok ? 'sel-ok' : 'sel-no');
+        var fb = document.getElementById('fb-' + qi);
+        fb.className = 'fb ' + (op.ok ? 'ok' : 'no');
+        fb.innerHTML = '<span class="lab">' + (op.ok ? 'Correct. ' : 'Not this one. ') + '</span>' + op.f;
+        fb.style.display = 'block';
+    });
+}
+
+/* ===================== STEPS ===================== */
+var STEPS = [
+  { t: '1. The same aquifer, with the well and without it',
+    b: 'Both panels show the aquifer once it has settled: heads have stopped falling, so nothing is coming out of ' +
+       'storage any more. The right one has your well. Every arrow is drawn so that <strong>length is flow</strong>, ' +
+       'at one scale, so what goes in and what comes out should look equal. Wind $Q$ up slowly and keep an eye on the ' +
+       'water table where it meets the stream.' },
+  { t: '2. Where the water comes from, and how long it takes to get there',
+    b: 'Drag the time slider from a month out to a century. The chart shows what fraction of each litre is coming from ' +
+       '<span class="blue">storage</span> and what fraction from <span class="verm">capture</span> at that moment. ' +
+       'The numbers underneath give you the volumes.' },
+  { t: '3. Check yourself',
+    b: 'Five questions. Each wrong answer is a specific misconception, and some of these are held by practising ' +
+       'hydrogeologists too. The feedback explains why it is wrong. Change your answer as many times as you like ' +
+       '&mdash; the earlier tabs stay open if you want to go back and look.' }
+];
+function setStep(i) {
+    st.step = i;
+    document.getElementById('steptitle').innerHTML = STEPS[i].t;
+    document.getElementById('stepbody').innerHTML = STEPS[i].b;
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.setAttribute('aria-current', (+b.dataset.step === i) ? 'true' : 'false');
+    });
+    document.getElementById('predict').style.display  = (i === 1) ? 'block' : 'none';
+    cv.style.display = (i === 2) ? 'none' : 'block';
+    document.getElementById('ctrls').style.display    = (i === 2) ? 'none' : 'flex';
+    document.getElementById('numstrip').style.display = (i === 1) ? 'flex' : 'none';
+    document.getElementById('verdict').style.display  = (i === 2) ? 'none' : 'block';
+    document.getElementById('quizarea').style.display = (i === 2) ? 'block' : 'none';
+    document.getElementById('g-t').style.display = (i === 1) ? 'flex' : 'none';
+    document.getElementById('g-L').style.display = (i === 2) ? 'none' : 'flex';
+    document.getElementById('g-Q').style.display = (i === 0) ? 'flex' : 'none';
+    render();
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise();
+}
+function render() {
+    if (st.step === 2) return;
+    if (st.step === 0) drawWorlds(); else drawSources();
+    updNums(); updVerdict();
+}
+
+/* ===================== WIRING ===================== */
+function init() {
+    setupCanvas(); buildQuiz();
+    document.getElementById('tyr').addEventListener('input', function (e) {
+        st.tyr = parseFloat(e.target.value);
+        document.getElementById('tyr-v').textContent =
+            yrs() < 1 ? (yrs() * 12).toFixed(1) + ' mo' : yrs().toFixed(1) + ' yr';
+        render();
+    });
+    document.getElementById('dist').addEventListener('input', function (e) {
+        st.L = +e.target.value;
+        document.getElementById('dist-v').textContent = st.L + ' m';
+        render();
+    });
+    document.getElementById('qw').addEventListener('input', function (e) {
+        st.Q = +e.target.value;
+        document.getElementById('qw-v').textContent = st.Q + ' L/s';
+        render();
+    });
+    document.getElementById('predict').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-p]'); if (!b) return;
+        var c50 = captureFrac(st.L, 50 * 365.25) * 100;
+        document.getElementById('pfb').innerHTML = {
+            stor: '<strong>The common answer.</strong> At 50 years about ' +
+                  c50.toFixed(0) + '% of it is coming off the stream and only ' + (100 - c50).toFixed(0) + '% out of ' +
+                  'storage. Drag the time slider and watch which way the split moves.',
+            half: '<strong>Closer, but still too storage-heavy.</strong> At 50 years it is about ' +
+                  c50.toFixed(0) + '% capture. Half and half happens much earlier — find the crossover with the slider.',
+            cap:  '<strong>Right.</strong> About ' + c50.toFixed(0) + '% capture at 50 years, heading for 100%. ' +
+                  'What follows from that is which discharge is being captured, and whether anyone was relying on it.'
+        }[b.dataset.p];
+        document.getElementById('pfb').style.display = 'block';
+    });
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.addEventListener('click', function () { setStep(+b.dataset.step); });
+    });
+    setStep(0);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>

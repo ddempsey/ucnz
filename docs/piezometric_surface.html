@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piezometric surface vs water table - ENCN342</title>
+<script>
+MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #222; }
+h1 { text-align: center; color: #333; margin-bottom: 2px; }
+h2 { color: #333; margin-top: 32px; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+.institution { text-align: center; color: #555; margin-bottom: 22px; }
+.explainer { background: white; padding: 18px 26px; border-radius: 8px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.65; }
+.explainer p { margin: 0.7em 0; }
+.widget-container { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 18px; }
+
+/* refutation callout */
+.refute { background: #fff; border-left: 5px solid #D55E00; padding: 16px 22px; border-radius: 6px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.6; }
+.refute .wrong { color: #8a3b13; font-weight: 600; }
+.refute .right { color: #0a4a72; font-weight: 600; }
+
+/* placement note */
+.placement { font-size: 13px; color: #555; background: #eef2f6; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; }
+
+/* step nav */
+.steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.steps button { font-family: inherit; font-size: 13.5px; padding: 9px 14px; min-height: 40px; border-radius: 6px; border: 1px solid #bbb; background: #fafafa; color: #333; cursor: pointer; }
+.steps button:hover { background: #eef2f6; }
+.steps button[aria-current="true"] { background: #0072B2; border-color: #0072B2; color: #fff; font-weight: 600; }
+.steptitle { font-size: 17px; font-weight: 600; color: #222; margin: 4px 0 6px; }
+.stepbody { font-size: 14.5px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+
+/* controls */
+.controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 12px 0 6px; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.control-group label { font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.control-group input[type="range"] { width: 170px; height: 26px; cursor: pointer; }
+.control-group .val { font-size: 13px; color: #333; min-width: 62px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cb-group { display: flex; align-items: center; gap: 7px; min-height: 30px; }
+.cb-group input { width: 20px; height: 20px; cursor: pointer; }
+.cb-group label { font-size: 13.5px; cursor: pointer; }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid #0072B2; outline-offset: 2px; }
+canvas { display: block; margin: 0 auto; max-width: 100%; }
+
+/* readout */
+.readout { margin-top: 12px; background: #f7f9fb; border: 1px solid #dce3ea; border-radius: 6px; padding: 12px 16px; font-size: 13.5px; line-height: 1.65; }
+.readout .k { display: inline-block; min-width: 250px; color: #555; }
+.readout .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+.readout .verdict { margin-top: 8px; padding-top: 8px; border-top: 1px solid #dce3ea; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+.tag-art { background: #D55E00; color: #fff; }
+.tag-same { background: #0072B2; color: #fff; }
+
+/* predict prompt */
+.predict { background: #fffdf5; border: 1px solid #e6d9a8; border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+.predict .q { font-weight: 600; margin-bottom: 8px; font-size: 14.5px; }
+.predict button { font-family: inherit; font-size: 13.5px; padding: 8px 14px; min-height: 34px; margin-right: 8px; border-radius: 6px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
+.predict button:hover { background: #f0f0f0; }
+.predict .pfb { margin-top: 10px; font-size: 13.5px; line-height: 1.6; display: none; }
+
+/* quiz */
+.quiz { background: white; padding: 4px 0; }
+.qitem { border-top: 1px solid #e6e6e6; padding: 18px 0 6px; }
+.qitem:first-child { border-top: none; }
+.qnum { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #888; font-weight: 700; }
+.qtext { font-size: 15px; font-weight: 600; margin: 5px 0 12px; line-height: 1.5; }
+.opt { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 14px; line-height: 1.5; padding: 11px 14px; min-height: 40px; margin-bottom: 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.opt:hover { background: #f2f6fa; }
+.opt.sel-ok { border-color: #0072B2; background: #e8f2f9; border-width: 2px; }
+.opt.sel-no { border-color: #D55E00; background: #fdefe7; border-width: 2px; }
+.opt .mark { font-weight: 700; margin-right: 7px; }
+.fb { display: none; font-size: 13.5px; line-height: 1.65; padding: 11px 15px; border-radius: 6px; margin: 4px 0 8px; }
+.fb.ok { background: #e8f4ec; border-left: 4px solid #17823f; }
+.fb.no { background: #fdefe7; border-left: 4px solid #D55E00; }
+.fb .lab { font-weight: 700; }
+.misname { font-style: italic; color: #7a4a2a; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+</style>
+</head>
+<body>
+
+<h1>Piezometric surface is not (generally) the water table</h1>
+<div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+<div class="institution">University of Canterbury</div>
+
+<div class="refute">
+    <p><span class="wrong">A very common picture is wrong:</span> that groundwater sits in an underground lake with a surface you could touch, and that the line drawn on a cross-section is that surface.</p>
+    <p><span class="right">What is actually true:</span> that picture works for the water table of an <strong>unconfined</strong> aquifer. For a <strong>confined</strong> aquifer the piezometric surface is a <em>hypothetical level</em> &mdash; the height water <em>would</em> rise to in a tube &mdash; and there is nothing physically there. It can sit above the ground surface. The two panels below use the <em>same instrument</em> (paired piezometers) in <em>almost the same ground</em> so you can see the difference directly.</p>
+</div>
+
+<div class="placement">
+    <strong>Where this fits:</strong> use after Module 1 (Groundwater Systems), before Tutorial 1&nbsp;Q2 and before anything involving drawdown. Every conceptual-sketch exam question and every Theis calculation assumes you understand this.
+</div>
+
+<div class="widget-container">
+    <div class="steps" role="tablist" aria-label="Steps">
+        <button type="button" data-step="0" role="tab">1. Same instrument, two answers</button>
+        <button type="button" data-step="1" role="tab">2. A surface above the ground</button>
+        <button type="button" data-step="2" role="tab">3. Why two heads can coexist</button>
+        <button type="button" data-step="3" role="tab">4. Check yourself</button>
+    </div>
+
+    <div id="predict" class="predict">
+        <div class="q">Before you touch anything &mdash; in the <strong>right-hand</strong> panel, the two piezometers are drilled 20&nbsp;m apart at the same site. Will they show the same water level?</div>
+        <button type="button" data-p="same">Yes &mdash; same place, same water level</button>
+        <button type="button" data-p="diff">No &mdash; they can differ</button>
+        <div class="pfb" id="pfb"></div>
+    </div>
+
+    <div id="steptitle" class="steptitle"></div>
+    <div id="stepbody" class="stepbody"></div>
+
+    <div id="panelarea">
+        <canvas id="cv" width="980" height="470" role="img"
+            aria-label="Two cross-sections side by side. A text summary of the current state follows below the diagram."></canvas>
+
+        <div class="controls" id="ctrls">
+            <div class="control-group">
+                <label for="hu">Water table&nbsp;$h_u$ [m]</label>
+                <input type="range" id="hu" min="18" max="28" step="0.5" value="22">
+                <span class="val" id="hu-v">22.0 m</span>
+            </div>
+            <div class="control-group" id="hcgroup">
+                <label for="hc">Confined head&nbsp;$h_c$ [m]</label>
+                <input type="range" id="hc" min="6" max="36" step="0.5" value="34">
+                <span class="val" id="hc-v">34.0 m</span>
+            </div>
+            <div class="cb-group" id="aqgroup" style="display:none;">
+                <input type="checkbox" id="noaq">
+                <label for="noaq">Remove the aquitard</label>
+            </div>
+        </div>
+
+        <div class="readout" id="readout" aria-live="polite"></div>
+    </div>
+
+    <div id="quizarea" style="display:none;">
+        <div class="quiz" id="quiz"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ============================ CONSTANTS ============================ */
+var C = {
+    water:    '#0072B2',          /* physical water                       */
+    waterFil: 'rgba(0,114,178,0.30)',
+    head:     '#D55E00',          /* head / piezometric level (vermillion) */
+    sand:     '#e2d2ad',
+    gravel:   '#cbb894',
+    clay:     '#8d7f74',
+    base:     '#6f6b67',
+    sky:      '#eef4f8',
+    casing:   '#8d949b',
+    ink:      '#222'
+};
+var G = { zTop: 40, zBot: -3, zGround: 30, aqTop: 8, aqBot: 0, bandTop: 14 };
+/* band 8..14 is CLAY in the confined panel, SAND in the unconfined panel.
+   That single material swap is the only geological difference.           */
+
+var SHALLOW_X = 0.66, DEEP_X = 0.30, OPEN_X = 0.88;
+var TUBE_W = 0.030, OPEN_W = 0.040;
+var DEEP_TOP = 37, SHAL_TOP = 33;
+
+var reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============================ STATE ============================ */
+var st = { step: 0, hu: 22, hc: 34, noaq: false, anim: null };
+
+var cv  = document.getElementById('cv');
+var ctx = null;
+
+function setupCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = 980 * dpr; cv.height = 470 * dpr;
+    cv.style.width = '980px'; cv.style.height = '470px';
+    ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/* ============================ DRAWING HELPERS ============================ */
+function mkPanel(x, w) {
+    var yTop = 40, yBot = 456;
+    var sc = (yBot - yTop) / (G.zTop - G.zBot);
+    return {
+        x: x, w: w, yTop: yTop, yBot: yBot,
+        X: function (u) { return x + u * w; },
+        Y: function (z) { return yTop + (G.zTop - z) * sc; },
+        H: function (dz) { return dz * sc; }
+    };
+}
+
+function band(p, z0, z1, fill) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(p.x, p.Y(z1), p.w, p.H(z1 - z0));
+}
+
+function speckle(p, z0, z1, colour, n, r) {
+    ctx.fillStyle = colour;
+    var seed = 7;
+    for (var i = 0; i < n; i++) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        var u = (seed / 0x7fffffff);
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        var v = (seed / 0x7fffffff);
+        var px = p.x + 4 + u * (p.w - 8);
+        var pz = z0 + v * (z1 - z0);
+        ctx.beginPath(); ctx.arc(px, p.Y(pz), r, 0, 6.2832); ctx.fill();
+    }
+}
+
+function hatch(p, z0, z1, colour) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(p.x, p.Y(z1), p.w, p.H(z1 - z0)); ctx.clip();
+    ctx.strokeStyle = colour; ctx.lineWidth = 1;
+    for (var k = -Math.round(p.H(z1 - z0)); k < p.w; k += 9) {
+        ctx.beginPath();
+        ctx.moveTo(p.x + k, p.Y(z0));
+        ctx.lineTo(p.x + k + p.H(z1 - z0), p.Y(z1));
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function label(txt, x, y, align, colour, weight, size) {
+    ctx.font = (weight || '400') + ' ' + (size || 12) + 'px "Segoe UI", sans-serif';
+    ctx.textAlign = align || 'left';
+    ctx.fillStyle = colour || C.ink;
+    ctx.fillText(txt, x, y);
+}
+
+function chip(txt, x, y, bg, fg, align) {
+    ctx.font = '700 11.5px "Segoe UI", sans-serif';
+    var w = ctx.measureText(txt).width + 14;
+    var x0 = align === 'right' ? x - w : (align === 'center' ? x - w / 2 : x);
+    ctx.fillStyle = bg;
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x0, y - 12, w, 18, 9); ctx.fill(); }
+    else ctx.fillRect(x0, y - 12, w, 18);
+    ctx.fillStyle = fg; ctx.textAlign = 'left';
+    ctx.fillText(txt, x0 + 7, y + 1);
+}
+
+function dashLine(x0, y0, x1, y1, colour, wid, dash) {
+    ctx.save();
+    ctx.setLineDash(dash || [7, 5]);
+    ctx.strokeStyle = colour; ctx.lineWidth = wid || 2;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.restore();
+}
+
+/* draw a piezometer: casing to `top`, screen from zs0..zs1, water standing at zw */
+function piezo(p, u, wdt, top, zs0, zs1, zw, screened) {
+    var xw = p.X(u), w = p.w * wdt, x0 = xw - w / 2;
+    /* water column inside the tube */
+    ctx.fillStyle = C.water;
+    ctx.fillRect(x0 + 1.5, p.Y(zw), w - 3, p.Y(zs0) - p.Y(zw));
+    /* casing walls */
+    ctx.strokeStyle = C.casing; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, p.Y(top)); ctx.lineTo(x0, p.Y(zs1));
+    ctx.moveTo(x0 + w, p.Y(top)); ctx.lineTo(x0 + w, p.Y(zs1));
+    ctx.stroke();
+    /* screen: dotted walls */
+    ctx.save(); ctx.setLineDash([2.5, 2.5]); ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, p.Y(zs1)); ctx.lineTo(x0, p.Y(zs0));
+    ctx.moveTo(x0 + w, p.Y(zs1)); ctx.lineTo(x0 + w, p.Y(zs0));
+    ctx.moveTo(x0, p.Y(zs0)); ctx.lineTo(x0 + w, p.Y(zs0));
+    ctx.stroke(); ctx.restore();
+    /* meniscus */
+    ctx.strokeStyle = C.water; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0 + 1, p.Y(zw)); ctx.lineTo(x0 + w - 1, p.Y(zw)); ctx.stroke();
+    return { x: xw, x0: x0, w: w };
+}
+
+/* small fan of water spilling from an overflowing casing */
+function spill(p, xw, w, zLip) {
+    var y = p.Y(zLip);
+    ctx.fillStyle = 'rgba(0,114,178,0.75)';
+    ctx.beginPath();
+    ctx.moveTo(xw - w / 2, y);
+    ctx.quadraticCurveTo(xw - w / 2 - 16, y + 4, xw - w / 2 - 26, y + 14);
+    ctx.lineTo(xw + w / 2 + 26, y + 14);
+    ctx.quadraticCurveTo(xw + w / 2 + 16, y + 4, xw + w / 2, y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,114,178,0.45)';
+    ctx.beginPath(); ctx.ellipse(xw, y + 15, w / 2 + 30, 4.5, 0, 0, 6.2832); ctx.fill();
+}
+
+/* ============================ PANEL ============================ */
+function drawPanel(p, o) {
+    /* o = { clay: is the 8-14 m band an aquitard?, deep: head sensed by the deep piezometer } */
+    var hu = st.hu, confined = o.clay, hDeep = o.deep;
+    var showOpen = (st.step === 1);
+    var coincide = Math.abs(hDeep - hu) < 0.25;
+    var showDelta = !coincide;
+
+    /* --- title strip --- */
+    ctx.fillStyle = confined ? '#f6efe9' : '#eef4f8';
+    ctx.fillRect(p.x, 8, p.w, 26);
+    ctx.strokeStyle = '#d8d8d8'; ctx.lineWidth = 1; ctx.strokeRect(p.x + 0.5, 8.5, p.w - 1, 25);
+    label(confined ? 'CONFINED  —  aquitard present' : 'UNCONFINED  —  no aquitard',
+          p.x + 12, 26, 'left', confined ? '#8a3b13' : '#0a4a72', '700', 13);
+
+    /* --- air --- */
+    band(p, G.zGround, G.zTop, C.sky);
+
+    /* --- geology --- */
+    band(p, G.bandTop, G.zGround, C.sand);
+    speckle(p, G.bandTop, G.zGround, 'rgba(150,130,95,0.5)', 130, 0.9);
+    band(p, G.aqTop, G.bandTop, confined ? C.clay : C.sand);
+    if (confined) hatch(p, G.aqTop, G.bandTop, 'rgba(255,255,255,0.30)');
+    else speckle(p, G.aqTop, G.bandTop, 'rgba(150,130,95,0.5)', 55, 0.9);
+    band(p, G.aqBot, G.aqTop, C.gravel);
+    speckle(p, G.aqBot, G.aqTop, 'rgba(120,100,70,0.55)', 90, 1.7);
+    band(p, G.zBot, G.aqBot, C.base);
+
+    /* --- saturation (identical in both panels) --- */
+    ctx.fillStyle = C.waterFil;
+    ctx.fillRect(p.x, p.Y(hu), p.w, p.Y(G.aqBot) - p.Y(hu));
+
+    /* --- highlight the swapped band (signalling) --- */
+    ctx.save();
+    ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+    ctx.strokeStyle = confined ? '#8a3b13' : '#4a7fa5';
+    ctx.strokeRect(p.x + 1, p.Y(G.bandTop), p.w - 2, p.H(G.bandTop - G.aqTop));
+    ctx.restore();
+
+    /* --- ground surface --- */
+    ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(p.x, p.Y(G.zGround)); ctx.lineTo(p.x + p.w, p.Y(G.zGround)); ctx.stroke();
+    label('ground surface  (30 m)', p.x + p.w - 8, p.Y(G.zGround) - 6, 'right', '#4a4a4a', '600', 11.5);
+
+    /* --- material labels --- */
+    label('sand', p.x + 8, p.Y((G.bandTop + G.zGround) / 2), 'left', '#6b5a38', '600', 11.5);
+    label(confined ? 'CLAY aquitard' : 'sand (continuous)',
+          p.x + 8, p.Y((G.aqTop + G.bandTop) / 2) + 4, 'left',
+          confined ? '#ffffff' : '#6b5a38', '700', 11.5);
+    label('gravel aquifer', p.x + 8, p.Y((G.aqBot + G.aqTop) / 2) + 4, 'left', '#5c4a2c', '700', 11.5);
+
+    /* --- water table (physical interface) --- */
+    ctx.strokeStyle = C.water; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(p.x, p.Y(hu)); ctx.lineTo(p.x + p.w, p.Y(hu)); ctx.stroke();
+    label('▼ water table (real air/water interface)', p.x + 8, p.Y(hu) - 7, 'left', '#005b8f', '700', 11.5);
+
+    /* --- head of the deep aquifer (dashed, vermillion) --- */
+    dashLine(p.x, p.Y(hDeep), p.x + p.w, p.Y(hDeep), C.head, 2.5);
+    var lab = coincide ? 'head in the gravel  =  the water table' : 'piezometric surface of the confined aquifer';
+    label(lab, p.x + p.w - 8, p.Y(hDeep) + (coincide ? 15 : -7), 'right', '#a04510', '700', 11.5);
+
+    /* --- piezometers --- */
+    var d = piezo(p, DEEP_X, TUBE_W, DEEP_TOP, 2, 5, hDeep);
+    var s = piezo(p, SHALLOW_X, TUBE_W, SHAL_TOP, 15, 17.5, hu);
+    label('deep piezometer', d.x, p.Y(DEEP_TOP) - 8, 'center', '#333', '600', 11.5);
+    label('(open to gravel only)', d.x, p.Y(DEEP_TOP) + 4, 'center', '#666', '400', 10.5);
+    label('shallow piezometer', s.x, p.Y(SHAL_TOP) - 8, 'center', '#333', '600', 11.5);
+    label('(open to sand only)', s.x, p.Y(SHAL_TOP) + 4, 'center', '#666', '400', 10.5);
+
+    /* --- uncapped well (step 2 only) --- */
+    if (showOpen) {
+        var o = piezo(p, OPEN_X, OPEN_W, G.zGround, 2, 5, Math.min(hDeep, G.zGround));
+        label('uncapped', o.x, p.Y(G.zGround) - 22, 'center', '#333', '600', 11.5);
+        label('well', o.x, p.Y(G.zGround) - 10, 'center', '#333', '600', 11.5);
+        if (hDeep > G.zGround + 0.05) {
+            spill(p, o.x, o.w, G.zGround);
+            chip('FLOWING', o.x, p.Y(G.zGround) + 38, C.head, '#fff', 'center');
+        }
+    }
+
+    /* --- coincidence / difference annotations --- */
+    if (coincide) {
+        chip('head = water table', p.x + p.w - 8, p.Y(hu) + 30, C.water, '#fff', 'right');
+    }
+    if (showDelta) {
+        var xb = p.X(0.475);
+        ctx.strokeStyle = '#8a3b13'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(xb, p.Y(hu)); ctx.lineTo(xb, p.Y(hDeep));
+        ctx.moveTo(xb - 6, p.Y(hu)); ctx.lineTo(xb + 6, p.Y(hu));
+        ctx.moveTo(xb - 6, p.Y(hDeep)); ctx.lineTo(xb + 6, p.Y(hDeep));
+        ctx.stroke();
+        label('Δh = ' + Math.abs(hDeep - hu).toFixed(1) + ' m',
+              xb + 9, (p.Y(hu) + p.Y(hDeep)) / 2 + 4, 'left', '#8a3b13', '700', 12);
+        label('held by the aquitard', xb + 9, (p.Y(hu) + p.Y(hDeep)) / 2 + 18, 'left', '#8a3b13', '400', 11);
+    }
+
+    /* --- the key caption --- */
+    if (!coincide && hDeep > G.aqTop + 1) {
+        chip('nothing is floating at this level — the gravel is full and pressurised',
+             p.X(0.5), p.Y(hDeep) + 32, '#fdefe7', '#8a3b13', 'center');
+    }
+
+    /* frame */
+    ctx.strokeStyle = '#cfcfcf'; ctx.lineWidth = 1;
+    ctx.strokeRect(p.x + 0.5, p.yTop + 0.5, p.w - 1, p.yBot - p.yTop - 1);
+}
+
+var PL = mkPanel(10, 470), PR = mkPanel(500, 470);
+
+function render() {
+    ctx.clearRect(0, 0, 980, 470);
+    /* left panel: no aquitard, so the deep piezometer must read the water table.
+       right panel: the clay vanishes the instant the box is ticked, but the head
+       is tweened by animateTo() so the collapse is visible rather than instant.  */
+    drawPanel(PL, { clay: false, deep: st.hu });
+    drawPanel(PR, { clay: !st.noaq, deep: st.hc });
+}
+
+/* ============================ READOUT ============================ */
+function updateReadout() {
+    var hu = st.hu, hc = st.hc, r = document.getElementById('readout');
+    var art = hc > G.zGround;
+    var coupled = st.noaq;
+    var lines = [];
+
+    lines.push('<div><span class="k">Water table (both panels)</span><span class="v">' +
+               hu.toFixed(1) + ' m</span></div>');
+    lines.push('<div><span class="k">Head in the deep gravel &mdash; LEFT panel</span><span class="v">' +
+               hu.toFixed(1) + ' m</span> &nbsp;<span class="tag tag-same">same as the water table</span></div>');
+    lines.push('<div><span class="k">Head in the deep gravel &mdash; RIGHT panel</span><span class="v">' +
+               (coupled ? hu.toFixed(1) : hc.toFixed(1)) + ' m</span>' +
+               (art && !coupled ? ' &nbsp;<span class="tag tag-art">ARTESIAN</span>' : '') + '</div>');
+
+    var v = '<div class="verdict">';
+    if (coupled) {
+        v += 'With the aquitard removed the two units are hydraulically continuous, so water flows until ' +
+             'the heads match. The water table barely moves &mdash; the sand’s specific yield is thousands ' +
+             'of times larger than the gravel’s elastic storativity, so the <em>confined</em> head is the one that gives way.';
+    } else {
+        v += '<strong>Left panel:</strong> the deep piezometer reads ' + hu.toFixed(1) +
+             '&nbsp;m, exactly the water table, because nothing stops water equilibrating between the gravel and the sand. ' +
+             'Here the piezometric surface <em>is</em> a real air/water interface. ';
+        v += '<br><strong>Right panel:</strong> the deep piezometer reads ' + hc.toFixed(1) +
+             '&nbsp;m while the shallow one reads ' + hu.toFixed(1) + '&nbsp;m &mdash; ' +
+             Math.abs(hc - hu).toFixed(1) + '&nbsp;m apart, at the same site. ' +
+             'The clay prevents the flow that would otherwise equalise them. ' +
+             '<strong>There is no air/water interface at ' + hc.toFixed(1) + '&nbsp;m.</strong> ' +
+             'The gravel is completely full of water from 0&ndash;8&nbsp;m and under pressure; ' +
+             hc.toFixed(1) + '&nbsp;m is where water <em>would</em> rise in a tube.';
+        if (art) {
+            v += '<br><strong>Artesian:</strong> the head is ' + (hc - G.zGround).toFixed(1) +
+                 '&nbsp;m <em>above ground level</em>, so an uncapped well screened in the gravel ' +
+                 'flows at the surface with no pump. A surface above the ground is impossible for a water table ' +
+                 'and perfectly ordinary for a piezometric surface.';
+        }
+    }
+    v += '</div>';
+    lines.push(v);
+    r.innerHTML = lines.join('');
+}
+
+/* ============================ STEPS ============================ */
+var STEPS = [
+    { t: '1. The same instrument gives two different answers',
+      b: 'Both panels have identical geology except for one band (dashed outline, 8&ndash;14&nbsp;m): ' +
+         'sand on the left, clay on the right. The water in the ground is in exactly the same place in both. ' +
+         'Drag the two sliders and watch the <strong>deep</strong> piezometer. On the left it is locked to the water table. ' +
+         'On the right it moves independently, because each aquifer has its own head even at the same location.' },
+    { t: '2. A surface that sits above the ground',
+      b: 'Push <strong>$h_c$ above 30&nbsp;m</strong> (the ground surface). An uncapped well now appears in each panel. ' +
+         'On the right it flows without pumping &mdash; artesian conditions. Ask yourself where the water surface is ' +
+         'in the ground (for the confined aquifer) at that elevation. There isn’t one: the gravel is full and pressurised, and the ' +
+         'piezometric surface is the level water would <em>rise to</em>. You could dig all day and never reach it.' },
+    { t: '3. Remove the aquitard and watch the heads collapse together',
+      b: 'Tick the box. The clay becomes sand, the two units connect, and the confined head relaxes to the water table &mdash; ' +
+         'the right panel turns into the left panel. Untick it and the difference returns. ' +
+         'This is the causal test: the aquitard is what allows two different heads to coexist at one location.' },
+    { t: '4. Check yourself',
+      b: 'Five questions. Each wrong answer is a specific misconception. The feedback explains why it is wrong. ' +
+         'Change your answer as many times as you like &mdash; the diagram above stays available.' }
+];
+
+function setStep(i) {
+    st.step = i;
+    document.getElementById('steptitle').innerHTML = STEPS[i].t;
+    document.getElementById('stepbody').innerHTML = STEPS[i].b;
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.setAttribute('aria-current', (+b.dataset.step === i) ? 'true' : 'false');
+    });
+    document.getElementById('aqgroup').style.display = (i === 2) ? 'flex' : 'none';
+    document.getElementById('predict').style.display = (i === 0) ? 'block' : 'none';
+    document.getElementById('quizarea').style.display = (i === 3) ? 'block' : 'none';
+    if (i !== 2 && st.noaq) { document.getElementById('noaq').checked = false; st.noaq = false; }
+    render(); updateReadout();
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise();
+}
+
+/* ============================ ANIMATION ============================ */
+function animateTo(target, done) {
+    if (st.anim) cancelAnimationFrame(st.anim);
+    if (reduceMotion) { st.hc = target; render(); updateReadout(); if (done) done(); return; }
+    var from = st.hc, t0 = performance.now(), dur = 1100;
+    (function tick(now) {
+        var k = Math.min(1, (now - t0) / dur);
+        var e = 1 - Math.pow(1 - k, 3);
+        st.hc = from + (target - from) * e;
+        render(); updateReadout();
+        if (k < 1) st.anim = requestAnimationFrame(tick);
+        else { st.anim = null; if (done) done(); }
+    })(t0);
+}
+
+/* ============================ QUIZ ============================ */
+var QUIZ = [
+{
+    q: 'A confined aquifer’s piezometric surface is drawn 3&nbsp;m <strong>above</strong> the ground surface. ' +
+       'You drill a well into that aquifer and leave the top uncapped. What happens?',
+    o: [
+      { t: 'Water flows out at the surface with no pumping.', ok: true,
+        f: 'Head above ground level means the water has more than enough energy to reach the surface — ' +
+           'this is a flowing artesian well. Springs like Te Waikoropupū work the same way.' },
+      { t: 'Nothing — water cannot stand above the ground, so the diagram must be wrong.', ok: false,
+        f: 'This is the <span class="misname">literal-surface misconception</span>: treating the piezometric surface as ' +
+           'a physical water surface, which of course could not float in mid-air. It is a <em>potential</em> — ' +
+           'the level water would rise to — and nothing prevents that level being above ground.' },
+      { t: 'Water rises to just below the ground surface and stops.', ok: false,
+        f: 'This assumes head is <span class="misname">capped at ground level</span>. Nothing caps it: ' +
+           'head is set by the pressure in the aquifer, which is set by recharge elevation far away.' },
+      { t: 'The well fills only to the top of the aquifer.', ok: false,
+        f: 'This confuses <span class="misname">head with the top of the aquifer</span>. In a confined aquifer ' +
+           'the head is almost always well above the aquifer top — that is essentially what “confined” means.' }
+    ]
+},
+{
+    q: 'In which case does the piezometric surface coincide with a real air/water interface you could actually find in the ground?',
+    o: [
+      { t: 'Unconfined only.', ok: true,
+        f: 'In an unconfined aquifer the piezometric surface <em>is</em> the water table, an air/water ' +
+           'boundary you could find by digging. In a confined aquifer it is a computed level and nothing more.' },
+      { t: 'Confined only.', ok: false,
+        f: 'The confined case is the one where the surface is hypothetical.' },
+      { t: 'Both.', ok: false,
+        f: 'This is the <span class="misname">underground-lake picture</span> applied to everything. ' +
+           'Look at the right-hand panel: the gravel is saturated to its top at 8&nbsp;m, and the head line is at 34&nbsp;m. ' +
+           'There is nothing at 34&nbsp;m.' },
+      { t: 'Neither.', ok: false,
+        f: 'This is the trap of <span class="misname">over-generalising the rule</span>. Having learned that ' +
+           '“piezometric surface ≠ water table”, it is tempting to apply it everywhere. ' +
+           'For an unconfined aquifer they are the same thing — which is why the left panel exists.' }
+    ]
+},
+{
+    q: 'Two wells 20&nbsp;m apart tap different aquifers separated by a clay aquitard. ' +
+       'One stands at 24&nbsp;m, the other at 34&nbsp;m. Why?',
+    o: [
+      { t: 'The aquitard prevents the flow that would otherwise equalise the two heads.', ok: true,
+        f: 'You can test it in step 3. Remove the aquitard and the heads collapse together within seconds of model time.' },
+      { t: 'One measurement must be wrong — head is the same everywhere at a given location.', ok: false,
+        f: 'This is the <span class="misname">head-as-a-property-of-place</span> misconception. Head is a property of ' +
+           '<em>an aquifer at</em> a place. Head is uniform in a connected body of water precisely because water can ' +
+           'flow to equalise it. Block the flow and the uniformity goes away.' },
+      { t: 'The deeper well is deeper, so it has more water above it.', ok: false,
+        f: 'This is <span class="misname">head/depth/pressure conflation</span>. Pressure at the screen does increase ' +
+           'with depth, but head already accounts for elevation — it is the level the water rises to, measured against ' +
+           'a common datum. Two piezometers of different depths in the <em>same</em> aquifer read the same head.' },
+      { t: 'The deeper aquifer is unconfined.', ok: false,
+        f: 'The opposite: the deeper aquifer is confined, which is exactly what lets its head differ from the water table.' }
+    ]
+},
+{
+    q: 'A piezometer is 26&nbsp;m deep. The water in it stands 4&nbsp;m below ground level. ' +
+       'Taking ground level as the datum, what is the head at the screen?',
+    o: [
+      { t: '−4 m', ok: true,
+        f: 'Head is the elevation of the water level in the tube, relative to your datum. ' +
+           'The depth of the well does not come into it.' },
+      { t: '−26 m', ok: false,
+        f: 'This reads <span class="misname">head as the depth of the well</span>. Two piezometers of different ' +
+           'depths in the same aquifer give the same head. If head equalled well depth that could never happen.' },
+      { t: '22 m', ok: false,
+        f: 'This is the <span class="misname">length of the water column</span> in the tube (26 − 4), ' +
+           'i.e. the pressure head at the screen. Total head is pressure head <em>plus</em> elevation head: ' +
+           '22 + (−26) = −4&nbsp;m. Getting this wrong is the classic sign error in $p=\\rho g(z+h)$.' },
+      { t: '+4 m', ok: false,
+        f: 'Sign error. The water level is <em>below</em> the datum, so the head is negative.' }
+    ]
+},
+{
+    q: 'You pump a confined aquifer and its piezometric surface drops 10&nbsp;m, but still sits well above the top of the aquifer. ' +
+       'Does the aquifer dewater (part of it starts to dry out)?',
+    o: [
+      { t: 'No — it stays completely saturated, and the drop is a decline in pressure.', ok: true,
+        f: 'This is why confined storativity is so small ($S=bS_s$, typically $10^{-5}$&ndash;$10^{-3}$): ' +
+           'water comes only from elastic expansion of water and compression of the rock. No pore ever drains. ' +
+           'Unconfined aquifers really do drain, giving $S=S_y \\approx 0.05$&ndash;$0.5$.' },
+      { t: 'Yes — the top 10 m of the aquifer drains.', ok: false,
+        f: 'This treats the <span class="misname">piezometric surface as a water table</span> that can move down ' +
+           'through the rock. It also makes confined and unconfined storativity look like the same quantity, when they ' +
+           'differ by three or four orders of magnitude.' },
+      { t: 'Yes, but only in a small zone near the well.', ok: false,
+        f: 'Still the draining picture. Provided the head stays above the aquifer top everywhere, nothing dewaters anywhere.' },
+      { t: 'No, because confined aquifers cannot be pumped.', ok: false,
+        f: 'They certainly can — most of Canterbury’s municipal supply comes from confined gravels. ' +
+           'They simply yield water by a different mechanism.' }
+    ]
+}
+];
+
+/* Options are authored correct-answer-first for readability, then scrambled here so
+   the answer is not always A. Seeded, so positions are stable across reloads and a
+   tutor can safely say "option C". Swap in Math.random() for a per-load shuffle. */
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function shuffleOpts(arr, seed) {
+    var r = mulberry32(seed), a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+}
+
+function buildQuiz() {
+    var host = document.getElementById('quiz');
+    QUIZ.forEach(function (item, qi) { item.o = shuffleOpts(item.o, 4021 + qi * 977); });
+    QUIZ.forEach(function (item, qi) {
+        var d = document.createElement('div'); d.className = 'qitem';
+        var h = '<div class="qnum">Question ' + (qi + 1) + '</div><div class="qtext">' + item.q + '</div>';
+        item.o.forEach(function (op, oi) {
+            h += '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' +
+                 '<span class="mark">' + 'ABCD'[oi] + '.</span>' + op.t + '</button>';
+        });
+        h += '<div class="fb" id="fb-' + qi + '"></div>';
+        d.innerHTML = h; host.appendChild(d);
+    });
+    host.addEventListener('click', function (e) {
+        var b = e.target.closest('.opt'); if (!b) return;
+        var qi = +b.dataset.q, oi = +b.dataset.o, op = QUIZ[qi].o[oi];
+        host.querySelectorAll('.opt[data-q="' + qi + '"]').forEach(function (x) {
+            x.classList.remove('sel-ok', 'sel-no');
+        });
+        b.classList.add(op.ok ? 'sel-ok' : 'sel-no');
+        var fb = document.getElementById('fb-' + qi);
+        fb.className = 'fb ' + (op.ok ? 'ok' : 'no');
+        fb.innerHTML = '<span class="lab">' + (op.ok ? 'Correct. ' : 'Not this one. ') + '</span>' + op.f;
+        fb.style.display = 'block';
+        if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([fb]);
+    });
+}
+
+/* ============================ WIRING ============================ */
+function init() {
+    setupCanvas();
+    buildQuiz();
+
+    var hu = document.getElementById('hu'), hc = document.getElementById('hc');
+    var huv = document.getElementById('hu-v'), hcv = document.getElementById('hc-v');
+    var live = null;
+    function debounceReadout() { clearTimeout(live); live = setTimeout(updateReadout, 350); }
+
+    hu.addEventListener('input', function () {
+        st.hu = parseFloat(hu.value); huv.textContent = st.hu.toFixed(1) + ' m';
+        if (st.noaq) { st.hc = st.hu; hc.value = st.hc; hcv.textContent = st.hc.toFixed(1) + ' m'; }
+        render(); debounceReadout();
+    });
+    hc.addEventListener('input', function () {
+        if (st.noaq) { hc.value = st.hu; return; }
+        st.hc = parseFloat(hc.value); hcv.textContent = st.hc.toFixed(1) + ' m';
+        render(); debounceReadout();
+    });
+
+    var hcBefore = 34;   /* remember what the head was before the aquitard came out */
+    document.getElementById('noaq').addEventListener('change', function (e) {
+        st.noaq = e.target.checked;
+        hc.disabled = st.noaq;
+        if (st.noaq) {
+            hcBefore = st.hc;
+            animateTo(st.hu, function () { hc.value = st.hu; hcv.textContent = st.hu.toFixed(1) + ' m'; });
+        } else {
+            animateTo(hcBefore, function () {
+                st.hc = hcBefore; hc.value = hcBefore; hcv.textContent = hcBefore.toFixed(1) + ' m';
+            });
+        }
+    });
+
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.addEventListener('click', function () { setStep(+b.dataset.step); });
+    });
+
+    document.getElementById('predict').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-p]'); if (!b) return;
+        var fb = document.getElementById('pfb');
+        fb.innerHTML = (b.dataset.p === 'diff')
+            ? '<strong>Correct.</strong> They differ by 12&nbsp;m in the current setting. Why that is allowed ' +
+              'is what the diagram below is for.'
+            : '<strong>Not quite.</strong> It is true inside a single ' +
+              'connected body of water, and it is what the left-hand panel shows. On the right the clay blocks the flow ' +
+              'that would equalise them, so the two readings sit 12&nbsp;m apart. Watch both deep piezometers as you drag.';
+        fb.style.display = 'block';
+    });
+
+    setStep(0);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Rorabaugh method - ENCN342</title>
+<script>
+MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #222; }
+h1 { text-align: center; color: #333; margin-bottom: 2px; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+.institution { text-align: center; color: #555; margin-bottom: 22px; }
+.explainer { background: white; padding: 18px 26px; border-radius: 8px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.65; }
+.explainer p { margin: 0.7em 0; }
+.widget-container { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 18px; }
+.placement { font-size: 13px; color: #555; background: #eef2f6; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; }
+
+.blue { color: #0072B2; font-weight: 700; }
+.verm { color: #C1541F; font-weight: 700; }
+
+.steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.steps button { font-family: inherit; font-size: 13.5px; padding: 9px 13px; min-height: 40px; border-radius: 6px; border: 1px solid #bbb; background: #fafafa; color: #333; cursor: pointer; }
+.steps button:hover { background: #eef2f6; }
+.steps button[aria-current="true"] { background: #0072B2; border-color: #0072B2; color: #fff; font-weight: 600; }
+.steptitle { font-size: 17px; font-weight: 600; margin: 4px 0 6px; }
+.stepbody { font-size: 14.5px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+
+.controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 12px 0 6px; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.control-group label { font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.control-group input[type="range"] { width: 200px; height: 26px; cursor: pointer; }
+.control-group select { font-family: inherit; font-size: 13.5px; padding: 6px 8px; min-height: 32px; }
+.cb-group { display: flex; align-items: center; gap: 7px; min-height: 30px; }
+.cb-group input { width: 20px; height: 20px; cursor: pointer; }
+.cb-group label { font-size: 13.5px; cursor: pointer; }
+table.mini { border-collapse: collapse; margin: 9px 0 2px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.mini th, table.mini td { border: 1px solid #d8dde2; padding: 3px 10px; text-align: right; }
+table.mini th { background: #eef2f6; font-weight: 600; }
+table.mini tr.cur td { background: #fff6e5; font-weight: 700; }
+.control-group .val { font-size: 13.5px; min-width: 74px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+button.act { font-family: inherit; font-size: 13.5px; padding: 9px 14px; min-height: 38px; border-radius: 6px; border: 1px solid #0072B2; background: #fff; color: #0072B2; font-weight: 600; cursor: pointer; }
+button.act:hover { background: #e8f2f9; }
+button.act.on { background: #0072B2; color: #fff; }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid #0072B2; outline-offset: 2px; }
+canvas { display: block; margin: 0 auto; max-width: 100%; }
+
+.verdict { margin-top: 10px; border-radius: 6px; padding: 12px 16px; font-size: 14px; line-height: 1.6; border: 1px solid #dce3ea; background: #f7f9fb; }
+.verdict.good { border-color: #9bcfae; background: #eaf6ee; }
+.verdict.bad  { border-color: #e8c3a8; background: #fdf3ec; }
+.verdict.err  { border-color: #d99; background: #fdecec; }
+.vbig { font-size: 15px; font-weight: 700; }
+.metrics { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.metrics b { font-size: 15px; }
+
+table.data { border-collapse: collapse; margin: 12px auto 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.data th, table.data td { border: 1px solid #dcdcdc; padding: 5px 11px; text-align: right; }
+table.data th { background: #f0f3f6; font-weight: 600; }
+table.data tbody tr { cursor: pointer; }
+table.data tbody tr:hover, table.data tbody tr.hi { background: #fff6e5; }
+.caption { text-align: center; font-size: 12.5px; color: #666; margin-top: 6px; }
+
+.predict { background: #fffdf5; border: 1px solid #e6d9a8; border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+.predict .q { font-weight: 600; margin-bottom: 8px; font-size: 14.5px; }
+.predict button { font-family: inherit; font-size: 13.5px; padding: 8px 14px; min-height: 34px; margin-right: 8px; border-radius: 6px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
+.predict .pfb { margin-top: 10px; font-size: 13.5px; line-height: 1.6; display: none; }
+
+.walk { margin-top: 10px; font-size: 14px; line-height: 1.6; background: #eef4f8; border-left: 4px solid #0072B2; border-radius: 6px; padding: 12px 16px; display: none; }
+
+.qitem { border-top: 1px solid #e6e6e6; padding: 18px 0 6px; }
+.qitem:first-child { border-top: none; }
+.qnum { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #888; font-weight: 700; }
+.qtext { font-size: 15px; font-weight: 600; margin: 5px 0 12px; line-height: 1.5; }
+.opt { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 14px; line-height: 1.5; padding: 11px 14px; min-height: 40px; margin-bottom: 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.opt:hover { background: #f2f6fa; }
+.opt.sel-ok { border-color: #0072B2; background: #e8f2f9; border-width: 2px; }
+.opt.sel-no { border-color: #C1541F; background: #fdefe7; border-width: 2px; }
+.opt .mark { font-weight: 700; margin-right: 7px; }
+.fb { display: none; font-size: 13.5px; line-height: 1.65; padding: 11px 15px; border-radius: 6px; margin: 4px 0 8px; }
+.fb.ok { background: #e8f4ec; border-left: 4px solid #17823f; }
+.fb.no { background: #fdefe7; border-left: 4px solid #C1541F; }
+.fb .lab { font-weight: 700; }
+.misname { font-style: italic; color: #7a4a2a; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<h1>The Rorabaugh method</h1>
+<div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+<div class="institution">University of Canterbury</div>
+
+<div class="explainer">
+    <p>When you pump a well, the water level drops for <strong>two quite different reasons</strong>. Some of the drop happens
+    out in the aquifer, where water has to flow radially towards the well &mdash; that is ordinary Theis drawdown, and it is
+    <span class="blue">proportional to $Q$</span>. The rest happens right at the well itself, where water squeezes through the
+    gravel pack and the screen slots and goes turbulent &mdash; and that part grows
+    <span class="verm">much faster than $Q$</span>.</p>
+    \[\Delta h_i \;=\; \underbrace{\beta\,Q_i}_{\textstyle \color{#0072B2}{\text{loss in the formation}}} \;+\; \underbrace{\alpha\,Q_i^{\,n}}_{\textstyle \color{#C1541F}{\text{loss at the well}}}\]
+    <p>A step-rate test pumps the well at several increasing rates so you can <strong>separate the two</strong>.
+    Doing that is what the Rorabaugh method is for, and the answer it gives you &mdash; the
+    <strong>sustainable yield</strong> &mdash; is what might be useful in a consent application.</p>
+</div>
+
+<div class="placement">
+    <strong>Where this fits:</strong> after Module 2 (Pumping tests), before Tutorial 6. The data below come from a step-rate
+    test on a rural Canterbury irrigation bore. <strong>They are not the tutorial's numbers</strong> &mdash; different bore,
+    different aquifer, different test &mdash; so none of the answers here will match your spreadsheet. The method is the part
+    that transfers.
+</div>
+
+<div class="widget-container">
+    <div class="steps" role="tablist" aria-label="Steps">
+        <button type="button" data-step="0" role="tab">1. Two kinds of loss</button>
+        <button type="button" data-step="1" role="tab">2. Find $\beta$</button>
+        <button type="button" data-step="2" role="tab">3. Read $\alpha$ and $n$</button>
+        <button type="button" data-step="3" role="tab">4. Sustainable yield</button>
+        <button type="button" data-step="4" role="tab">5. Check yourself</button>
+    </div>
+
+    <div id="steptitle" class="steptitle"></div>
+    <div id="stepbody" class="stepbody"></div>
+
+    <!-- ============ STEP 1 ============ -->
+    <div id="s1">
+        <div class="predict">
+            <div class="q">Before you drag anything: if you <strong>double</strong> the pumping rate, which part of the drawdown grows more?</div>
+            <button type="button" data-p="form">The loss out in the formation</button>
+            <button type="button" data-p="well">The loss at the well</button>
+            <button type="button" data-p="same">Both double</button>
+            <div class="pfb" id="pfb1"></div>
+        </div>
+        <canvas id="cv1" width="940" height="400" role="img"
+            aria-label="Left: a pumped well in cross-section, showing drawdown in the formation and an extra drop across the well screen. Right: either total drawdown against pumping rate, or the step test plotted against time. A text summary follows below."></canvas>
+        <div class="controls" role="radiogroup" aria-label="What to show">
+            <div class="cb-group">
+                <input type="radio" name="m1" id="m-free" value="free" checked>
+                <label for="m-free"><strong>(a)</strong>&nbsp; Explore any rate</label>
+            </div>
+            <div class="cb-group">
+                <input type="radio" name="m1" id="m-test" value="test">
+                <label for="m-test"><strong>(b)</strong>&nbsp; Run the actual step test</label>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-group" id="g-free">
+                <label for="q1">Pumping rate $Q$ [L/s]</label>
+                <input type="range" id="q1" min="5" max="70" step="1" value="30">
+                <span class="val" id="q1v">30 L/s</span>
+            </div>
+            <div class="control-group" id="g-test" style="display:none;">
+                <label for="sidx">Advance the test</label>
+                <input type="range" id="sidx" min="0" max="5" step="1" value="0">
+                <span class="val" id="sidxv" style="min-width:150px">step 1 of 6 &mdash; 25 L/s</span>
+            </div>
+        </div>
+        <div class="verdict" id="v1"></div>
+    </div>
+
+    <!-- ============ STEPS 2 & 3 ============ -->
+    <div id="s23">
+        <canvas id="cv2" width="940" height="500" role="img"
+            aria-label="Rorabaugh transform plot with a residual strip beneath it. A text verdict on straightness follows below."></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="bt">Your guess at $\beta$ [s/m&sup2;]</label>
+                <input type="range" id="bt" min="0" max="275" step="1" value="0">
+                <span class="val" id="btv">0</span>
+            </div>
+            <button type="button" class="act" id="walkbtn">Show me how</button>
+            <button type="button" class="act" id="bestbtn">Reveal the best fit</button>
+        </div>
+        <div class="walk" id="walk"></div>
+        <div class="verdict" id="v2"></div>
+        <div id="zoomwrap" class="controls" style="display:none;">
+            <button type="button" class="act" id="zoombtn">Zoom out to $Q=1$ m&sup3;/s to see the intercept</button>
+        </div>
+
+        <table class="data" id="dtab">
+            <thead><tr><th>step</th><th>$Q$ [L/s]</th><th>$Q$ [m&sup3;/s]</th><th>$\Delta h$ [m]</th><th>$\Delta h/Q$</th><th>$\Delta h/Q-\beta$</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <div class="caption">Hover or tap a row to highlight that step on the plot. Each step ran for 30 minutes.</div>
+    </div>
+
+    <!-- ============ STEP 4 ============ -->
+    <div id="s4">
+        <canvas id="cv4" width="940" height="400" role="img"
+            aria-label="Total drawdown against pumping rate for long-term pumping, with the maximum allowable drawdown marked and the sustainable yield read off."></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="tsus">Pumping duration</label>
+                <select id="tsus">
+                    <option value="30">30 days</option>
+                    <option value="100">100 days</option>
+                    <option value="365.25" selected>1 year</option>
+                    <option value="3652.5">10 years</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="dhmax">Safe drawdown $\Delta h_{max}$ [m]</label>
+                <input type="range" id="dhmax" min="15" max="45" step="1" value="30">
+                <span class="val" id="dhmaxv">30 m</span>
+            </div>
+            <div class="control-group">
+                <label for="qtry">Try a rate $Q$ [L/s]</label>
+                <input type="range" id="qtry" min="20" max="85" step="0.5" value="45">
+                <span class="val" id="qtryv">45.0 L/s</span>
+            </div>
+        </div>
+        <div class="verdict" id="v4"></div>
+    </div>
+
+    <!-- ============ STEP 5 ============ -->
+    <div id="s5"><div id="quiz"></div></div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ===================== COLOURS & CONSTANTS ===================== */
+var BLUE = '#0072B2', VERM = '#C1541F', INK = '#222', GRID = '#e3e7ea';
+var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var P = { T: 0.0060, S: 4e-5, rw: 0.10, tstep: 2700, alpha: 1.7e5, nexp: 3.4 };
+
+function Wu(u) { return -0.577216 - Math.log(u); }
+function betaAt(T, t) { return Wu(P.rw * P.rw * P.S / (4 * T * t)) / (4 * Math.PI * T); }
+function TfromBeta(b, t) {
+    var lo = 1e-5, hi = 1.0, mid;
+    for (var i = 0; i < 200; i++) { mid = Math.sqrt(lo * hi); if (betaAt(mid, t) > b) lo = mid; else hi = mid; }
+    return Math.sqrt(lo * hi);
+}
+var BETA_TRUE = betaAt(P.T, P.tstep);
+
+/* ===================== SEEDED DATA ===================== */
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+var rnd = mulberry32(41772);
+var DATA = [25, 32, 39, 46, 53, 60].map(function (qls) {
+    var Q = qls / 1000;
+    var clean = BETA_TRUE * Q + P.alpha * Math.pow(Q, P.nexp);
+    var dh = clean * (1 + (rnd() - 0.5) * 0.006);
+    return { qls: qls, Q: Q, dh: dh, r: dh / Q };
+});
+var RMIN = Math.min.apply(null, DATA.map(function (d) { return d.r; }));
+
+/* ===================== FITTING ===================== */
+function transform(beta) {
+    var pts = [], bad = 0;
+    DATA.forEach(function (d) {
+        var v = d.r - beta;
+        if (v <= 0) { bad++; return; }
+        pts.push({ x: Math.log10(d.Q), y: Math.log10(v), d: d });
+    });
+    return { pts: pts, bad: bad };
+}
+function lsq(pts) {
+    var n = pts.length; if (n < 2) return null;
+    var mx = 0, my = 0, i;
+    for (i = 0; i < n; i++) { mx += pts[i].x; my += pts[i].y; }
+    mx /= n; my /= n;
+    var sxy = 0, sxx = 0, syy = 0;
+    for (i = 0; i < n; i++) {
+        var dx = pts[i].x - mx, dy = pts[i].y - my;
+        sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+    }
+    if (sxx === 0) return null;
+    var m = sxy / sxx;
+    return { m: m, c: my - m * mx, r2: syy > 0 ? (sxy * sxy) / (sxx * syy) : 1 };
+}
+function residuals(pts, f) { return pts.map(function (p) { return p.y - (f.m * p.x + f.c); }); }
+function curvature(res) {
+    if (res.length < 4) return 0;
+    var mid = 0;
+    for (var i = 1; i < res.length - 1; i++) mid += res[i];
+    return (res[0] + res[res.length - 1]) / 2 - mid / (res.length - 2);
+}
+var BEST = (function () {
+    var best = null;
+    for (var b = 0; b < RMIN - 0.5; b += 0.25) {
+        var t = transform(b); if (t.bad) continue;
+        var f = lsq(t.pts); if (!f) continue;
+        if (!best || f.r2 > best.f.r2) best = { beta: b, f: f };
+    }
+    return best;
+})();
+var STRAIGHT_TOL = 0.012;
+
+/* ===================== STATE ===================== */
+var st = { step: 0, mode: 'free', Q1: 30, stepIdx: 0, beta: 0, zoom: false, hi: -1,
+           tsus: 365.25, dhmax: 30, qtry: 45, walk: null };
+
+/* ===================== CANVAS PLUMBING ===================== */
+function ctxOf(id, w, h) {
+    var c = document.getElementById(id), dpr = window.devicePixelRatio || 1;
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.width = w + 'px'; c.style.height = h + 'px';
+    var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return x;
+}
+var g1, g2, g4;
+
+function txt(ctx, s, x, y, align, colour, weight, size) {
+    ctx.font = (weight || '400') + ' ' + (size || 12) + 'px "Segoe UI", sans-serif';
+    ctx.textAlign = align || 'left'; ctx.fillStyle = colour || INK;
+    ctx.fillText(s, x, y);
+}
+function axes(ctx, a) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(a.l, a.t, a.w, a.h);
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a.l + .5, a.t + .5, a.w - 1, a.h - 1);
+}
+function gridline(ctx, x0, y0, x1, y1, col) {
+    ctx.strokeStyle = col || GRID; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+}
+
+/* ===================== STEP 1 : the two mechanisms ===================== */
+function curQls() { return st.mode === 'test' ? DATA[st.stepIdx].qls : st.Q1; }
+
+function drawStep1() {
+    var ctx = g1; ctx.clearRect(0, 0, 940, 400);
+    var Q = curQls() / 1000;
+    var form = BETA_TRUE * Q, well = P.alpha * Math.pow(Q, P.nexp), tot = form + well;
+
+    /* ---------- LEFT : well cross-section ---------- */
+    var L = { x: 12, y: 26, w: 440, h: 358 };
+    var zStat = L.y + 44;                 /* static piezometric surface (px) */
+    var pxm = 5.2;                        /* px per metre of drawdown        */
+    var xw = L.x + L.w / 2, wHalf = 13;
+
+    ctx.fillStyle = '#eef4f8'; ctx.fillRect(L.x, L.y, L.w, 30);
+    ctx.fillStyle = '#e2d2ad'; ctx.fillRect(L.x, L.y + 30, L.w, L.h - 30);
+    ctx.fillStyle = 'rgba(0,114,178,0.14)'; ctx.fillRect(L.x, zStat, L.w, L.y + L.h - zStat);
+    ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(L.x, L.y + 30); ctx.lineTo(L.x + L.w, L.y + 30); ctx.stroke();
+    txt(ctx, 'ground', L.x + 6, L.y + 24, 'left', '#4a4a4a', '600', 11);
+
+    /* static level */
+    ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = '#777'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(L.x, zStat); ctx.lineTo(L.x + L.w, zStat); ctx.stroke(); ctx.restore();
+    txt(ctx, 'static level (no pumping)', L.x + L.w - 6, zStat - 6, 'right', '#666', '600', 11);
+
+    /* cone of depression: logarithmic profile down to the well face */
+    var R0 = 190, denom = Math.log(R0 / P.rw);
+    function cone(rMetres) {
+        if (rMetres >= R0) return 0;
+        return form * Math.log(R0 / Math.max(rMetres, P.rw)) / denom;
+    }
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (var side = -1; side <= 1; side += 2) {
+        var started = false;
+        for (var px = 0; px <= L.w / 2 - wHalf; px += 2) {
+            var rM = px / (L.w / 2 - wHalf) * R0;
+            var rr = R0 - rM;                                  /* distance from the well */
+            var X = xw + side * (L.w / 2 - px), Y = zStat + cone(rr) * pxm;
+            if (!started) { ctx.moveTo(X, Y); started = true; } else ctx.lineTo(X, Y);
+        }
+    }
+    ctx.stroke();
+
+    /* well casing */
+    ctx.fillStyle = '#fff'; ctx.fillRect(xw - wHalf, L.y + 20, wHalf * 2, L.h - 20);
+    ctx.strokeStyle = '#8d949b'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(xw - wHalf, L.y + 20); ctx.lineTo(xw - wHalf, L.y + L.h);
+    ctx.moveTo(xw + wHalf, L.y + 20); ctx.lineTo(xw + wHalf, L.y + L.h);
+    ctx.stroke();
+
+    /* water inside the well: static + form + well loss */
+    var yFace = zStat + form * pxm, yWell = zStat + tot * pxm;
+    ctx.fillStyle = 'rgba(0,114,178,0.55)';
+    ctx.fillRect(xw - wHalf + 2, yWell, wHalf * 2 - 4, L.y + L.h - yWell);
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xw - wHalf + 1, yWell); ctx.lineTo(xw + wHalf - 1, yWell); ctx.stroke();
+
+    /* brackets */
+    var bx = xw + wHalf + 34;
+    function bracket(y0, y1, colour, lab, val) {
+        ctx.strokeStyle = colour; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bx, y0); ctx.lineTo(bx, y1);
+        ctx.moveTo(bx - 6, y0); ctx.lineTo(bx + 6, y0);
+        ctx.moveTo(bx - 6, y1); ctx.lineTo(bx + 6, y1);
+        ctx.stroke();
+        ctx.save(); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeStyle = colour;
+        ctx.beginPath(); ctx.moveTo(xw + wHalf, y1); ctx.lineTo(bx, y1); ctx.stroke(); ctx.restore();
+        txt(ctx, lab, bx + 10, (y0 + y1) / 2 + 1, 'left', colour, '700', 12);
+        txt(ctx, val, bx + 10, (y0 + y1) / 2 + 15, 'left', colour, '400', 11.5);
+    }
+    bracket(zStat, yFace, BLUE, 'βQ  in the formation', form.toFixed(1) + ' m');
+    bracket(yFace, yWell, VERM, 'αQⁿ  at the well', well.toFixed(1) + ' m');
+    ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = BLUE; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L.x, yFace); ctx.lineTo(bx, yFace); ctx.stroke(); ctx.restore();
+    txt(ctx, 'level at the well face', L.x + 6, yFace - 5, 'left', '#0a5c8f', '600', 10.5);
+
+    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.strokeRect(L.x + .5, L.y + .5, L.w - 1, L.h - 1);
+    txt(ctx, 'Where the drawdown happens', L.x + L.w / 2, L.y - 8, 'center', '#333', '700', 13);
+
+    /* ---------- RIGHT : either the Δh–Q curve (a) or the step test in time (b) ---------- */
+    if (st.mode === 'test') { drawTimeSeries(ctx); return; }
+
+    var a = { l: 545, t: 46, w: 355, h: 300 };
+    var Qmax = 70, Hmax = 45;
+    function X(q) { return a.l + q / Qmax * a.w; }
+    function Y(h) { return a.t + a.h - h / Hmax * a.h; }
+    axes(ctx, a);
+    for (var q = 10; q <= Qmax; q += 10) { gridline(ctx, X(q), a.t, X(q), a.t + a.h); txt(ctx, q + '', X(q), a.t + a.h + 15, 'center', '#555', '400', 11); }
+    for (var h = 10; h <= Hmax; h += 10) { gridline(ctx, a.l, Y(h), a.l + a.w, Y(h)); txt(ctx, h + '', a.l - 6, Y(h) + 4, 'right', '#555', '400', 11); }
+    txt(ctx, 'pumping rate Q  [L/s]', a.l + a.w / 2, a.t + a.h + 32, 'center', '#333', '600', 12);
+    ctx.save(); ctx.translate(a.l - 36, a.t + a.h / 2); ctx.rotate(-Math.PI / 2);
+    txt(ctx, 'drawdown Δh  [m]', 0, 0, 'center', '#333', '600', 12); ctx.restore();
+    txt(ctx, 'Total drawdown, split into its two parts', a.l + a.w / 2, a.t - 12, 'center', '#333', '700', 13);
+
+    /* shaded well-loss band between βQ and total */
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+    for (var qq = 0; qq <= Qmax; qq += 0.5) { var QQ = qq / 1000; ctx.lineTo(X(qq), Y(Math.min(Hmax, BETA_TRUE * QQ + P.alpha * Math.pow(QQ, P.nexp)))); }
+    for (var qb = Qmax; qb >= 0; qb -= 0.5) { ctx.lineTo(X(qb), Y(BETA_TRUE * qb / 1000)); }
+    ctx.closePath(); ctx.fillStyle = 'rgba(193,84,31,0.20)'; ctx.fill();
+
+    /* βQ straight line */
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(Qmax), Y(BETA_TRUE * Qmax / 1000)); ctx.stroke();
+    /* total curve */
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (var q2 = 0; q2 <= Qmax; q2 += 0.5) {
+        var Q2 = q2 / 1000, hv = BETA_TRUE * Q2 + P.alpha * Math.pow(Q2, P.nexp);
+        if (hv > Hmax) break;
+        if (q2 === 0) ctx.moveTo(X(q2), Y(hv)); else ctx.lineTo(X(q2), Y(hv));
+    }
+    ctx.stroke();
+
+    /* current-Q marker */
+    ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#888';
+    ctx.beginPath(); ctx.moveTo(X(st.Q1), a.t); ctx.lineTo(X(st.Q1), a.t + a.h); ctx.stroke(); ctx.restore();
+    [[form, BLUE], [tot, '#222']].forEach(function (pr) {
+        if (pr[0] > Hmax) return;
+        ctx.beginPath(); ctx.arc(X(st.Q1), Y(pr[0]), 5, 0, 6.2832);
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = pr[1]; ctx.lineWidth = 2.5; ctx.stroke();
+    });
+
+    /* legend */
+    var lx = a.l + 12, ly = a.t + 16;
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 24, ly); ctx.stroke();
+    txt(ctx, 'βQ  (straight)', lx + 30, ly + 4, 'left', BLUE, '600', 11.5);
+    ly += 17;
+    ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 24, ly); ctx.stroke();
+    txt(ctx, 'total Δh', lx + 30, ly + 4, 'left', '#222', '600', 11.5);
+    ly += 17;
+    ctx.fillStyle = 'rgba(193,84,31,0.35)'; ctx.fillRect(lx, ly - 6, 24, 11);
+    txt(ctx, 'αQⁿ  (the gap)', lx + 30, ly + 4, 'left', VERM, '600', 11.5);
+}
+
+/* ===================== STEP 1b : the step test in time ===================== */
+var TSTEP_MIN = 45, NSTEP = 6;
+
+/* Within a step the formation drawdown creeps up towards its end-of-step value on a
+   Theis-like (log-time) rise; the turbulent well loss jumps instantly and then sits flat.
+   Anchoring each step's rise on beta*Q_i means the end-of-step totals are exactly the
+   six numbers analysed in tab 2 — no invented data between the tabs. */
+function gshape(x) { var t0 = 1 / 60; return Math.log(1 + x / t0) / Math.log(1 + 1 / t0); }
+/* ceil-1, not floor: an exact step boundary belongs to the step that is ENDING, so the
+   end-of-step reading lands on beta*Q_i + alpha*Q_i^n and the marker sits on the trace. */
+function stepOf(tmin) { return Math.max(0, Math.min(NSTEP - 1, Math.ceil(tmin / TSTEP_MIN) - 1)); }
+/* Anchor the formation part on (measured total − well loss) rather than on beta*Q, so the
+   blue + vermillion split adds up to the recorded Δh exactly. Reading error then lives in
+   the formation part, which is where it would be indistinguishable in a real test anyway. */
+function formTarget(i) { return DATA[i].dh - P.alpha * Math.pow(DATA[i].Q, P.nexp); }
+
+function formAtT(tmin) {
+    var i = stepOf(tmin), tau = Math.max(0, Math.min(1, (tmin - i * TSTEP_MIN) / TSTEP_MIN));
+    var Fp = i > 0 ? formTarget(i - 1) : 0;
+    return Fp + (formTarget(i) - Fp) * gshape(tau);
+}
+/* The well loss also takes a little while to establish — the step data cannot resolve how
+   long, and separating the two rise rates is beside the point here. It is drawn settling over
+   a few minutes so the contrast you need stays visible: the well loss reaches a plateau and
+   holds for the rest of the step, while the formation loss keeps climbing all test. */
+function wshape(x) { var k = 0.05; return (1 - Math.exp(-x / k)) / (1 - Math.exp(-1 / k)); }
+function wellOf(i) { return P.alpha * Math.pow(DATA[i].Q, P.nexp); }
+function wellAtT(tmin) {
+    var i = stepOf(tmin), tau = Math.max(0, Math.min(1, (tmin - i * TSTEP_MIN) / TSTEP_MIN));
+    var Wp = i > 0 ? wellOf(i - 1) : 0;
+    return Wp + (wellOf(i) - Wp) * wshape(tau);
+}
+
+function drawTimeSeries(ctx) {
+    var R = { l: 552, w: 348 };
+    var Tmax = NSTEP * TSTEP_MIN, shown = (st.stepIdx + 1) * TSTEP_MIN;
+    function X(t) { return R.l + t / Tmax * R.w; }
+    txt(ctx, 'The step test as it actually runs', R.l + R.w / 2, 20, 'center', '#333', '700', 13);
+
+    /* ---- pumping-rate staircase ---- */
+    var qa = { l: R.l, t: 34, w: R.w, h: 72 }, Qmax = 68;
+    function QY(q) { return qa.t + qa.h - q / Qmax * qa.h; }
+    axes(ctx, qa);
+    for (var gq = 20; gq <= 40; gq += 20) {
+        gridline(ctx, qa.l, QY(gq), qa.l + qa.w, QY(gq));
+        txt(ctx, gq + '', qa.l - 6, QY(gq) + 4, 'right', '#555', '400', 10);
+    }
+    for (var i = 0; i <= st.stepIdx; i++) {
+        var x0 = X(i * TSTEP_MIN), x1 = X((i + 1) * TSTEP_MIN), qy = QY(DATA[i].qls);
+        ctx.fillStyle = (i === st.stepIdx) ? 'rgba(0,114,178,0.32)' : 'rgba(0,114,178,0.13)';
+        ctx.fillRect(x0, qy, x1 - x0, qa.t + qa.h - qy);
+        ctx.strokeStyle = BLUE; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0, qy); ctx.lineTo(x1, qy); ctx.stroke();
+        if (i === st.stepIdx) txt(ctx, DATA[i].qls + ' L/s', (x0 + x1) / 2, qy - 5, 'center', '#005b8f', '700', 10.5);
+    }
+    txt(ctx, 'Q [L/s]', qa.l + 5, qa.t + 13, 'left', '#333', '600', 10.5);
+
+    /* ---- drawdown record: increases DOWNWARD, like a real water-level trace ---- */
+    var da = { l: R.l, t: 140, w: R.w, h: 196 }, Hmax = 30;
+    function DY(h) { return da.t + h / Hmax * da.h; }
+    axes(ctx, da);
+    for (var gh = 5; gh <= 25; gh += 5) {
+        gridline(ctx, da.l, DY(gh), da.l + da.w, DY(gh));
+        txt(ctx, gh + '', da.l - 6, DY(gh) + 4, 'right', '#555', '400', 10);
+    }
+    for (var gt = TSTEP_MIN; gt < Tmax; gt += TSTEP_MIN) gridline(ctx, X(gt), da.t, X(gt), da.t + da.h);
+    for (var g2 = 0; g2 <= Tmax; g2 += 60) txt(ctx, g2 + '', X(g2), da.t + da.h + 14, 'center', '#555', '400', 10);
+    txt(ctx, 'time [min]', da.l + da.w / 2, da.t + da.h + 30, 'center', '#333', '600', 11.5);
+    ctx.save(); ctx.translate(da.l - 28, da.t + da.h / 2); ctx.rotate(-Math.PI / 2);
+    txt(ctx, 'drawdown [m]', 0, 0, 'center', '#333', '600', 11.5); ctx.restore();
+
+    var dt = 0.4, t;
+    ctx.save(); ctx.beginPath(); ctx.rect(da.l, da.t, da.w, da.h); ctx.clip();
+    /* formation band (blue), measured down from the static level */
+    ctx.beginPath(); ctx.moveTo(X(0), DY(0));
+    for (t = 0; t <= shown; t += dt) ctx.lineTo(X(t), DY(formAtT(t)));
+    ctx.lineTo(X(shown), DY(0)); ctx.closePath();
+    ctx.fillStyle = 'rgba(0,114,178,0.42)'; ctx.fill();
+    /* well-loss band (vermillion), stacked on top */
+    ctx.beginPath(); ctx.moveTo(X(0), DY(formAtT(0)));
+    for (t = 0; t <= shown; t += dt) ctx.lineTo(X(t), DY(formAtT(t)));
+    for (t = shown; t >= 0; t -= dt) ctx.lineTo(X(t), DY(formAtT(t) + wellAtT(t)));
+    ctx.closePath(); ctx.fillStyle = 'rgba(193,84,31,0.52)'; ctx.fill();
+    /* the trace you would actually record */
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (t = 0; t <= shown; t += dt) {
+        var yy = DY(formAtT(t) + wellAtT(t));
+        if (t === 0) ctx.moveTo(X(t), yy); else ctx.lineTo(X(t), yy);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    /* ---- end-of-step readings: these ARE the six numbers used in tab 2 ---- */
+    for (var k = 0; k <= st.stepIdx; k++) {
+        var xx = X((k + 1) * TSTEP_MIN), yy2 = DY(DATA[k].dh);
+        ctx.beginPath(); ctx.arc(xx, yy2, 4.6, 0, 6.2832);
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    var xe = X(shown), ye = DY(DATA[st.stepIdx].dh);
+    txt(ctx, 'Δh' + (st.stepIdx + 1) + ' = ' + DATA[st.stepIdx].dh.toFixed(2) + ' m',
+        xe - 7, ye + (ye < da.t + 40 ? 20 : -8), 'right', '#111', '700', 12);
+
+    /* legend */
+    var lx = da.l + 8, ly = da.t + 14;
+    ctx.fillStyle = 'rgba(0,114,178,0.55)'; ctx.fillRect(lx, ly - 7, 18, 10);
+    txt(ctx, 'βQ  creeps up during each step', lx + 24, ly + 2, 'left', '#005b8f', '600', 10.5);
+    ly += 15;
+    ctx.fillStyle = 'rgba(193,84,31,0.65)'; ctx.fillRect(lx, ly - 7, 18, 10);
+    txt(ctx, 'αQⁿ  settles early, then holds', lx + 24, ly + 2, 'left', VERM, '600', 10.5);
+}
+
+function updV1() {
+    var el = document.getElementById('v1');
+    if (st.mode === 'test') {
+        var rows = '';
+        for (var i = 0; i <= st.stepIdx; i++) {
+            var w = P.alpha * Math.pow(DATA[i].Q, P.nexp), f = DATA[i].dh - w;
+            rows += '<tr' + (i === st.stepIdx ? ' class="cur"' : '') + '><td>' + (i + 1) + '</td><td>' +
+                    DATA[i].qls + '</td><td class="blue">' + f.toFixed(2) + '</td><td class="verm">' +
+                    w.toFixed(2) + '</td><td>' + DATA[i].dh.toFixed(2) + '</td></tr>';
+        }
+        el.className = 'verdict';
+        el.innerHTML =
+            '<div>Each step runs for <strong>45 minutes</strong> at a fixed rate. Watch the two bands behave differently: ' +
+            'the <span class="blue">formation loss keeps climbing</span> for the whole test, because the cone of depression is ' +
+            'still spreading outwards. The <span class="verm">well loss settles to a plateau early in each step and then holds</span> — ' +
+            'turbulence near the screen is set by how fast the water is going, and it stops changing once the rate is steady. ' +
+            '<em>That is why β has to be recalculated for long pumping periods in tab 4, while α stays put.</em> ' +
+            '(How quickly the well loss establishes is drawn schematically here — 45-minute steps cannot resolve it, ' +
+            'and the analysis does not need to.)</div>' +
+            '<table class="mini"><thead><tr><th>step</th><th>Q [L/s]</th><th class="blue">βQ [m]</th>' +
+            '<th class="verm">αQⁿ [m]</th><th>measured Δh [m]</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+            '<div style="margin-top:8px">In a real test you only ever record the ' +
+            'last column, the total drawdown at the end of each step. The blue and vermillion split is invisible to you. ' +
+            'Recovering that split from the six totals alone is what the Rorabaugh method does.' +
+            (st.stepIdx < NSTEP - 1
+                ? ' Advance the slider to the end to collect all six.'
+                : ' You now have all six. They are the table in tab 2, unchanged.') + '</div>';
+        return;
+    }
+    var Q = st.Q1 / 1000, f2 = BETA_TRUE * Q, w2 = P.alpha * Math.pow(Q, P.nexp);
+    var pct = 100 * w2 / (f2 + w2);
+    el.className = 'verdict';
+    el.innerHTML =
+        '<div class="metrics">' +
+        '<span>Formation loss <span class="blue">βQ</span> = <b class="blue">' + f2.toFixed(1) + ' m</b></span>' +
+        '<span>Well loss <span class="verm">αQⁿ</span> = <b class="verm">' + w2.toFixed(1) + ' m</b></span>' +
+        '<span>Total Δh = <b>' + (f2 + w2).toFixed(1) + ' m</b></span>' +
+        '<span>Well loss is <b>' + pct.toFixed(0) + '%</b> of the total</span></div>' +
+        '<div style="margin-top:8px">At low rates the well loss is almost invisible and the well looks perfectly efficient. ' +
+        'By 70&nbsp;L/s it is more than half the drawdown. That is why you cannot just extrapolate a single pumping test — ' +
+        'and why the sustainable yield comes out below the rate you tested at. ' +
+        'Now switch to <strong>(b)</strong> to see the test that actually produces the measurements.</div>';
+}
+
+/* ===================== STEPS 2 & 3 : the transform ===================== */
+function drawStep2() {
+    var ctx = g2; ctx.clearRect(0, 0, 940, 500);
+    var tr = transform(st.beta), f = tr.pts.length >= 2 ? lsq(tr.pts) : null;
+    var res = f ? residuals(tr.pts, f) : [];
+
+    var a = { l: 92, t: 44, w: 800, h: 286 };
+    var xlo, xhi, ylo, yhi;
+    if (st.zoom) { xlo = -1.85; xhi = 0.12; ylo = 0.8; yhi = 8.3; }
+    else {
+        xlo = -1.78; xhi = -1.28;
+        var ys = tr.pts.map(function (p) { return p.y; });
+        var mn = ys.length ? Math.min.apply(null, ys) : 0, mx = ys.length ? Math.max.apply(null, ys) : 3;
+        var pad = Math.max(0.25, (mx - mn) * 0.28);
+        ylo = mn - pad; yhi = mx + pad;
+    }
+    function X(v) { return a.l + (v - xlo) / (xhi - xlo) * a.w; }
+    function Y(v) { return a.t + a.h - (v - ylo) / (yhi - ylo) * a.h; }
+
+    axes(ctx, a);
+    var xs = st.zoom ? 0.25 : 0.1, ystep = st.zoom ? 1 : (yhi - ylo > 2 ? 0.5 : 0.25);
+    for (var gx = Math.ceil(xlo / xs) * xs; gx <= xhi; gx += xs) {
+        gridline(ctx, X(gx), a.t, X(gx), a.t + a.h);
+        txt(ctx, gx.toFixed(2), X(gx), a.t + a.h + 15, 'center', '#555', '400', 10.5);
+    }
+    for (var gy = Math.ceil(ylo / ystep) * ystep; gy <= yhi; gy += ystep) {
+        gridline(ctx, a.l, Y(gy), a.l + a.w, Y(gy));
+        txt(ctx, gy.toFixed(ystep < 1 ? 2 : 0), a.l - 7, Y(gy) + 4, 'right', '#555', '400', 10.5);
+    }
+    txt(ctx, 'log₁₀ Q      (Q in m³/s)', a.l + a.w / 2, a.t + a.h + 33, 'center', '#333', '600', 12);
+    ctx.save(); ctx.translate(a.l - 58, a.t + a.h / 2); ctx.rotate(-Math.PI / 2);
+    txt(ctx, 'log₁₀ ( Δh/Q − β )', 0, 0, 'center', '#333', '600', 12); ctx.restore();
+    txt(ctx, 'The Rorabaugh transform', a.l + a.w / 2, a.t - 22, 'center', '#333', '700', 14);
+    txt(ctx, 'log(Δh/Q − β) = log α + (n−1) log Q     →  straight only when β is right',
+        a.l + a.w / 2, a.t - 6, 'center', '#666', '400', 11.5);
+
+    if (tr.bad > 0) {
+        ctx.fillStyle = 'rgba(253,236,236,0.93)'; ctx.fillRect(a.l + 1, a.t + 1, a.w - 2, a.h - 2);
+        txt(ctx, 'β is larger than Δh/Q for ' + tr.bad + ' of the steps.', a.l + a.w / 2, a.t + a.h / 2 - 12, 'center', '#a33', '700', 15);
+        txt(ctx, 'Δh/Q − β is negative there, and you cannot take the log of a negative number.', a.l + a.w / 2, a.t + a.h / 2 + 10, 'center', '#a33', '400', 13);
+        txt(ctx, 'β must stay below the smallest Δh/Q in the table  (' + RMIN.toFixed(0) + ').', a.l + a.w / 2, a.t + a.h / 2 + 30, 'center', '#a33', '400', 13);
+    } else if (f) {
+        /* fitted line */
+        ctx.save(); ctx.beginPath(); ctx.rect(a.l, a.t, a.w, a.h); ctx.clip();
+        ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(X(xlo), Y(f.m * xlo + f.c)); ctx.lineTo(X(xhi), Y(f.m * xhi + f.c)); ctx.stroke();
+
+        /* zoomed view: data box + intercept marker */
+        if (st.zoom) {
+            var bx0 = X(-1.72), bx1 = X(-1.32);
+            var byT = Y(Math.max.apply(null, tr.pts.map(function (p) { return p.y; })) + 0.25);
+            var byB = Y(Math.min.apply(null, tr.pts.map(function (p) { return p.y; })) - 0.25);
+            ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx0, byT, bx1 - bx0, byB - byT); ctx.restore();
+            txt(ctx, 'all your measured data', (bx0 + bx1) / 2, byB + 15, 'center', '#555', '600', 11);
+
+            ctx.strokeStyle = VERM; ctx.lineWidth = 2;
+            ctx.save(); ctx.setLineDash([5, 4]);
+            ctx.beginPath(); ctx.moveTo(X(0), a.t); ctx.lineTo(X(0), a.t + a.h); ctx.stroke(); ctx.restore();
+            ctx.beginPath(); ctx.arc(X(0), Y(f.c), 7, 0, 6.2832);
+            ctx.fillStyle = VERM; ctx.fill();
+            txt(ctx, 'intercept = log₁₀ α = ' + f.c.toFixed(2), X(0) - 14, Y(f.c) - 12, 'right', VERM, '700', 12.5);
+            txt(ctx, 'at Q = 1 m³/s  —  a long way outside your data', X(0) - 14, Y(f.c) + 5, 'right', VERM, '400', 11.5);
+        }
+
+        /* slope triangle (unzoomed only) */
+        if (!st.zoom && tr.pts.length >= 2) {
+            var xa = -1.68, xb = -1.40;
+            var ya = f.m * xa + f.c, yb = f.m * xb + f.c;
+            ctx.strokeStyle = VERM; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(X(xa), Y(ya)); ctx.lineTo(X(xb), Y(ya)); ctx.lineTo(X(xb), Y(yb));
+            ctx.stroke();
+            txt(ctx, 'Δx = ' + (xb - xa).toFixed(2), (X(xa) + X(xb)) / 2, Y(ya) + 16, 'center', VERM, '700', 11.5);
+            txt(ctx, 'Δy = ' + (yb - ya).toFixed(2), X(xb) + 8, (Y(ya) + Y(yb)) / 2, 'left', VERM, '700', 11.5);
+            txt(ctx, 'slope = Δy/Δx = ' + f.m.toFixed(2) + '  = n − 1', X(xb) + 8, (Y(ya) + Y(yb)) / 2 + 15, 'left', VERM, '400', 11.5);
+        }
+        ctx.restore();
+
+        /* data points */
+        tr.pts.forEach(function (p, i) {
+            var isHi = (st.hi >= 0 && DATA[st.hi] === p.d);
+            ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), isHi ? 8 : 5.5, 0, 6.2832);
+            ctx.fillStyle = isHi ? '#ffd27f' : '#fff'; ctx.fill();
+            ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5; ctx.stroke();
+            if (!st.zoom) txt(ctx, p.d.qls + '', X(p.x), Y(p.y) - 13, 'center', '#555', '600', 10.5);
+        });
+    }
+
+    /* ---------- residual strip ---------- */
+    var rr = { l: a.l, t: 380, w: a.w, h: 96 };
+    axes(ctx, rr);
+    txt(ctx, 'How far each point sits off the straight line', rr.l + rr.w / 2, rr.t - 8, 'center', '#333', '700', 12.5);
+    var rmaxAbs = 0.10;
+    if (res.length) rmaxAbs = Math.max(0.03, Math.max.apply(null, res.map(Math.abs)) * 1.35);
+    function RY(v) { return rr.t + rr.h / 2 - v / rmaxAbs * (rr.h / 2 - 8); }
+    gridline(ctx, rr.l, RY(0), rr.l + rr.w, RY(0), '#999');
+    txt(ctx, 'on the line', rr.l + 6, RY(0) - 5, 'left', '#888', '400', 10.5);
+
+    if (tr.bad === 0 && res.length) {
+        ctx.strokeStyle = 'rgba(120,120,120,0.6)'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        tr.pts.forEach(function (p, i) { var xx = X(p.x), yy = RY(res[i]); if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy); });
+        ctx.stroke();
+        tr.pts.forEach(function (p, i) {
+            var xx = X(p.x), yy = RY(res[i]);
+            ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(xx, RY(0)); ctx.lineTo(xx, yy); ctx.stroke();
+            ctx.beginPath(); ctx.arc(xx, yy, (st.hi >= 0 && DATA[st.hi] === p.d) ? 7 : 5, 0, 6.2832);
+            ctx.fillStyle = Math.abs(res[i]) < 0.006 ? '#17823f' : (res[i] > 0 ? BLUE : VERM);
+            ctx.fill();
+        });
+    }
+}
+
+function updV2() {
+    var el = document.getElementById('v2');
+    var tr = transform(st.beta);
+    if (tr.bad > 0) {
+        el.className = 'verdict err';
+        el.innerHTML = '<span class="vbig">β is too large — the transform is undefined.</span>' +
+            '<div style="margin-top:6px">β is the formation drawdown <em>per unit of pumping rate</em>, so it can never exceed the ' +
+            'measured Δh/Q at any step. The smallest Δh/Q here is <b>' + RMIN.toFixed(0) + '</b>. Bring β below that.</div>';
+        return;
+    }
+    var f = lsq(tr.pts), res = residuals(tr.pts, f), cu = curvature(res);
+    var straight = Math.abs(cu) < STRAIGHT_TOL;
+    el.className = 'verdict ' + (straight ? 'good' : 'bad');
+    var head, why;
+    if (straight) {
+        head = 'Straight. This β separates the two losses.';
+        why = 'The residuals below are flat and unpatterned, so nothing systematic is left over. ' +
+              'The slope and intercept of this line now mean something, which is what step 3 is about.';
+    } else if (cu > 0) {
+        head = 'Still curved — β is too LOW.';
+        why = 'The ends sit above the line and the middle sags: a <strong>smile</strong>. You are crediting too little ' +
+              'drawdown to the formation, so the leftover you are plotting still contains some βQ, which is linear in Q ' +
+              'and bends the log-log plot. Push β up.';
+    } else {
+        head = 'Still curved — β is too HIGH.';
+        why = 'The low-rate points are dropping away: a <strong>frown</strong>. You are subtracting more formation loss ' +
+              'than really occurred, and the small steps suffer most because their leftover is smallest. Bring β down.';
+    }
+    el.innerHTML = '<span class="vbig">' + head + '</span>' +
+        '<div class="metrics">' +
+        '<span>R² = <b>' + f.r2.toFixed(5) + '</b></span>' +
+        '<span>curvature = <b>' + cu.toFixed(4) + '</b></span>' +
+        '<span>slope = <b>' + f.m.toFixed(3) + '</b></span>' +
+        '</div><div style="margin-top:8px">' + why + '</div>';
+}
+
+/* ---------- step 3 read-out ---------- */
+function updV3() {
+    var el = document.getElementById('v2');
+    var tr = transform(st.beta);
+    if (tr.bad > 0) { updV2(); return; }
+    var f = lsq(tr.pts), res = residuals(tr.pts, f), cu = curvature(res);
+    if (Math.abs(cu) >= STRAIGHT_TOL) {
+        el.className = 'verdict bad';
+        el.innerHTML = '<span class="vbig">Go back and straighten the plot first.</span>' +
+            '<div style="margin-top:6px">Reading a slope and intercept off a curved line gives you numbers, but they are not ' +
+            'α and n. Return to step 2, or press <em>Reveal the best fit</em>.</div>';
+        return;
+    }
+    var n = f.m + 1, alpha = Math.pow(10, f.c);
+    var Tb = TfromBeta(st.beta, P.tstep);
+    el.className = 'verdict good';
+    el.innerHTML =
+        '<div class="metrics">' +
+        '<span>slope = <b>' + f.m.toFixed(3) + '</b></span>' +
+        '<span>→ <b class="verm">n = slope + 1 = ' + n.toFixed(2) + '</b></span>' +
+        '<span>intercept = log₁₀α = <b>' + f.c.toFixed(2) + '</b></span>' +
+        '<span>→ <b class="verm">α ≈ ' + alpha.toExponential(2).replace('e+', ' × 10^') + '</b></span>' +
+        '</div>' +
+        '<div style="margin-top:9px"><strong>Remember the +1.</strong> The transform is ' +
+        'log(Δh/Q − β) = log α + (n−1)·log Q, so the gradient you measure is <em>n − 1</em>. ' +
+        'Reading the slope straight off as n is very easy to do.</div>' +
+        '<div style="margin-top:7px">Notice how far the intercept is from the data — press the zoom button. ' +
+        'α is an extrapolation to Q = 1 m³/s (a thousand litres per second), about 17 times the largest rate you tested. ' +
+        'That is why α is much less well constrained than n, and why small changes in β move it a lot.</div>' +
+        '<div style="margin-top:7px">Meanwhile β itself gives you the aquifer. Inverting ' +
+        'β = W(u)/4πT, where W is the well function and u = r<sub>w</sub>²S/4Tt, with S = 4×10⁻⁵ and ' +
+        'r<sub>w</sub> = 0.10 m evaluated over the 45-minute step, gives ' +
+        '<b>T = ' + (Tb * 86400).toFixed(0) + ' m²/day</b>. Carried into step 4.</div>';
+}
+
+/* ---------- data table ---------- */
+function buildTable() {
+    var tb = document.querySelector('#dtab tbody');
+    tb.innerHTML = DATA.map(function (d, i) {
+        return '<tr data-i="' + i + '"><td>' + (i + 1) + '</td><td>' + d.qls + '</td><td>' + d.Q.toFixed(3) +
+               '</td><td>' + d.dh.toFixed(2) + '</td><td>' + d.r.toFixed(1) + '</td><td class="rem"></td></tr>';
+    }).join('');
+    tb.addEventListener('mouseover', function (e) { var r = e.target.closest('tr'); if (r) setHi(+r.dataset.i); });
+    tb.addEventListener('mouseout', function () { setHi(-1); });
+    tb.addEventListener('click', function (e) { var r = e.target.closest('tr'); if (r) setHi(+r.dataset.i); });
+}
+function setHi(i) {
+    st.hi = i;
+    document.querySelectorAll('#dtab tbody tr').forEach(function (r) {
+        r.classList.toggle('hi', +r.dataset.i === i);
+    });
+    if (st.step === 1 || st.step === 2) drawStep2();
+}
+function updTable() {
+    document.querySelectorAll('#dtab tbody tr').forEach(function (r) {
+        var d = DATA[+r.dataset.i], v = d.r - st.beta;
+        var c = r.querySelector('.rem');
+        c.textContent = v > 0 ? v.toFixed(1) : 'negative!';
+        c.style.color = v > 0 ? '#222' : '#a33';
+        c.style.fontWeight = v > 0 ? '400' : '700';
+    });
+}
+
+/* ===================== STEP 4 : sustainable yield ===================== */
+function fitNow() {
+    var tr = transform(st.beta);
+    if (tr.bad) return null;
+    var f = lsq(tr.pts);
+    if (Math.abs(curvature(residuals(tr.pts, f))) >= STRAIGHT_TOL) return null;
+    return { beta: st.beta, n: f.m + 1, alpha: Math.pow(10, f.c), T: TfromBeta(st.beta, P.tstep) };
+}
+function drawStep4() {
+    var ctx = g4; ctx.clearRect(0, 0, 940, 400);
+    var fp = fitNow();
+    if (!fp) {
+        txt(ctx, 'Straighten the plot in step 2 first — this step uses your α, β and n.', 470, 190, 'center', '#a33', '700', 15);
+        txt(ctx, 'Press “Reveal the best fit” if you would rather skip ahead.', 470, 216, 'center', '#777', '400', 13);
+        return;
+    }
+    var tsec = st.tsus * 86400, bsus = betaAt(fp.T, tsec);
+    function dh(Q) { return bsus * Q + fp.alpha * Math.pow(Q, fp.n); }
+    /* bisect for Q_sus */
+    var lo = 1e-5, hi = 0.12, mid;
+    for (var i = 0; i < 90; i++) { mid = (lo + hi) / 2; if (dh(mid) < st.dhmax) lo = mid; else hi = mid; }
+    var Qsus = (lo + hi) / 2;
+
+    var a = { l: 92, t: 42, w: 560, h: 306 };
+    var Qmax = 85, Hmax = 70;
+    function X(q) { return a.l + q / Qmax * a.w; }
+    function Y(h) { return a.t + a.h - h / Hmax * a.h; }
+    axes(ctx, a);
+    for (var q = 10; q <= Qmax; q += 10) { gridline(ctx, X(q), a.t, X(q), a.t + a.h); txt(ctx, q + '', X(q), a.t + a.h + 15, 'center', '#555', '400', 11); }
+    for (var h = 10; h <= Hmax; h += 10) { gridline(ctx, a.l, Y(h), a.l + a.w, Y(h)); txt(ctx, h + '', a.l - 7, Y(h) + 4, 'right', '#555', '400', 11); }
+    txt(ctx, 'pumping rate Q  [L/s]', a.l + a.w / 2, a.t + a.h + 33, 'center', '#333', '600', 12);
+    ctx.save(); ctx.translate(a.l - 40, a.t + a.h / 2); ctx.rotate(-Math.PI / 2);
+    txt(ctx, 'drawdown after ' + (st.tsus >= 365 ? (st.tsus / 365.25).toFixed(0) + ' yr' : st.tsus + ' d') + '  [m]', 0, 0, 'center', '#333', '600', 12); ctx.restore();
+
+    /* stacked components */
+    ctx.save(); ctx.beginPath(); ctx.rect(a.l, a.t, a.w, a.h); ctx.clip();
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+    for (var qq = 0; qq <= Qmax; qq += 0.4) ctx.lineTo(X(qq), Y(dh(qq / 1000)));
+    for (var qb = Qmax; qb >= 0; qb -= 0.4) ctx.lineTo(X(qb), Y(bsus * qb / 1000));
+    ctx.closePath(); ctx.fillStyle = 'rgba(193,84,31,0.20)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(0));
+    for (var qc = 0; qc <= Qmax; qc += 0.4) ctx.lineTo(X(qc), Y(bsus * qc / 1000));
+    ctx.lineTo(X(Qmax), Y(0)); ctx.closePath(); ctx.fillStyle = 'rgba(0,114,178,0.16)'; ctx.fill();
+
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(Qmax), Y(bsus * Qmax / 1000)); ctx.stroke();
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 3; ctx.beginPath();
+    for (var q3 = 0; q3 <= Qmax; q3 += 0.4) { if (q3 === 0) ctx.moveTo(X(q3), Y(dh(q3 / 1000))); else ctx.lineTo(X(q3), Y(dh(q3 / 1000))); }
+    ctx.stroke();
+    ctx.restore();
+
+    /* Δh_max line + Q_sus */
+    ctx.save(); ctx.setLineDash([8, 5]); ctx.strokeStyle = '#17823f'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(a.l, Y(st.dhmax)); ctx.lineTo(a.l + a.w, Y(st.dhmax)); ctx.stroke(); ctx.restore();
+    txt(ctx, 'Δh max = ' + st.dhmax + ' m', a.l + 8, Y(st.dhmax) - 7, 'left', '#17823f', '700', 12);
+    var qs = Qsus * 1000;
+    if (qs <= Qmax) {
+        ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#17823f'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(X(qs), Y(st.dhmax)); ctx.lineTo(X(qs), a.t + a.h); ctx.stroke(); ctx.restore();
+        ctx.beginPath(); ctx.arc(X(qs), Y(st.dhmax), 7, 0, 6.2832); ctx.fillStyle = '#17823f'; ctx.fill();
+        txt(ctx, 'Q sus = ' + qs.toFixed(1) + ' L/s', X(qs) + 10, Y(st.dhmax) + 20, 'left', '#17823f', '700', 13);
+    }
+    /* trial marker */
+    var Qt = st.qtry / 1000, ht = dh(Qt);
+    ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(st.qtry), a.t); ctx.lineTo(X(st.qtry), a.t + a.h); ctx.stroke(); ctx.restore();
+    if (ht <= Hmax) {
+        ctx.beginPath(); ctx.arc(X(st.qtry), Y(ht), 6, 0, 6.2832);
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#222'; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    /* stacked bar for the trial rate */
+    var B = { l: 720, t: 60, w: 96, h: 288 };
+    var barMax = Math.max(70, ht * 1.1);
+    var fpart = bsus * Qt, wpart = fp.alpha * Math.pow(Qt, fp.n);
+    function BH(v) { return v / barMax * B.h; }
+    ctx.fillStyle = '#f4f6f8'; ctx.fillRect(B.l, B.t, B.w, B.h);
+    ctx.fillStyle = 'rgba(0,114,178,0.75)'; ctx.fillRect(B.l, B.t + B.h - BH(fpart), B.w, BH(fpart));
+    ctx.fillStyle = 'rgba(193,84,31,0.80)'; ctx.fillRect(B.l, B.t + B.h - BH(fpart + wpart), B.w, BH(wpart));
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.strokeRect(B.l + .5, B.t + .5, B.w - 1, B.h - 1);
+    ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = '#17823f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(B.l - 8, B.t + B.h - BH(st.dhmax)); ctx.lineTo(B.l + B.w + 8, B.t + B.h - BH(st.dhmax)); ctx.stroke(); ctx.restore();
+    txt(ctx, 'at ' + st.qtry.toFixed(1) + ' L/s', B.l + B.w / 2, B.t - 24, 'center', '#333', '700', 12.5);
+    txt(ctx, 'Δh = ' + ht.toFixed(1) + ' m', B.l + B.w / 2, B.t - 8, 'center', ht > st.dhmax ? '#a33' : '#17823f', '700', 12.5);
+    txt(ctx, 'αQⁿ ' + wpart.toFixed(1), B.l + B.w + 12, B.t + B.h - BH(fpart) - BH(wpart) / 2 + 4, 'left', VERM, '700', 11.5);
+    txt(ctx, 'βQ ' + fpart.toFixed(1), B.l + B.w + 12, B.t + B.h - BH(fpart) / 2 + 4, 'left', BLUE, '700', 11.5);
+}
+
+function updV4() {
+    var el = document.getElementById('v4'), fp = fitNow();
+    if (!fp) { el.className = 'verdict bad'; el.innerHTML = 'Straighten the plot in step 2 first.'; return; }
+    var tsec = st.tsus * 86400, bsus = betaAt(fp.T, tsec), bstep = st.beta;
+    function dh(Q) { return bsus * Q + fp.alpha * Math.pow(Q, fp.n); }
+    var lo = 1e-5, hi = 0.12, mid;
+    for (var i = 0; i < 90; i++) { mid = (lo + hi) / 2; if (dh(mid) < st.dhmax) lo = mid; else hi = mid; }
+    var Qsus = (lo + hi) / 2, ht = dh(st.qtry / 1000);
+    el.className = 'verdict ' + (ht <= st.dhmax ? 'good' : 'bad');
+    el.innerHTML =
+        '<div class="metrics">' +
+        '<span>β at the 45-min step = <b>' + bstep.toFixed(0) + '</b></span>' +
+        '<span>β at ' + (st.tsus >= 365 ? (st.tsus / 365.25).toFixed(0) + ' yr' : st.tsus + ' d') + ' = <b>' + bsus.toFixed(0) + '</b></span>' +
+        '<span>Sustainable yield <b style="color:#17823f">' + (Qsus * 1000).toFixed(1) + ' L/s</b></span>' +
+        '</div>' +
+        '<div style="margin-top:9px"><strong>Why β has to be recomputed.</strong> β contains W(u) with u ∝ 1/t, so the ' +
+        'formation term keeps growing as you pump. It has risen from ' + bstep.toFixed(0) + ' to ' + bsus.toFixed(0) +
+        '. The well-loss terms α and n do <em>not</em> change with time, because turbulence near the screen is set by the ' +
+        'rate and not by how long you have been at it. Using the 45-minute β for a year of pumping would badly ' +
+        'overestimate the yield.</div>' +
+        '<div style="margin-top:7px">Change the duration and watch the split in the bar: the longer you pump, ' +
+        '<span class="blue">the more the formation dominates</span> and the lower the sustainable rate.</div>' +
+        (ht > st.dhmax
+            ? '<div style="margin-top:7px;color:#a33"><strong>' + st.qtry.toFixed(1) + ' L/s gives ' + ht.toFixed(1) +
+              ' m — over the ' + st.dhmax + ' m limit.</strong> Bring the rate down towards ' + (Qsus * 1000).toFixed(1) + ' L/s.</div>'
+            : '<div style="margin-top:7px;color:#17823f"><strong>' + st.qtry.toFixed(1) + ' L/s gives ' + ht.toFixed(1) +
+              ' m — within the ' + st.dhmax + ' m limit.</strong></div>');
+}
+
+/* ===================== WALKTHROUGH ===================== */
+var WALK = [
+    { b: 0,   c: '<strong>β = 0.</strong> This assumes <em>none</em> of the drawdown happens in the formation — everything is blamed on the well. Look at the residual strip: a strong smile. The leftover still contains a term proportional to Q, and that is what bends the line.' },
+    { b: 120, c: '<strong>β = 120.</strong> R² has <em>improved</em> (0.95 → 0.97) but the smile in the residuals has actually got slightly <em>worse</em>. R² measures scatter about a line. It does not ask whether a line was the right shape in the first place. The residual strip does.' },
+    { b: 210, c: '<strong>β = 210.</strong> Getting close. R² is now about 0.99, which looks like a good fit by any normal standard, and it is still visibly wrong. Judge it on the residuals.' },
+    { b: 241, c: '<strong>β ≈ 241.</strong> Residuals flat and unpatterned. This is the answer. The straightness <em>is</em> the criterion — what you are searching for is the β that makes the model linear.' },
+    { b: 258, c: '<strong>β = 258.</strong> Overshoot. The lowest-rate point collapses first, because its leftover Δh/Q − β is smallest. Push a little further and the log goes undefined.' },
+    { b: 241, c: 'Back to <strong>β ≈ 241</strong>. Your turn — drag the slider and find it yourself.' }
+];
+function runWalk() {
+    var btn = document.getElementById('walkbtn'), box = document.getElementById('walk');
+    if (st.walk) { clearInterval(st.walk); st.walk = null; btn.textContent = 'Show me how'; btn.classList.remove('on'); box.style.display = 'none'; return; }
+    var i = 0;
+    btn.textContent = 'Stop'; btn.classList.add('on'); box.style.display = 'block';
+    function tick() {
+        if (i >= WALK.length) { clearInterval(st.walk); st.walk = null; btn.textContent = 'Show me how'; btn.classList.remove('on'); return; }
+        st.beta = WALK[i].b;
+        document.getElementById('bt').value = st.beta;
+        document.getElementById('btv').textContent = st.beta;
+        box.innerHTML = WALK[i].c;
+        drawStep2(); updTable(); (st.step === 2 ? updV3 : updV2)();
+        i++;
+    }
+    tick();
+    st.walk = setInterval(tick, reduceMotion ? 5200 : 3400);
+}
+
+/* ===================== QUIZ ===================== */
+var QUIZ = [
+{
+    q: 'You adjust β and the points on the transformed plot fall onto a straight line. What has the straightness told you?',
+    o: [
+      { t: 'That you have found the β which correctly splits formation loss from well loss.', ok: true,
+        f: 'The model says log(Δh/Q − β) is linear in log Q only when the β you subtract is the right one, ' +
+           'so straightness is the thing you are hunting for.' },
+      { t: 'That the test data are good quality with little scatter.', ok: false,
+        f: 'This is the <span class="misname">linearity-as-data-quality</span> misconception. You can make this same clean ' +
+           'data curve badly just by choosing a wrong β. Try β = 120 and watch.' },
+      { t: 'That the well behaves according to the Theis solution.', ok: false,
+        f: 'Theis is already built in via βQ. A straight transform tells you that the <em>remaining</em> ' +
+           'drawdown follows a power law αQⁿ, which is the well-loss part.' },
+      { t: 'That the aquifer is confined.', ok: false,
+        f: 'Confinement was assumed from the start when the analysis used the Theis-based β. The plot cannot test it.' }
+    ]
+},
+{
+    q: 'Your straightened line has a slope of 2.40. What is n?',
+    o: [
+      { t: 'n = 3.40', ok: true,
+        f: 'The transform is log(Δh/Q − β) = log α + (n−1)·log Q, so the gradient is <em>n − 1</em>. Add one.' },
+      { t: 'n = 2.40', ok: false,
+        f: 'This is the <span class="misname">forgotten +1</span>. ' +
+           'At 60 L/s, using 2.40 instead of 3.40 changes the predicted well loss by a factor of about seventeen, and ' +
+           'that flows straight through to the sustainable yield on the consent.' },
+      { t: 'n = 1.40', ok: false,
+        f: 'You have subtracted one instead of adding it.' },
+      { t: 'n cannot be found from the slope, only from the intercept.', ok: false,
+        f: 'The intercept gives α. The slope gives n − 1.' }
+    ]
+},
+{
+    q: 'Where on the transformed plot do you read α?',
+    o: [
+      { t: 'From the intercept where the fitted line reaches log Q = 0, i.e. Q = 1 m³/s — far outside the data.', ok: true,
+        f: 'Q = 1 m³/s is 1000 L/s, about 17 times the largest rate tested, so α is a long ' +
+           'extrapolation. That is why α shifts noticeably for small changes in β while n stays put. Use the zoom button in step 3 to see it.' },
+      { t: 'At the steepest part of the line.', ok: false,
+        f: 'This is a <span class="misname">graph-as-picture</span> error, reading the plot as a shape when it is an ' +
+           'equation. A straight line has the same slope everywhere, so there is no steepest part to find.' },
+      { t: 'At the leftmost data point.', ok: false,
+        f: 'A common assumption that the intercept is wherever the plotted line <em>starts</em>. The intercept is defined ' +
+           'by the axis: it is the value at x = 0, which here sits nowhere near your measurements.' },
+      { t: 'At Q = 1 L/s.', ok: false,
+        f: 'Right idea, wrong units. The x-axis is log₁₀ of Q <em>in m³/s</em>, so x = 0 means 1 m³/s. ' +
+           'Reading it at 1 L/s would put α out by a factor of 1000^(n−1).' }
+    ]
+},
+{
+    q: 'Why must β be recomputed for a one-year pumping period instead of reusing the value from the 45-minute steps?',
+    o: [
+      { t: 'Because β contains W(u) with u ∝ 1/t, so formation drawdown keeps growing with time — while α and n do not.', ok: true,
+        f: 'The cone of depression keeps expanding for years. ' +
+           'Turbulence near the screen reaches its value for a given Q almost immediately and then stays there.' },
+      { t: 'Because the well deteriorates over a year, so α increases.', ok: false,
+        f: 'Wells do clog over time, and that would show up in α. The recalculation of β falls out of the Theis solution ' +
+           'itself, which has time in it.' },
+      { t: 'Because the pumping rate is different over a year.', ok: false,
+        f: 'The sustainable yield calculation holds Q constant for the whole period, which is what makes it a yield.' },
+      { t: 'You do not need to — β is a property of the aquifer and does not change.', ok: false,
+        f: 'This is the <span class="misname">β-as-a-constant</span> misconception. T and S are properties of the aquifer. ' +
+           'β is drawdown per unit rate <em>at a particular time</em>. In step 4 it climbs from about 243 to 364 between ' +
+           '45 minutes and a year, and using the short-time value would overstate the yield.' }
+    ]
+},
+{
+    q: 'A classmate builds the spreadsheet leaving Q in L/s and gets β = 0.243. What is β in SI units (s/m²)?',
+    o: [
+      { t: '243', ok: true,
+        f: 'β has units of drawdown per unit rate, m/(m³/s). Going from L/s to m³/s divides Q by 1000, ' +
+           'so Δh/Q is multiplied by 1000.' },
+      { t: '0.000243', ok: false,
+        f: 'You have divided instead of multiplied. Because Q is in the <em>denominator</em>, making the number for Q ' +
+           'smaller makes β larger.' },
+      { t: '2.43', ok: false,
+        f: 'Factor of 100, which is the cm/m reflex. There are 1000 litres in a cubic metre.' },
+      { t: '0.243 — β is dimensionless, so it does not change.', ok: false,
+        f: 'β is not dimensionless. n is (it is an exponent), and that is probably the source of the confusion. ' +
+           'Mixed units here are exactly the error that loses marks in the exam.' }
+    ]
+}
+];
+/* Authored correct-answer-first for readability, then scrambled so the answer is not
+   always A. Seeded, so positions stay stable across reloads. */
+function shuffleOpts(arr, seed) {
+    var r = mulberry32(seed), a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+}
+
+function buildQuiz() {
+    var host = document.getElementById('quiz');
+    QUIZ.forEach(function (item, qi) { item.o = shuffleOpts(item.o, 7333 + qi * 613); });
+    QUIZ.forEach(function (item, qi) {
+        var d = document.createElement('div'); d.className = 'qitem';
+        var h = '<div class="qnum">Question ' + (qi + 1) + '</div><div class="qtext">' + item.q + '</div>';
+        item.o.forEach(function (op, oi) {
+            h += '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' +
+                 '<span class="mark">' + 'ABCD'[oi] + '.</span>' + op.t + '</button>';
+        });
+        h += '<div class="fb" id="fb-' + qi + '"></div>';
+        d.innerHTML = h; host.appendChild(d);
+    });
+    host.addEventListener('click', function (e) {
+        var b = e.target.closest('.opt'); if (!b) return;
+        var qi = +b.dataset.q, oi = +b.dataset.o, op = QUIZ[qi].o[oi];
+        host.querySelectorAll('.opt[data-q="' + qi + '"]').forEach(function (x) { x.classList.remove('sel-ok', 'sel-no'); });
+        b.classList.add(op.ok ? 'sel-ok' : 'sel-no');
+        var fb = document.getElementById('fb-' + qi);
+        fb.className = 'fb ' + (op.ok ? 'ok' : 'no');
+        fb.innerHTML = '<span class="lab">' + (op.ok ? 'Correct. ' : 'Not this one. ') + '</span>' + op.f;
+        fb.style.display = 'block';
+        if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([fb]);
+    });
+}
+
+/* ===================== STEPS ===================== */
+var STEPS = [
+    { t: '1. Two kinds of loss — and the test that measures them',
+      b: '<strong>(a)</strong> Drag the pumping rate. The <span class="blue">blue</span> part of the drawdown &mdash; water flowing ' +
+         'radially through the aquifer &mdash; grows in a straight line. The <span class="verm">vermillion</span> part &mdash; ' +
+         'turbulence through the gravel pack and the screen slots &mdash; grows as $Q^{n}$ with $n$ comfortably above 3, so it is negligible ' +
+         'at low rates and dominant at high ones.<br>' +
+         '<strong>(b)</strong> Then switch to the real test: six 45-minute steps at increasing rates. Advance it and watch the ' +
+         'drawdown record build up in time. The end-of-step readings you collect here are exactly the six numbers you analyse ' +
+         'in tab 2 &mdash; and note that in a real test <em>only the black total is measured</em>. Splitting it back ' +
+         'into blue and vermillion is what the Rorabaugh method does.' },
+    { t: '2. Find β by making the plot straight',
+      b: 'These are the six end-of-step readings you collected in tab&nbsp;1(b) &mdash; nothing else. ' +
+         'Rearranging $\\Delta h=\\beta Q+\\alpha Q^{n}$ gives $\\log(\\Delta h/Q-\\beta)=\\log\\alpha+(n-1)\\log Q$ &mdash; a ' +
+         '<strong>straight line, but only if you subtract the right β</strong>. You do not know β, so you guess it and check. ' +
+         'Drag the slider and watch the residual strip. Straightness is the thing you are optimising. ' +
+         'If you would like it demonstrated first, press <em>Show me how</em>.' },
+    { t: '3. Read α and n off the line',
+      b: 'Now that the line is straight, its geometry means something. The gradient gives $n$ &mdash; ' +
+         '<strong>after you add one</strong> &mdash; and the intercept gives $\\alpha$. Use the slope triangle on the plot, ' +
+         'then press the zoom button to see just how far away the intercept really is.' },
+    { t: '4. Sustainable yield',
+      b: 'This is what the test was for. β is the Theis drawdown per unit pumping rate <em>at a particular time</em>, ' +
+         'which is why it has to be recomputed whenever the pumping period changes:' +
+         '\\[\\beta(t)=\\frac{1}{4\\pi T}\\,W\\!\\left(\\frac{r_w^{2}S}{4Tt}\\right)\\]' +
+         'Evaluate that at $t_{sus}$ instead of the 45-minute step length, keep the $\\alpha$ and $n$ you already have, ' +
+         'and solve for the rate that just reaches your drawdown limit:' +
+         '\\[\\Delta h_{max}=\\beta_{sus}Q_{sus}+\\alpha Q_{sus}^{\\,n}\\]' },
+    { t: '5. Check yourself',
+      b: 'Five questions. Each wrong answer is a specific misconception. The feedback explains why it is wrong. ' +
+         'Change your answer as many times as you like &mdash; the earlier tabs stay open if you want to go back and look.' }
+];
+function setStep(i) {
+    st.step = i;
+    if (st.walk) runWalk();
+    document.getElementById('steptitle').innerHTML = STEPS[i].t;
+    document.getElementById('stepbody').innerHTML = STEPS[i].b;
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.setAttribute('aria-current', (+b.dataset.step === i) ? 'true' : 'false');
+    });
+    document.getElementById('s1').style.display  = (i === 0) ? 'block' : 'none';
+    document.getElementById('s23').style.display = (i === 1 || i === 2) ? 'block' : 'none';
+    document.getElementById('s4').style.display  = (i === 3) ? 'block' : 'none';
+    document.getElementById('s5').style.display  = (i === 4) ? 'block' : 'none';
+    document.getElementById('zoomwrap').style.display = (i === 2) ? 'flex' : 'none';
+    document.getElementById('walkbtn').style.display  = (i === 1) ? 'inline-block' : 'none';
+    if (i !== 2) { st.zoom = false; document.getElementById('zoombtn').classList.remove('on'); }
+
+    if (i === 0) { drawStep1(); updV1(); }
+    if (i === 1) { drawStep2(); updTable(); updV2(); }
+    if (i === 2) { drawStep2(); updTable(); updV3(); }
+    if (i === 3) { drawStep4(); updV4(); }
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise();
+}
+
+/* ===================== WIRING ===================== */
+function init() {
+    g1 = ctxOf('cv1', 940, 400);
+    g2 = ctxOf('cv2', 940, 500);
+    g4 = ctxOf('cv4', 940, 400);
+    buildTable(); buildQuiz();
+
+    document.getElementById('q1').addEventListener('input', function (e) {
+        st.Q1 = +e.target.value;
+        document.getElementById('q1v').textContent = st.Q1 + ' L/s';
+        drawStep1(); updV1();
+    });
+
+    document.getElementById('sidx').addEventListener('input', function (e) {
+        st.stepIdx = +e.target.value;
+        document.getElementById('sidxv').textContent =
+            'step ' + (st.stepIdx + 1) + ' of ' + NSTEP + ' — ' + DATA[st.stepIdx].qls + ' L/s';
+        drawStep1(); updV1();
+    });
+
+    ['m-free', 'm-test'].forEach(function (id) {
+        document.getElementById(id).addEventListener('change', function (e) {
+            if (!e.target.checked) return;
+            st.mode = e.target.value;
+            document.getElementById('g-free').style.display = (st.mode === 'free') ? 'flex' : 'none';
+            document.getElementById('g-test').style.display = (st.mode === 'test') ? 'flex' : 'none';
+            drawStep1(); updV1();
+        });
+    });
+
+    document.getElementById('bt').addEventListener('input', function (e) {
+        if (st.walk) runWalk();
+        st.beta = +e.target.value;
+        document.getElementById('btv').textContent = st.beta;
+        drawStep2(); updTable(); (st.step === 2 ? updV3 : updV2)();
+    });
+
+    document.getElementById('walkbtn').addEventListener('click', runWalk);
+
+    document.getElementById('bestbtn').addEventListener('click', function () {
+        if (st.walk) runWalk();
+        st.beta = Math.round(BEST.beta);
+        document.getElementById('bt').value = st.beta;
+        document.getElementById('btv').textContent = st.beta;
+        drawStep2(); updTable(); (st.step === 2 ? updV3 : updV2)();
+    });
+
+    document.getElementById('zoombtn').addEventListener('click', function () {
+        st.zoom = !st.zoom;
+        this.classList.toggle('on', st.zoom);
+        this.textContent = st.zoom ? 'Zoom back in to the data' : 'Zoom out to Q = 1 m³/s to see the intercept';
+        drawStep2();
+    });
+
+    ['tsus', 'dhmax', 'qtry'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', function (e) {
+            if (id === 'tsus') st.tsus = parseFloat(e.target.value);
+            if (id === 'dhmax') { st.dhmax = +e.target.value; document.getElementById('dhmaxv').textContent = st.dhmax + ' m'; }
+            if (id === 'qtry') { st.qtry = parseFloat(e.target.value); document.getElementById('qtryv').textContent = st.qtry.toFixed(1) + ' L/s'; }
+            drawStep4(); updV4();
+        });
+        document.getElementById(id).addEventListener('change', function () { drawStep4(); updV4(); });
+    });
+
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.addEventListener('click', function () { setStep(+b.dataset.step); });
+    });
+
+    document.getElementById('s1').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-p]'); if (!b) return;
+        var fb = document.getElementById('pfb1'), m = {
+            well: '<strong>Correct.</strong> With n ≈ 3.4, doubling Q multiplies the well loss by 2<sup>3.4</sup> ≈ 11, ' +
+                  'while the formation loss merely doubles. Drag the slider from 30 to 60 L/s and watch the vermillion bracket.',
+            form: '<strong>Not quite.</strong> The formation loss is the part that only doubles. ' +
+                  'The well loss goes as Q<sup>n</sup> with n ≈ 3.4, so it multiplies by about 11. Watch the two brackets as you drag.',
+            same: '<strong>Only one of them doubles.</strong> βQ is linear, so yes for that part. But αQⁿ with n ≈ 3.4 ' +
+                  'multiplies by roughly 11. That difference in behaviour is what lets a step test separate them.'
+        };
+        fb.innerHTML = m[b.dataset.p]; fb.style.display = 'block';
+    });
+
+    setStep(0);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>

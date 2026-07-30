@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where stored water comes from - ENCN342</title>
+<script>
+MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['\\[','\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #222; }
+h1 { text-align: center; color: #333; margin-bottom: 2px; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 5px; }
+.institution { text-align: center; color: #555; margin-bottom: 22px; }
+.explainer { background: white; padding: 18px 26px; border-radius: 8px; margin-bottom: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.65; }
+.explainer p { margin: 0.7em 0; }
+.widget-container { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 18px; }
+.placement { font-size: 13px; color: #555; background: #eef2f6; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; }
+.blue { color: #0072B2; font-weight: 700; }
+.verm { color: #C1541F; font-weight: 700; }
+
+.steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.steps button { font-family: inherit; font-size: 13.5px; padding: 9px 13px; min-height: 40px; border-radius: 6px; border: 1px solid #bbb; background: #fafafa; color: #333; cursor: pointer; }
+.steps button:hover { background: #eef2f6; }
+.steps button[aria-current="true"] { background: #0072B2; border-color: #0072B2; color: #fff; font-weight: 600; }
+.steptitle { font-size: 17px; font-weight: 600; margin: 4px 0 6px; }
+.stepbody { font-size: 14.5px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+
+.controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 12px 0 6px; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.control-group label { font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.control-group input[type="range"] { width: 190px; height: 26px; cursor: pointer; }
+.control-group .val { font-size: 13.5px; min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.cb-group { display: flex; align-items: center; gap: 7px; min-height: 30px; }
+.cb-group input { width: 20px; height: 20px; cursor: pointer; }
+.cb-group label { font-size: 13.5px; cursor: pointer; }
+input:focus-visible, button:focus-visible { outline: 3px solid #0072B2; outline-offset: 2px; }
+canvas { display: block; margin: 0 auto; max-width: 100%; }
+
+.ledger { display: flex; gap: 0; flex-wrap: wrap; margin: 12px 0 4px; border: 1px solid #d5dce2; border-radius: 6px; overflow: hidden; font-size: 13px; }
+.ledger div { padding: 9px 15px; border-right: 1px solid #e3e8ec; flex: 1 1 auto; }
+.ledger div:last-child { border-right: none; }
+.ledger .sym { font-weight: 700; }
+.ledger .un { color: #777; font-size: 12px; }
+.ledger .num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.ledger .off { background: #f2f2f2; color: #999; }
+
+.verdict { margin-top: 10px; border-radius: 6px; padding: 12px 16px; font-size: 14px; line-height: 1.6; border: 1px solid #dce3ea; background: #f7f9fb; }
+.verdict.good { border-color: #9bcfae; background: #eaf6ee; }
+.metrics { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.metrics b { font-size: 15px; }
+
+.predict { background: #fffdf5; border: 1px solid #e6d9a8; border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+.predict .q { font-weight: 600; margin-bottom: 8px; font-size: 14.5px; }
+.predict button { font-family: inherit; font-size: 13.5px; padding: 8px 14px; min-height: 34px; margin: 0 8px 6px 0; border-radius: 6px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
+.predict .pfb { margin-top: 10px; font-size: 13.5px; line-height: 1.6; display: none; }
+
+.qitem { border-top: 1px solid #e6e6e6; padding: 18px 0 6px; }
+.qitem:first-child { border-top: none; }
+.qnum { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #888; font-weight: 700; }
+.qtext { font-size: 15px; font-weight: 600; margin: 5px 0 12px; line-height: 1.5; }
+.opt { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 14px; line-height: 1.5; padding: 11px 14px; min-height: 40px; margin-bottom: 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.opt:hover { background: #f2f6fa; }
+.opt.sel-ok { border-color: #0072B2; background: #e8f2f9; border-width: 2px; }
+.opt.sel-no { border-color: #C1541F; background: #fdefe7; border-width: 2px; }
+.opt .mark { font-weight: 700; margin-right: 7px; }
+.fb { display: none; font-size: 13.5px; line-height: 1.65; padding: 11px 15px; border-radius: 6px; margin: 4px 0 8px; }
+.fb.ok { background: #e8f4ec; border-left: 4px solid #17823f; }
+.fb.no { background: #fdefe7; border-left: 4px solid #C1541F; }
+.fb .lab { font-weight: 700; }
+.misname { font-style: italic; color: #7a4a2a; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<h1>Where stored water comes from</h1>
+<div class="subtitle">ENCN342 &mdash; Hydraulics and Applied Hydrology</div>
+<div class="institution">University of Canterbury</div>
+
+<div class="explainer">
+    <p>An aquifer gives up water when you lower its head. <strong>How much</strong> water, per metre of head drop, is
+    the storativity &mdash; and it differs between confined and unconfined aquifers by a factor of thousands, because
+    the water is released by two completely different physical mechanisms.</p>
+    <p>It pays to get these two straight. Almost everything else in this topic &mdash; drawdown,
+    well yield, capture, how fast an aquifer responds &mdash; runs through $S$.</p>
+</div>
+
+<div class="placement">
+    <strong>Where this fits:</strong> after Module 1 (Groundwater Systems), alongside Tutorial 3. Do this one
+    <em>before</em> the capture widget &mdash; capture is about where pumped water comes from over time, and that
+    argument only works once you know what storage actually is.
+</div>
+
+<div class="widget-container">
+    <div class="steps" role="tablist" aria-label="Steps">
+        <button type="button" data-step="0" role="tab">1. Two mechanisms</button>
+        <button type="button" data-step="1" role="tab">2. How much water?</button>
+        <button type="button" data-step="2" role="tab">3. Check yourself</button>
+    </div>
+
+    <div id="steptitle" class="steptitle"></div>
+    <div id="stepbody" class="stepbody"></div>
+
+    <div id="predict" class="predict">
+        <div class="q">Before you look: two aquifers, same area, same 10&nbsp;m of head drop &mdash; one confined,
+        one unconfined. How much more water does the unconfined one give up?</div>
+        <button type="button" data-p="2">About twice as much</button>
+        <button type="button" data-p="10">About ten times</button>
+        <button type="button" data-p="1000">A thousand times or more</button>
+        <div class="pfb" id="pfb"></div>
+    </div>
+
+    <div id="cvwrap">
+        <canvas id="cv" width="940" height="450" role="img"
+            aria-label="Aquifer cross-sections and charts showing how water is released from storage. A text summary follows below."></canvas>
+    </div>
+
+    <div class="controls" id="ctrls">
+        <div class="control-group" id="g-dh">
+            <label for="dh">Head drop $\Delta h$ [m]</label>
+            <input type="range" id="dh" min="1" max="15" step="0.5" value="10">
+            <span class="val" id="dh-v">10.0 m</span>
+        </div>
+        <div class="control-group" id="g-b">
+            <label for="bth">Aquifer thickness $b$ [m]</label>
+            <input type="range" id="bth" min="5" max="50" step="1" value="20">
+            <span class="val" id="bth-v">20 m</span>
+        </div>
+        <div class="cb-group" id="g-log" style="display:none;">
+            <input type="checkbox" id="logv">
+            <label for="logv">Log scale (so you can actually read the small ones)</label>
+        </div>
+    </div>
+
+    <div class="ledger" id="ledger"></div>
+    <div class="verdict" id="verdict"></div>
+
+    <div id="quizarea" style="display:none;"><div id="quiz"></div></div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+var BLUE = '#0072B2', VERM = '#C1541F', INK = '#222', GRID = '#e3e7ea';
+var SAND = '#d9c69c', GRAIN = '#b39b6d', CLAY = '#8d7f74', AIRP = '#f4f1ea';
+var RHOG = 9810, BW = 4.4e-10;
+var SY = 0.20;                       /* specific yield of the unconfined sand */
+var POOL = 2500, HOUSE = 331;        /* Olympic pool [m3]; NZ household water [m3/yr] */
+
+/* One confined aquifer material throughout: a stiff Canterbury gravel. */
+var BR = 3.0e-10, POR = 0.25;
+var SS = RHOG * (BR + POR * BW);     /* specific storage, 1/m  (= 4.02e-6) */
+
+/* Only step 2 distinguishes materials, purely to show the range of confined values. */
+var MATS = [
+    { name: 'stiff gravel', br: 3.0e-10, n: 0.25 },
+    { name: 'dense sand',   br: 1.0e-9,  n: 0.30 },
+    { name: 'loose sand',   br: 1.0e-8,  n: 0.35 }
+];
+function ssOf(m) { return RHOG * (m.br + m.n * BW); }
+
+var st = { step: 0, dh: 10, b: 20, log: false };
+function Sconf() { return st.b * SS; }
+
+/* ===================== canvas plumbing ===================== */
+var cv = document.getElementById('cv'), ctx;
+function setupCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = 940 * dpr; cv.height = 450 * dpr;
+    cv.style.width = '940px'; cv.style.height = '450px';
+    ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function txt(s, x, y, align, colour, weight, size) {
+    ctx.font = (weight || '400') + ' ' + (size || 12) + 'px "Segoe UI", sans-serif';
+    ctx.textAlign = align || 'left'; ctx.fillStyle = colour || INK; ctx.fillText(s, x, y);
+}
+function chip(s, x, y, bg, fg, align) {
+    ctx.font = '700 11.5px "Segoe UI", sans-serif';
+    var w = ctx.measureText(s).width + 14;
+    var x0 = align === 'center' ? x - w / 2 : (align === 'right' ? x - w : x);
+    ctx.fillStyle = bg;
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x0, y - 12, w, 18, 9); ctx.fill(); }
+    else ctx.fillRect(x0, y - 12, w, 18);
+    ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.fillText(s, x0 + 7, y + 1);
+}
+function dash(x0, y0, x1, y1, c, w, d) {
+    ctx.save(); ctx.setLineDash(d || [6, 4]); ctx.strokeStyle = c; ctx.lineWidth = w || 2;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+var GRAINS = (function () {
+    var r = mulberry32(90210), g = [];
+    for (var row = 0; row < 12; row++)
+        for (var col = 0; col < 21; col++)
+            g.push({ u: (col + (row % 2) * 0.5 + 0.25 + (r() - 0.5) * 0.35) / 21,
+                     v: (row + 0.5 + (r() - 0.5) * 0.35) / 12,
+                     rad: 5.2 + r() * 3.2 });
+    return g;
+})();
+
+/* ===================== STEP 1 : the two mechanisms ===================== */
+function drawMechanisms() {
+    ctx.clearRect(0, 0, 940, 450);
+    /* Compaction is linear in head drop, so the drawing must be too. Exaggeration is set
+       so the full slider range fills the available travel without ever needing a clamp —
+       a clamp would freeze the block part-way and imply the mechanism had changed. */
+    var EXAG = 2000;
+
+    [0, 1].forEach(function (side) {
+        var conf = (side === 0);
+        var P = { x: 12 + side * 468, w: 448 };
+        var packTop = 152, packBot = 330;                /* leaves 120 px of clear label space */
+
+        ctx.fillStyle = conf ? '#f6efe9' : '#eef4f8';
+        ctx.fillRect(P.x, 8, P.w, 24);
+        txt(conf ? 'CONFINED — elastic release' : 'UNCONFINED — drainage release',
+            P.x + 11, 25, 'left', conf ? '#8a3b13' : '#0a4a72', '700', 13);
+
+        var strain = conf ? SS * st.dh * EXAG : 0;
+        var sink = (packBot - packTop) * strain;
+        var groundY = 128 + sink;
+
+        ctx.fillStyle = '#eef4f8'; ctx.fillRect(P.x, 36, P.w, groundY - 36);
+        ctx.fillStyle = conf ? CLAY : SAND; ctx.fillRect(P.x, groundY, P.w, packTop + sink - groundY);
+        ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(P.x, groundY); ctx.lineTo(P.x + P.w, groundY); ctx.stroke();
+        txt(conf ? 'aquitard' : 'open to the air — no aquitard', P.x + 8, groundY + 17, 'left',
+            conf ? '#fff' : '#6b5a38', '700', 11);
+        txt('ground surface', P.x + P.w - 8, groundY - 6, 'right', '#4a4a4a', '600', 11);
+
+        if (conf && sink > 1.5) {
+            dash(P.x, 128, P.x + P.w, 128, '#999', 1.4, [4, 3]);
+            ctx.strokeStyle = VERM; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(P.x + P.w - 46, 128); ctx.lineTo(P.x + P.w - 46, groundY);
+            ctx.moveTo(P.x + P.w - 52, 128); ctx.lineTo(P.x + P.w - 40, 128);
+            ctx.moveTo(P.x + P.w - 52, groundY); ctx.lineTo(P.x + P.w - 40, groundY);
+            ctx.stroke();
+            txt('land subsides', P.x + P.w - 58, 128 + sink / 2 + 4, 'right', VERM, '700', 11);
+        }
+
+        /* ---- the aquifer block ---- */
+        var pt = packTop + sink, pb = packBot;
+        var drainFrac = conf ? 0 : Math.min(0.8, SY * st.dh / 5);
+        var wtY = pt + drainFrac * (pb - pt);
+
+        ctx.fillStyle = conf ? 'rgba(0,114,178,0.40)' : AIRP;
+        ctx.fillRect(P.x, pt, P.w, pb - pt);
+        if (!conf) { ctx.fillStyle = 'rgba(0,114,178,0.40)'; ctx.fillRect(P.x, wtY, P.w, pb - wtY); }
+        GRAINS.forEach(function (g) {
+            ctx.beginPath(); ctx.arc(P.x + g.u * P.w, pt + g.v * (pb - pt), g.rad, 0, 6.2832);
+            ctx.fillStyle = GRAIN; ctx.fill();
+            ctx.strokeStyle = 'rgba(90,72,42,0.55)'; ctx.lineWidth = 0.8; ctx.stroke();
+        });
+        ctx.strokeStyle = '#7a6a4a'; ctx.lineWidth = 1.4;
+        ctx.strokeRect(P.x + 0.5, pt + 0.5, P.w - 1, pb - pt - 1);
+
+        if (!conf) {
+            ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(P.x, wtY); ctx.lineTo(P.x + P.w, wtY); ctx.stroke();
+            txt('▼ water table falls — the pores above it EMPTY', P.x + 8, wtY - 7, 'left', '#005b8f', '700', 11.5);
+            chip('air replaces water in the drained pores', P.x + P.w / 2, pt + 20, '#fff3e0', '#8a5a12', 'center');
+        } else {
+            chip('every pore still full — nothing drains', P.x + P.w / 2, pt + 20, '#e8f2f9', '#0a4a72', 'center');
+            ctx.strokeStyle = VERM; ctx.lineWidth = 2;
+            [0.24, 0.5, 0.76].forEach(function (u) {
+                var ax = P.x + u * P.w;
+                ctx.beginPath();
+                ctx.moveTo(ax, pt - 15); ctx.lineTo(ax, pt - 3);
+                ctx.moveTo(ax - 4, pt - 8); ctx.lineTo(ax, pt - 3); ctx.lineTo(ax + 4, pt - 8);
+                ctx.moveTo(ax, pb + 15); ctx.lineTo(ax, pb + 3);
+                ctx.moveTo(ax - 4, pb + 8); ctx.lineTo(ax, pb + 3); ctx.lineTo(ax + 4, pb + 8);
+                ctx.stroke();
+            });
+        }
+
+        /* ---- head, shown in a standpipe ---- */
+        var sx = P.x + P.w - 78, sw = 20, h0 = 46, hNow = h0 + st.dh * 4.2;
+        ctx.fillStyle = '#fff'; ctx.fillRect(sx, 40, sw, pt - 40);
+        ctx.fillStyle = 'rgba(0,114,178,0.75)'; ctx.fillRect(sx + 2, hNow, sw - 4, pt - hNow);
+        ctx.strokeStyle = '#8d949b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(sx, 40); ctx.lineTo(sx, pt);
+        ctx.moveTo(sx + sw, 40); ctx.lineTo(sx + sw, pt); ctx.stroke();
+        dash(P.x + 6, h0, sx, h0, '#999', 1.4, [4, 3]);
+        dash(P.x + 6, hNow, sx, hNow, VERM, 2, [6, 4]);
+        txt('head before pumping', P.x + 8, h0 - 6, 'left', '#777', '600', 10.5);
+        txt('Δh = ' + st.dh.toFixed(1) + ' m', P.x + 8, hNow + 15, 'left', VERM, '700', 11.5);
+
+        /* ---- water released, in the clear space below the block ---- */
+        var thick = (conf ? Sconf() : SY) * st.dh;       /* metres of water per m2 */
+        var yBase = 392;
+        txt(conf ? 'skeleton squeezed by the load above (compaction shown ×' + EXAG + ')'
+                 : 'pores drained by gravity as the water table passed',
+            P.x + P.w / 2, pb + 26, 'center', conf ? VERM : '#8a5a12', '600', 11);
+        txt('water released, per m² of aquifer', P.x + 12, yBase - 26, 'left', '#333', '600', 11.5);
+        var slab = Math.max(1.5, Math.min(34, thick * 16));
+        ctx.fillStyle = BLUE; ctx.fillRect(P.x + 12, yBase, 150, -slab);
+        ctx.strokeStyle = '#00527f'; ctx.lineWidth = 1; ctx.strokeRect(P.x + 12.5, yBase + 0.5, 149, -slab);
+        txt(thick < 0.01 ? (thick * 1000).toFixed(2) + ' mm' : thick.toFixed(2) + ' m',
+            P.x + 172, yBase - 4, 'left', '#00527f', '700', 15);
+        if (conf) txt('a film you could not see — drawn at minimum thickness here',
+                      P.x + 12, yBase + 18, 'left', '#777', '400', 10.5);
+        else txt('an actual slab of water, ' + (SY * st.dh / (Sconf() * st.dh)).toFixed(0) + '× the confined one',
+                 P.x + 12, yBase + 18, 'left', '#777', '400', 10.5);
+    });
+}
+
+/* ===================== STEP 2 : magnitude ===================== */
+function drawMagnitude() {
+    ctx.clearRect(0, 0, 940, 450);
+    var Vc = Sconf() * 1e6 * st.dh, Vu = SY * 1e6 * st.dh;
+    txt('Water released from 1 km² of aquifer for a ' + st.dh.toFixed(1) + ' m head drop',
+        470, 28, 'center', '#333', '700', 15);
+
+    if (!st.log) {
+        var box = 240, ratio = Vu / Vc, sc = box / Math.sqrt(ratio), cy = 224;
+        [[260, Vu, box, 'UNCONFINED  (Sy = 0.20)', BLUE],
+         [700, Vc, sc,  'CONFINED  (gravel, b = ' + st.b + ' m)', VERM]].forEach(function (d) {
+            ctx.fillStyle = 'rgba(0,114,178,0.45)';
+            ctx.fillRect(d[0] - d[2] / 2, cy - d[2] / 2, d[2], d[2]);
+            ctx.strokeStyle = '#00527f'; ctx.lineWidth = 1.5;
+            ctx.strokeRect(d[0] - d[2] / 2, cy - d[2] / 2, d[2], d[2]);
+            txt(d[3], d[0], cy - box / 2 - 28, 'center', d[4], '700', 13.5);
+            txt(fmtV(d[1]), d[0], cy - box / 2 - 10, 'center', '#333', '700', 13);
+        });
+        ctx.strokeStyle = VERM; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(700, cy + sc / 2 + 6); ctx.lineTo(700, cy + 74); ctx.stroke();
+        txt('drawn to exactly the same scale', 700, cy + 92, 'center', VERM, '700', 12);
+        txt(ratio.toFixed(0) + '× smaller in area', 700, cy + 109, 'center', '#777', '400', 12);
+        txt('Tick the log scale to see where other aquifer materials sit.', 470, 424, 'center', '#666', '400', 12);
+    } else {
+        var a = { l: 210, t: 70, w: 620, h: 250 };
+        ctx.fillStyle = '#fff'; ctx.fillRect(a.l, a.t, a.w, a.h);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a.l + .5, a.t + .5, a.w - 1, a.h - 1);
+        var lo = 1, hi = 7;
+        function LX(v) { return a.l + (Math.log10(Math.max(v, 10)) - lo) / (hi - lo) * a.w; }
+        for (var e = lo; e <= hi; e++) {
+            ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(LX(Math.pow(10, e)), a.t); ctx.lineTo(LX(Math.pow(10, e)), a.t + a.h); ctx.stroke();
+            txt('10' + ['','¹','²','³','⁴','⁵','⁶','⁷'][e], LX(Math.pow(10, e)), a.t + a.h + 17, 'center', '#555', '400', 11);
+        }
+        txt('cubic metres of water released  (log scale — each line is ×10)',
+            a.l + a.w / 2, a.t + a.h + 38, 'center', '#333', '600', 12);
+
+        var rows = MATS.map(function (m) {
+            return { lab: 'confined — ' + m.name, v: st.b * ssOf(m) * 1e6 * st.dh, c: VERM, cur: m.br === BR };
+        });
+        rows.push({ lab: 'unconfined — sand, Sᵧ = 0.20', v: Vu, c: BLUE, cur: true });
+        var bh = 40, gap = (a.h - rows.length * bh) / (rows.length + 1);
+        rows.forEach(function (r, i) {
+            var y = a.t + gap + i * (bh + gap);
+            ctx.fillStyle = r.c === BLUE ? 'rgba(0,114,178,0.55)' : 'rgba(193,84,31,0.5)';
+            ctx.fillRect(a.l, y, LX(r.v) - a.l, bh);
+            ctx.strokeStyle = r.c; ctx.lineWidth = r.cur ? 2 : 1;
+            ctx.strokeRect(a.l + .5, y + .5, LX(r.v) - a.l - 1, bh - 1);
+            txt(r.lab, a.l - 10, y + bh / 2 + 4, 'right', r.cur ? r.c : '#777', r.cur ? '700' : '400', 12);
+            txt(fmtV(r.v), LX(r.v) + 9, y + bh / 2 + 4, 'left', '#333', '700', 12.5);
+        });
+        txt('All the confined materials sit far below the unconfined one. The differences between the gravels ' +
+            'are small beside that gap.', 470, 424, 'center', '#666', '400', 12);
+    }
+}
+function fmtV(v) {
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + ' million m³';
+    if (v >= 1000) return Math.round(v).toLocaleString() + ' m³';
+    return Math.round(v) + ' m³';
+}
+
+/* ===================== LEDGER & VERDICT ===================== */
+function updLedger() {
+    document.getElementById('ledger').innerHTML =
+        '<div><span class="sym">$S_s$</span> specific storage <span class="un">[1/m]</span><br>' +
+        '<span class="num">' + SS.toExponential(2) + '</span></div>' +
+        '<div><span class="sym">$b$</span> thickness <span class="un">[m]</span><br>' +
+        '<span class="num">' + st.b + '</span></div>' +
+        '<div><span class="sym">$S = bS_s$</span> confined storativity <span class="un">[dimensionless]</span><br>' +
+        '<span class="num verm">' + Sconf().toExponential(2) + '</span></div>' +
+        '<div class="off"><span class="sym">$S = bS_s$</span> <em>does not apply</em><br>' +
+        '<span class="un">unconfined aquifers never use this</span></div>' +
+        '<div><span class="sym">$S_y$</span> specific yield <span class="un">[dimensionless]</span><br>' +
+        '<span class="num blue">' + SY.toFixed(2) + '</span></div>';
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById('ledger')]);
+}
+
+function updVerdict() {
+    var el = document.getElementById('verdict'), conf = Sconf(), ratio = SY / conf;
+    var Vc = conf * 1e6 * st.dh, Vu = SY * 1e6 * st.dh;
+    if (st.step === 0) {
+        el.className = 'verdict';
+        el.innerHTML =
+            '<div class="metrics">' +
+            '<span>Confined releases <b class="verm">' + (conf * st.dh * 1000).toFixed(2) + ' mm</b> per m²</span>' +
+            '<span>Unconfined releases <b class="blue">' + (SY * st.dh).toFixed(2) + ' m</b> per m²</span>' +
+            '<span>Ratio <b>' + ratio.toFixed(0) + '×</b></span></div>' +
+            '<div style="margin-top:8px">Same grains, head change and area, but there is a ' + ratio.toFixed(0) +
+            '× factor in the water produced, because the water leaves by two different routes. ' +
+            'On the left the pores stay full and the ' +
+            '<span class="verm">grain skeleton compresses</span>, squeezing out a film of water and settling the land ' +
+            'surface above it. On the right the <span class="blue">pores actually empty</span> as the water table walks ' +
+            'down past them.</div>' +
+            '<div style="margin-top:7px">Nothing about the confined mechanism is visible at natural scale &mdash; the ' +
+            'compaction here is exaggerated several thousand times so you can see it happen at all. In the field you ' +
+            'detect it as subsidence measured over years.</div>';
+    } else if (st.step === 1) {
+        el.className = 'verdict';
+        el.innerHTML =
+            '<div class="metrics"><span>Confined: <b class="verm">' + fmtV(Vc) + '</b></span>' +
+            '<span>Unconfined: <b class="blue">' + fmtV(Vu) + '</b></span>' +
+            '<span>Ratio <b>' + ratio.toFixed(0) + '×</b></span></div>' +
+            '<div style="margin-top:8px">In units you can picture: the confined km² gives up <strong>' +
+            (Vc / POOL).toFixed(2) + ' of an Olympic swimming pool</strong>, about ' + (Vc / HOUSE).toFixed(1) +
+            ' years of one household&rsquo;s water. The unconfined km² gives up <strong>' + (Vu / POOL).toFixed(0) +
+            ' Olympic pools</strong> &mdash; enough for ' + Math.round(Vu / HOUSE).toLocaleString() +
+            ' households for a year.</div>' +
+            '<div style="margin-top:7px">This is why a confined aquifer&rsquo;s head crashes so quickly when you pump it, ' +
+            'and why an unconfined water table barely moves for the same volume taken. It is also why confined aquifers ' +
+            'respond over <em>kilometres</em> within days: there is almost no water available locally, so the pressure ' +
+            'signal has to travel a long way before it reaches enough of it.</div>';
+    }
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+}
+
+/* ===================== QUIZ ===================== */
+var QUIZ = [
+{
+    q: 'A confined and an unconfined aquifer each release the same volume of water per km². ' +
+       'In which does the head fall further, and roughly by how much more?',
+    o: [
+      { t: 'The confined one, by around a thousand times more.', ok: true,
+        f: 'Storativity is volume released per unit area per unit head drop, so a storativity thousands of times ' +
+           'smaller means thousands of times more head drop for the same water. This is why a confined aquifer’s ' +
+           'piezometric surface plunges when you pump it.' },
+      { t: 'The confined one, by about twice as much.', ok: false,
+        f: 'Right direction, wrong scale, and the scale is what this step is about. This is the ' +
+           '<span class="misname">not-feeling-the-gap</span> error. $S$ around $10^{-4}$ against $S_y = 0.2$ works out ' +
+           'as a factor of thousands. Look at step 2 on the log scale.' },
+      { t: 'The unconfined one, because its water table can drop a long way.', ok: false,
+        f: 'A large specific yield means the water table barely has to move to supply a lot of water. ' +
+           'It is the <em>small</em> storativity that forces a big head change.' },
+      { t: 'Both fall by the same amount — that is what storativity means.', ok: false,
+        f: 'Storativity is precisely what makes them differ. Equal volume ÷ different $S$ = different head change.' }
+    ]
+},
+{
+    q: 'In a confined aquifer, most of the water released by a small head decline comes from:',
+    o: [
+      { t: 'The grain skeleton compacting, plus a smaller contribution from water expanding.', ok: true,
+        f: 'For most aquifer materials the skeleton term is ' +
+           'several times the water term, which is why over-pumped confined aquifers cause land subsidence. Water ' +
+           'expansion on its own could never move the ground surface.' },
+      { t: 'Water draining out of the pores as the water level falls.', ok: false,
+        f: 'This applies the <span class="misname">unconfined mechanism to the confined case</span>. A confined aquifer ' +
+           'stays completely saturated while you pump it, and no pore ever empties. If pores were draining, ' +
+           'storativity would be thousands of times larger than it is.' },
+      { t: 'The water table falling within the aquifer.', ok: false,
+        f: 'A confined aquifer has no water table inside it. It is full of water and overlain by an aquitard. What falls ' +
+           'is the piezometric surface. That sits above the aquifer and is not a physical interface at all.' },
+      { t: 'Water expanding, essentially on its own.', ok: false,
+        f: 'Water expansion is usually the smaller of the two terms. In stiff rock, where there is little skeletal ' +
+           'compression to compete with, it can reach a quarter of the total. The skeleton still does most of the work.' }
+    ]
+},
+{
+    q: 'A confined aquifer has $S_s = 2\\times10^{-5}$ m⁻¹ and is 25 m thick. An unconfined sand aquifer has ' +
+       '$S_y = 0.15$ and is also 25 m thick. What are their storativities?',
+    o: [
+      { t: '$S = 5\\times10^{-4}$ and $S = 0.15$, both dimensionless.', ok: true,
+        f: '$S = bS_s = 25 \\times 2\\times10^{-5} = 5\\times10^{-4}$, with the metres cancelling the per-metres. ' +
+           'For the unconfined aquifer $S = S_y$ directly — thickness does not enter.' },
+      { t: '$S = 5\\times10^{-4}$ and $S = 3.75$.', ok: false,
+        f: 'You applied $S = bS_y$ to the unconfined case, which is <span class="misname">confined-only</span>. ' +
+           'It is also dimensionally impossible — $S_y$ is already dimensionless — and $S = 3.75$ would mean releasing ' +
+           '3.75 m³ of water per m² per metre of drawdown, which is more water than there is rock.' },
+      { t: '$S = 2\\times10^{-5}$ and $S = 0.15$.', ok: false,
+        f: 'You have left out the thickness for the confined case. $S_s$ is <em>per metre</em> of aquifer, so you must ' +
+           'multiply by $b$ to get the whole column.' },
+      { t: '$S = 8\\times10^{-7}$ and $S = 0.006$.', ok: false,
+        f: 'You divided by the thickness instead of multiplying. A thicker aquifer stores more.' }
+    ]
+},
+{
+    q: 'Water is normally treated as incompressible in flow calculations, yet its compressibility turns up in $S_s$. ' +
+       'Which statement is right?',
+    o: [
+      { t: 'Incompressibility is a very good approximation for pipe and channel flow, and water compressibility still contributes to confined storage.', ok: true,
+        f: 'Engineering idealisations come with a domain of validity. A five-bar pressure ' +
+           'change squeezes water by about 0.02% — far below anything you can measure in a pipe. Multiply that same strain ' +
+           'by the hundreds of millions of cubic metres held in an aquifer and it becomes a usable water supply.' },
+      { t: 'Treating water as incompressible is a simplification that turns out to be wrong.', ok: false,
+        f: 'The word you want is <span class="misname">bounded</span>. Treating water as incompressible in pipe flow is ' +
+           'correct to far better precision than anything you can measure there. An idealisation being inapplicable in ' +
+           'a new regime leaves it perfectly true in its own.' },
+      { t: 'Groundwater is under much higher pressure, so it compresses much more than water in pipes.', ok: false,
+        f: 'A plausible rescue, but the numbers do not support it. A 10 m head change is only about 1 bar — <em>less</em> ' +
+           'than a typical pipe pressure. What changes between the two cases is the volume being acted on.' },
+      { t: 'Water compressibility dominates confined storage, so incompressibility must be abandoned.', ok: false,
+        f: 'Two errors. Water is usually the minor term in $S_s$ — the skeleton dominates — and incompressibility remains ' +
+           'entirely valid for the flow problems you use it on.' }
+    ]
+}
+];
+function shuffleOpts(arr, seed) {
+    var r = mulberry32(seed), a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+}
+function buildQuiz() {
+    var host = document.getElementById('quiz');
+    /* seed chosen so the correct answer uses all four positions once each (A C D B) */
+    QUIZ.forEach(function (item, qi) { item.o = shuffleOpts(item.o, 1000 + qi * 175); });
+    QUIZ.forEach(function (item, qi) {
+        var d = document.createElement('div'); d.className = 'qitem';
+        var h = '<div class="qnum">Question ' + (qi + 1) + '</div><div class="qtext">' + item.q + '</div>';
+        item.o.forEach(function (op, oi) {
+            h += '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' +
+                 '<span class="mark">' + 'ABCD'[oi] + '.</span>' + op.t + '</button>';
+        });
+        h += '<div class="fb" id="fb-' + qi + '"></div>';
+        d.innerHTML = h; host.appendChild(d);
+    });
+    host.addEventListener('click', function (e) {
+        var b = e.target.closest('.opt'); if (!b) return;
+        var qi = +b.dataset.q, oi = +b.dataset.o, op = QUIZ[qi].o[oi];
+        host.querySelectorAll('.opt[data-q="' + qi + '"]').forEach(function (x) { x.classList.remove('sel-ok', 'sel-no'); });
+        b.classList.add(op.ok ? 'sel-ok' : 'sel-no');
+        var fb = document.getElementById('fb-' + qi);
+        fb.className = 'fb ' + (op.ok ? 'ok' : 'no');
+        fb.innerHTML = '<span class="lab">' + (op.ok ? 'Correct. ' : 'Not this one. ') + '</span>' + op.f;
+        fb.style.display = 'block';
+        if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([fb]);
+    });
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host]);
+}
+
+/* ===================== STEPS ===================== */
+var STEPS = [
+  { t: '1. Two mechanisms, not one quantity with two values',
+    b: 'Drag the head drop and watch what physically happens in each block. Same grains, same head change, same area. ' +
+       'On the <span class="verm">confined</span> side every pore stays full and the skeleton squeezes. On the ' +
+       '<span class="blue">unconfined</span> side the water table walks down through the pack and the pores it passes empty out.' },
+  { t: '2. How much water actually comes out',
+    b: 'Now compare the volumes for a square kilometre. The two squares are drawn to the same scale, which is ' +
+       'uncomfortable to look at. Tick the log scale to read the small one, and to see that the differences between ' +
+       'aquifer materials are trivial beside the confined/unconfined gap.' },
+  { t: '3. Check yourself',
+    b: 'Four questions. Each wrong answer is a specific misconception. The feedback explains why it is wrong. ' +
+       'Change your answer as many times as you like &mdash; the earlier tabs stay open if you want to go back and look.' }
+];
+function setStep(i) {
+    st.step = i;
+    document.getElementById('steptitle').innerHTML = STEPS[i].t;
+    document.getElementById('stepbody').innerHTML = STEPS[i].b;
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.setAttribute('aria-current', (+b.dataset.step === i) ? 'true' : 'false');
+    });
+    document.getElementById('predict').style.display  = (i === 0) ? 'block' : 'none';
+    document.getElementById('cvwrap').style.display   = (i === 2) ? 'none' : 'block';
+    document.getElementById('ctrls').style.display    = (i === 2) ? 'none' : 'flex';
+    document.getElementById('ledger').style.display   = (i === 2) ? 'none' : 'flex';
+    document.getElementById('verdict').style.display  = (i === 2) ? 'none' : 'block';
+    document.getElementById('quizarea').style.display = (i === 2) ? 'block' : 'none';
+    document.getElementById('g-dh').style.display  = (i === 2) ? 'none' : 'flex';
+    document.getElementById('g-b').style.display   = (i === 1) ? 'flex' : 'none';
+    document.getElementById('g-log').style.display = (i === 1) ? 'flex' : 'none';
+    render();
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise();
+}
+function render() {
+    if (st.step === 2) return;
+    if (st.step === 1) drawMagnitude(); else drawMechanisms();
+    updLedger(); updVerdict();
+}
+
+/* ===================== WIRING ===================== */
+function init() {
+    setupCanvas(); buildQuiz();
+    document.getElementById('dh').addEventListener('input', function (e) {
+        st.dh = parseFloat(e.target.value);
+        document.getElementById('dh-v').textContent = st.dh.toFixed(1) + ' m';
+        render();
+    });
+    document.getElementById('bth').addEventListener('input', function (e) {
+        st.b = +e.target.value;
+        document.getElementById('bth-v').textContent = st.b + ' m';
+        render();
+    });
+    document.getElementById('logv').addEventListener('change', function (e) {
+        st.log = e.target.checked; render();
+    });
+    document.getElementById('predict').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-p]'); if (!b) return;
+        var r = SY / Sconf();
+        document.getElementById('pfb').innerHTML = {
+            '2':    '<strong>Far too small.</strong> The answer here is about ' + r.toFixed(0) +
+                    '×, which is the size of gap you get when two things work by different mechanisms.',
+            '10':   '<strong>Still two orders of magnitude short.</strong> The answer is about ' + r.toFixed(0) +
+                    '×. Ten times would be a big difference between two versions of the same process. Thousands of ' +
+                    'times means two different processes.',
+            '1000': '<strong>Right, and possibly still short.</strong> About ' + r.toFixed(0) +
+                    '× for these settings. The two aquifers release their water by completely different mechanisms.'
+        }[b.dataset.p];
+        document.getElementById('pfb').style.display = 'block';
+    });
+    document.querySelectorAll('.steps button').forEach(function (b) {
+        b.addEventListener('click', function () { setStep(+b.dataset.step); });
+    });
+    setStep(0);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Borehole Stress Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#f2f4f6; --panel:#ffffff; --ink:#182028; --ink2:#4a5561; --muted:#8a95a1; --line:#d5dbe1;
+  --accent:#c9791b; --accent-soft:#f5e3c8; --mud:#2a8583; --mud-soft:#d5ecea; --rock:#7b6f60; --rock2:#a99d8c;
+  --ok:#3a8f5c; --warn:#d1962a; --bad:#c3423f; --ok-soft:#dff0e5; --warn-soft:#fbeed3; --bad-soft:#f8dedd;
+  --comp:#b8433a; --tens:#2f6fb3; --zero:#c8cdd2;
+  --sans:"IBM Plex Sans",system-ui,Segoe UI,Roboto,sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171c; --panel:#1b2229; --ink:#e7eaed; --ink2:#b3bcc5; --muted:#7d8791; --line:#303941;
+  --accent:#e29a3c; --accent-soft:#3a2d1a; --mud:#4fb3af; --mud-soft:#1c3735; --rock:#8d8172; --rock2:#5d554b;
+  --ok:#57b47c; --warn:#e0a83f; --bad:#e0625e; --ok-soft:#1c3226; --warn-soft:#3a2f18; --bad-soft:#3d1f1f;
+  --comp:#e0655a; --tens:#5c98dc; --zero:#3a434c;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171c; --panel:#1b2229; --ink:#e7eaed; --ink2:#b3bcc5; --muted:#7d8791; --line:#303941;
+  --accent:#e29a3c; --accent-soft:#3a2d1a; --mud:#4fb3af; --mud-soft:#1c3735; --rock:#8d8172; --rock2:#5d554b;
+  --ok:#57b47c; --warn:#e0a83f; --bad:#e0625e; --ok-soft:#1c3226; --warn-soft:#3a2f18; --bad-soft:#3d1f1f;
+  --comp:#e0655a; --tens:#5c98dc; --zero:#3a434c;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 32px;padding-inline:16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.topbar{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding-block:12px 0}
+.topbar h1{font-family:var(--cond);font-weight:600;font-size:22px;margin:0;letter-spacing:.01em}
+.topbar .course{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:8px;scrollbar-width:none}
+nav.tabs button{appearance:none;border:0;background:transparent;color:var(--ink2);font:500 14px var(--sans);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+section.tab{padding-block:18px 0}
+.lead{margin:0 0 14px;max-width:70ch;font-size:16px;color:var(--ink)}
+.lead b{font-weight:600}
+sup.fn{font-family:var(--mono);font-size:11px;color:var(--accent);margin-left:1px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;min-width:0}
+.fig canvas{display:block;width:100%;height:auto;max-width:100%}
+.figrow{display:grid;gap:12px}
+.panel{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.card h3{margin:0 0 8px;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding-block:5px}
+.ctl .l{font-size:13.5px;color:var(--ink2)}
+.ctl output{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0;height:22px}
+.ctl input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ctl.mud input[type=range]{accent-color:var(--mud)}
+.ctl[data-disabled="1"]{opacity:.45}
+.tog{display:flex;align-items:center;gap:8px;padding-block:5px;font-size:13.5px;color:var(--ink2)}
+.tog input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.seg{display:flex;gap:4px;flex-wrap:wrap;padding-block:4px}
+.seg button,.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 13px var(--sans);padding:6px 10px;border-radius:4px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.primary{background:var(--mud);border-color:var(--mud);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btns{display:flex;gap:6px;flex-wrap:wrap;padding-block:4px}
+.target{border-left:3px solid var(--accent)}
+.target ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.target li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13.5px;color:var(--ink2)}
+.target li.done{color:var(--ink)}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;font:600 11px var(--mono);padding:0 7px;background:var(--line);color:var(--ink2);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;min-height:26px}
+.status .dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--ok)} .status.warn .dot{background:var(--warn)} .status.bad .dot{background:var(--bad)}
+.read{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;color:var(--ink2)}
+.read output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+details.notes{margin-top:16px;border-top:1px solid var(--line);padding-top:8px;max-width:78ch}
+details.notes summary{cursor:pointer;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+details.notes ol{margin:8px 0 0;padding-left:22px;font-size:13.5px;color:var(--ink2)}
+details.notes li{margin-bottom:6px}
+details.notes li::marker{font-family:var(--mono);color:var(--accent)}
+details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--paper);padding:1px 4px;border-radius:3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);padding:6px 4px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.legend i.box{height:10px;opacity:.7}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="top"><div class="wrap">
+  <div class="topbar"><h1>Borehole Stress Lab</h1><span class="course">GEOL338 · a hole in stressed rock</span></div>
+  <nav class="tabs" role="tablist" aria-label="Demos">
+    <button role="tab" data-tab="depth" aria-selected="true">1 · Pressure and stress with depth</button>
+    <button role="tab" data-tab="kirsch" aria-selected="false">2 · Stress around a hole</button>
+    <button role="tab" data-tab="breakout" aria-selected="false">3 · Breakouts</button>
+    <button role="tab" data-tab="tensile" aria-selected="false">4 · Tensile fractures</button>
+    <button role="tab" data-tab="sinusoid" aria-selected="false">5 · Unwrapping a fracture</button>
+    <button role="tab" data-tab="window" aria-selected="false">6 · Mud weight window</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+<!-- ================= TAB 2: KIRSCH ================= -->
+<section class="tab" id="tab-kirsch" role="tabpanel" hidden>
+  <p class="lead">Take the rock out of a hole and the rock left behind carries its load. At the wall the hoop stress is two to three times the far-field stress, and it is highest on the sides facing the <b>smaller</b> stress<sup class="fn">1</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <div class="figrow">
+        <canvas id="cv-kirsch" width="760" height="560" aria-label="Stress field around a circular hole"></canvas>
+        <canvas id="cv-kirsch-prof" width="760" height="255" aria-label="Hoop stress along a ray from the wall"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Far-field stress and mud</h3>
+        <div id="ctl-kirsch"></div>
+      </div>
+      <div class="card">
+        <h3>Display</h3>
+        <label class="tog"><input type="checkbox" id="k-fringes"> Photoelastic fringes<sup class="fn">2</sup></label>
+        <label class="tog"><input type="checkbox" id="k-mud" checked> Include mud pressure</label>
+        <div class="seg" id="k-comp" role="group" aria-label="Stress component">
+          <button aria-pressed="true" data-c="hoop">hoop σ<sub>θθ</sub></button>
+          <button aria-pressed="false" data-c="rad">radial σ<sub>rr</sub></button>
+          <button aria-pressed="false" data-c="shear">max shear τ</button>
+        </div>
+        <div class="read" style="margin-top:8px">
+          <span>Hoop stress, S<sub>hmin</sub> sides</span><output id="k-h90">–</output>
+          <span>Hoop stress, S<sub>Hmax</sub> sides</span><output id="k-h0">–</output>
+          <span>Radial stress at wall</span><output id="k-r">–</output>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-k1"><span class="chip">1</span><span>Make the fringes concentric circles. What does that say about the far-field stress?</span></li>
+          <li id="t-k2"><span class="chip">2</span><span>Using mud pressure alone, bring the hoop stress on the S<sub>Hmax</sub> sides to zero<sup class="fn">3</sup>.</span></li>
+          <li id="t-k3"><span class="chip">3</span><span>With hoop stress showing, read off how many radii out the disturbance falls below 10%<sup class="fn">4</sup>.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Kirsch (1898) solution for a circular hole in an elastic plate, vertical well, θ measured from the S<sub>Hmax</sub> direction. At the wall, hoop stress is <code>S_H + S_h − 2(S_H − S_h)cos2θ − P_w</code>: it peaks at <code>3S_H − S_h − P_w</code> on the S<sub>hmin</sub> sides and drops to <code>3S_h − S_H − P_w</code> on the S<sub>Hmax</sub> sides. Pore pressure is set to zero on this tab. Compression is positive (warm colours); tension is negative (cool colours).</li>
+    <li>A stressed transparent solid between crossed polarisers shows coloured bands wherever the maximum shear stress passes a multiple of a fixed value. Fringe density is stress concentration made visible. In class: a drilled acrylic sheet squeezed in front of a laptop screen, viewed through polarised sunglasses. Here the max-shear view reproduces that colour cycle (one fringe per 6 MPa); for hoop and radial stress the fringe toggle instead draws 10 MPa contour bands so the sign is still readable against the colour bar.</li>
+    <li>Mud pressure pushes on the wall (radial compression) but pulls the hoop stress down by the same amount. Push hard enough and the hoop stress goes negative: tension.</li>
+    <li>The perturbation decays as 1/r². Three radii out the disturbance is about a tenth of its wall value; by four radii it is a few percent. A 20 cm hole disturbs less than half a metre of rock.</li>
+  </ol></details>
+</section>
+
+<!-- ================= TAB 3: BREAKOUTS ================= -->
+<section class="tab" id="tab-breakout" role="tabpanel" hidden>
+  <p class="lead">Where the hoop stress beats the rock strength, the wall shears and spalls. The two chips sit on the S<sub>hmin</sub> sides, so a breakout is a compass needle for stress<sup class="fn">1</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <div class="figrow">
+        <canvas id="cv-bo" width="760" height="400" aria-label="Borehole cross-section with breakouts and Mohr circle"></canvas>
+        <canvas id="cv-bo-img" width="760" height="220" aria-label="Unwrapped borehole image showing breakouts"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Stress, pressure, rock</h3>
+        <div id="ctl-bo"></div>
+      </div>
+      <div class="card">
+        <h3>Result</h3>
+        <div class="status" id="bo-status"><span class="dot"></span><span>–</span></div>
+        <div class="read" style="margin-top:8px">
+          <span>Breakout width</span><output id="bo-w">–</output>
+          <span>Breakout azimuth</span><output id="bo-az">–</output>
+          <span>Mud pressure for onset</span><output id="bo-pw">–</output>
+        </div>
+        <div class="btns" style="margin-top:8px">
+          <button class="btn" id="bo-quiz">Quiz: hide S<sub>Hmax</sub></button>
+          <button class="btn" id="bo-reveal" disabled>Reveal</button>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-b1"><span class="chip">1</span><span>Hold breakouts under 60° wide using the least mud pressure you can<sup class="fn">2</sup>.</span></li>
+          <li id="t-b2"><span class="chip">2</span><span>Push the well to collapse (over 120°) by lowering mud pressure, then rescue it by strengthening the rock instead.</span></li>
+          <li id="t-b3"><span class="chip">3</span><span>Quiz: read S<sub>Hmax</sub> from the image log to within 10°<sup class="fn">3</sup>.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Mohr–Coulomb at the wall: failure where effective hoop stress ≥ UCS + q·(P<sub>w</sub> − P<sub>p</sub>), with q = (1+sinφ)/(1−sinφ). The Mohr circle inset uses σ<sub>1</sub> = hoop stress on the S<sub>hmin</sub> side and σ<sub>3</sub> = radial stress = overbalance P<sub>w</sub> − P<sub>p</sub>. Lower the mud and σ<sub>3</sub> shrinks while σ<sub>1</sub> grows: the circle swells into the envelope. Breakout width: <code>w = 180° − arccos[(S_H + S_h − 2P_p − UCS − (1+q)(P_w − P_p)) / (2(S_H − S_h))]</code>.</li>
+    <li>Rule of thumb from drilling practice: breakouts up to about 60° wide rarely threaten the hole; beyond 120° cavings pile up, the string sticks and the section can collapse. Wider breakouts also mean a larger S<sub>Hmax</sub>, which is how breakout width constrains stress magnitude.</li>
+    <li>The strip is an unwrapped image of the wall, azimuth left to right from north. Breakouts appear as two broad, blurry dark bands 180° apart, centred on the S<sub>hmin</sub> azimuth. S<sub>Hmax</sub> is 90° from them. The default 068° is the Taranaki Basin mean from 129 wells (Rajabi et al. 2016).</li>
+  </ol></details>
+</section>
+
+<!-- ================= TAB 4: TENSILE ================= -->
+<section class="tab" id="tab-tensile" role="tabpanel" hidden>
+  <p class="lead">Push the mud hard enough, or cool the rock enough, and the hoop stress on the S<sub>Hmax</sub> sides turns negative. The wall cracks in tension, in two thin lines 180° apart<sup class="fn">1</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <div class="figrow">
+        <canvas id="cv-te" width="760" height="400" aria-label="Cross-section with tensile fractures and hoop stress around the wall"></canvas>
+        <canvas id="cv-te-img" width="760" height="220" aria-label="Unwrapped borehole image showing tensile fractures and breakouts"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Stress, pressure, temperature</h3>
+        <div id="ctl-te"></div>
+      </div>
+      <div class="card">
+        <h3>Window at this depth<sup class="fn">2</sup></h3>
+        <canvas id="cv-te-win" width="270" height="56" aria-label="Mud pressure window bar"></canvas>
+        <div class="read" style="margin-top:6px">
+          <span>Breakout onset (floor)</span><output id="te-lb">–</output>
+          <span>Tensile fracture (ceiling)</span><output id="te-ub">–</output>
+          <span>Hoop stress, S<sub>Hmax</sub> sides</span><output id="te-h0">–</output>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-t1"><span class="chip">1</span><span>Find the breakdown pressure: raise mud pressure until a fracture just opens.</span></li>
+          <li id="t-t2"><span class="chip">2</span><span>Geothermal: with mud no more than 5 MPa above pore pressure, crack the wall by cooling alone<sup class="fn">3</sup>.</span></li>
+          <li id="t-t3"><span class="chip">3</span><span>Close the window completely: make the ceiling drop below the floor.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Tensile failure when effective hoop stress ≤ −T<sub>s</sub>. Breakdown pressure <code>P_b = 3S_h − S_H − P_p + T_s + σ_ΔT</code>. Drilling-induced tensile fractures (DITFs) appear on image logs as narrow, sharp conductive lines 180° apart, aligned with S<sub>Hmax</sub>, so they and breakouts are 90° apart. This tab keeps UCS = 50 MPa and φ = 30° for the breakout calculation.</li>
+    <li>The bar shows the mud-pressure window at one depth: floor = breakout onset, ceiling = tensile fracture. Everything on tab 1 is this bar stacked over 3000 m.</li>
+    <li>Cooling shrinks the wall and pulls the hoop stress down by <code>αE·ΔT/(1−ν)</code>, here 0.4 MPa per °C (E = 30 GPa, α = 10⁻⁵/°C, ν = 0.25). Cold drilling fluid in 300 °C rock is why geothermal wells fracture themselves, and why thermal stress is conservative to ignore for breakouts but not for tensile failure.</li>
+  </ol></details>
+</section>
+
+<!-- ================= TAB 5: SINUSOID ================= -->
+<section class="tab" id="tab-sinusoid" role="tabpanel" hidden>
+  <p class="lead">A flat fracture cutting a round hole makes an ellipse. Slit the wall along north and unroll it, and the ellipse becomes a sinusoid whose trough points down-dip<sup class="fn">1</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <canvas id="cv-sin" width="760" height="560" aria-label="Borehole cylinder unrolling into an image log"></canvas>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Fracture plane</h3>
+        <div id="ctl-sin"></div>
+        <label class="tog"><input type="checkbox" id="s-showm" checked> Show mystery fracture</label>
+        <div class="btns"><button class="btn" id="s-new">New mystery fracture</button></div>
+      </div>
+      <div class="card">
+        <h3>Readout</h3>
+        <div class="read">
+          <span>Sinusoid amplitude<sup class="fn">2</sup></span><output id="s-amp">–</output>
+          <span>Trough azimuth</span><output id="s-trough">–</output>
+          <span>Mystery match</span><output id="s-match">–</output>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-s1"><span class="chip">1</span><span>Match the mystery fracture: dip within 3°, dip direction within 10°.</span></li>
+          <li id="t-s2"><span class="chip">2</span><span>Make the trace a horizontal line. Then make it as tall as the whole image.</span></li>
+          <li id="t-s3"><span class="chip">3</span><span>Grab the borehole and spin it until the trough faces you, then unwrap slowly: where does it land on the image?</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Vertical hole; drag the cylinder or use the spin slider to change your viewpoint. Image logs are displayed with azimuth 0–360° from north along the top and depth down the side. The plane's depth around the wall is <code>z(ψ) = z₀ + (D/2)·tan(dip)·cos(ψ − dip direction)</code>, so the deepest point (the trough) sits at the dip direction and the peak is 180° from it. Breakouts and tensile fractures run parallel to the axis instead, which is how you tell them from natural fractures.</li>
+    <li>Peak-to-trough height = D·tan(dip), for a hole of diameter D = 216 mm (8½ inch). A 60° fracture in this hole spans 0.37 m of depth; steep fractures make tall sinusoids, flat ones make near-horizontal lines.</li>
+  </ol></details>
+</section>
+
+<!-- ================= TAB: DEPTH ================= -->
+<section class="tab" id="tab-depth" role="tabpanel" hidden>
+  <p class="lead">Pressure and stress both grow with depth, but at different rates. On a pressure–depth plot a heavier fluid draws a flatter line<sup class="fn">1</sup>, and the mud has to live between pore pressure and S<sub>hmin</sub><sup class="fn">2</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <canvas id="cv-depth" width="800" height="620" aria-label="Pressure and stress against depth"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--tens)"></i>pore pressure P<sub>p</sub></span>
+        <span><i style="background:var(--bad)"></i>S<sub>hmin</sub></span>
+        <span><i style="background:var(--muted)"></i>overburden S<sub>v</sub></span>
+        <span><i style="background:var(--mud);height:5px"></i>mud (green inside window, red outside)</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Your choices</h3>
+        <div id="ctl-depth"></div>
+        <label class="tog"><input type="checkbox" id="d-op"> Overpressure below a top depth<sup class="fn">3</sup></label>
+      </div>
+      <div class="card">
+        <h3>Gradients (MPa per km)</h3>
+        <div class="read">
+          <span>Pore pressure, hydrostatic</span><output id="d-gpp">–</output>
+          <span>Pore pressure, overpressured</span><output id="d-gop">–</output>
+          <span>Overburden S<sub>v</sub></span><output id="d-gsv">–</output>
+          <span>S<sub>hmin</sub>, hydrostatic zone</span><output id="d-gsh">–</output>
+          <span>S<sub>hmin</sub>, overpressured zone</span><output id="d-gsh2">–</output>
+          <span>Mud column</span><output id="d-gmud">–</output>
+          <span>Mud leaves the window at</span><output id="d-zsafe">–</output>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-d1"><span class="chip">1</span><span>Overpressure off: pick one mud weight that stays inside the window all the way to 4000 m.</span></li>
+          <li id="t-d2"><span class="chip">2</span><span>Overpressure on, top at 2500 m: one mud weight that is still inside the window at 3500 m.</span></li>
+          <li id="t-d3"><span class="chip">3</span><span>Slide friction from 0.5 to 0.9. Which way does S<sub>hmin</sub> move, and why<sup class="fn">4</sup>?</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Gradient = density × g. Water gives 9.8 MPa/km, a 1.2 SG mud 11.8 MPa/km, rock of 2300 kg/m³ 22.6 MPa/km. With depth drawn downward, a larger gradient is a line closer to horizontal. Defaults match Espinoza Example 6.1 converted to SI: at 2134 m, P<sub>p</sub> = 21.2 MPa (0.44 psi/ft = 9.95 MPa/km), S<sub>hmin</sub> = 29.6 MPa, S<sub>v</sub> ≈ 48 MPa.</li>
+    <li>Below pore pressure the well kicks; above S<sub>hmin</sub> a hydraulic fracture opens and swallows the mud. Rock strength (breakouts) is left out of this tab and appears on tab 6.</li>
+    <li>Below the overpressure top, pore pressure is taken to rise at the lithostatic gradient: the fluid is sealed in and carries the weight of the rock being added above it. Because S<sub>v</sub> − P<sub>p</sub> then stops growing, S<sub>hmin</sub> tracks the pore pressure and steepens with it.</li>
+    <li>S<sub>hmin</sub> is set at the frictional limit for normal faulting: (S<sub>v</sub> − P<sub>p</sub>)/(S<sub>hmin</sub> − P<sub>p</sub>) = q = (√(μ²+1) + μ)². Stronger faults (higher μ) can hold a larger stress difference, so S<sub>hmin</sub> drops toward P<sub>p</sub> and the window narrows. Example 6.1's stresses sit at this limit for μ = 0.6.</li>
+  </ol></details>
+</section>
+
+<!-- ================= TAB: MUD WINDOW ================= -->
+<section class="tab" id="tab-window" role="tabpanel" hidden>
+  <p class="lead">Drill to 3500 m. The mud in the hole is the only thing holding the wall up<sup class="fn">1</sup>. Keep its weight inside the window, and set casing when the window moves out from under you<sup class="fn">2</sup>.</p>
+  <div class="lab">
+    <div class="fig">
+      <canvas id="cv-window" width="800" height="620" aria-label="Mud weight window against depth"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--tens)"></i>pore pressure</span>
+        <span><i style="background:var(--warn);opacity:.6"></i>breakout onset</span>
+        <span><i style="background:var(--warn)"></i>90° breakouts, collapse<sup class="fn">3</sup></span>
+        <span><i style="background:var(--bad)"></i>fracture (S<sub>hmin</sub>)</span>
+        <span><i style="background:var(--muted)"></i>overburden S<sub>v</sub></span>
+        <span><i class="box" style="background:var(--ok)"></i>safe</span>
+        <span><i class="box" style="background:var(--warn)"></i>breakouts tolerated</span>
+        <span><i style="background:var(--mud);height:5px"></i>your mud</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Your choices</h3>
+        <div id="ctl-window"></div>
+        <div class="btns">
+          <button class="btn primary" id="w-drill">Drill ahead</button>
+          <button class="btn" id="w-casing">Set casing at bit</button>
+          <button class="btn" id="w-pull">Pull back to shoe</button>
+          <button class="btn" id="w-reset">Reset</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Well status</h3>
+        <div class="status" id="w-status"><span class="dot"></span><span>Ready at surface</span></div>
+        <div class="read" style="margin-top:8px">
+          <span>Bit depth</span><output id="w-depth">0 m</output>
+          <span>Breakout width at bit</span><output id="w-bo">–</output>
+          <span>Casing shoes set</span><output id="w-shoes">0</output>
+          <span>Window at bit</span><output id="w-win">–</output>
+        </div>
+      </div>
+      <div class="card target">
+        <h3>Targets</h3>
+        <ul>
+          <li id="t-w1"><span class="chip">1</span><span>Reach 3500 m without a kick, collapse or lost circulation.</span></li>
+          <li id="t-w2"><span class="chip">2</span><span>Do it with three casing shoes or fewer<sup class="fn">4</sup>.</span></li>
+          <li id="t-w3"><span class="chip">3</span><span>Expert: two shoes.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <details class="notes"><summary>Notes</summary><ol>
+    <li>Mud weight is plotted as an equivalent density (specific gravity, water = 1.0). A constant-density mud column is a vertical line, because pressure and depth rise together. Drilling engineers use pounds per gallon: 1.0 SG ≈ 8.3 ppg.</li>
+    <li>Scenario: the gradients of tab 1 at their defaults, which reproduce Espinoza Example 6.1 in SI (at 2134 m: S<sub>hmin</sub> 29.6 MPa, S<sub>Hmax</sub> 43.4 MPa, P<sub>p</sub> 21.2 MPa, UCS 24.1 MPa, μ = 0.6, T<sub>s</sub> 5.5 MPa; overburden from 2300 kg/m³), plus overpressure at the lithostatic gradient below 2500 m. Below the blue line the formation flows into the well (kick). Above the red line, mud pressure exceeds S<sub>hmin</sub> and a hydraulic fracture takes the mud (lost circulation). Once casing is set, the rock above the shoe no longer feels the mud, so you can change weight for the next section.</li>
+    <li>Why the amber lines climb with depth: the rock's strength is a fixed number of MPa, while the stresses squeezing the hole grow with depth. In mud-weight units the strength is worth UCS/((1+q)·ρ<sub>w</sub>gz), a lot at 500 m and little at 3000 m, so the mud has to do more of the work. In this scenario breakout onset reaches S<sub>hmin</sub> by about 2 km, so a breakout-free hole is impossible; Example 6.2 shows 10 ppg giving 66° breakouts at 2134 m. The game tolerates breakouts up to 90° wide, and fails the hole beyond that.</li>
+    <li>Every casing string costs a day or more of rig time and shrinks the hole. Fewer strings, cheaper well.</li>
+  </ol></details>
+</section>
+
+</main>
+
+<script>
+(() => {
+'use strict';
+/* ---------- utilities ---------- */
+const $ = s => document.querySelector(s);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rad = d => d*Math.PI/180, deg = r => r*180/Math.PI;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp = (a,b,t) => a+(b-a)*t;
+const fmt = (v,d=0) => v.toFixed(d);
+function setChip(li, ok){ const c=li.querySelector('.chip'); c.classList.toggle('ok',!!ok); c.textContent = ok?'✓':c.dataset.n||(c.dataset.n=c.textContent); li.classList.toggle('done',!!ok); }
+function setStatus(el, cls, text){ el.className='status '+cls; el.children[1].innerHTML=text; }
+
+function fitCanvas(cv){ // size backing store to CSS width, keep aspect from attributes
+  const dpr = Math.min(2, window.devicePixelRatio||1);
+  const w = cv.clientWidth || cv.width; const aspect = +cv.getAttribute('height')/+cv.getAttribute('width');
+  const h = Math.round(w*aspect);
+  cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); cv.style.height = h+'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,W:w,H:h};
+}
+function slider(parent, o, onInput){
+  const lab=document.createElement('label'); lab.className='ctl'+(o.cls?' '+o.cls:''); lab.htmlFor=o.id;
+  lab.innerHTML=`<span class="l">${o.label}</span><output></output><input type="range" id="${o.id}" min="${o.min}" max="${o.max}" step="${o.step||1}" value="${o.value}">`;
+  parent.appendChild(lab); const inp=lab.querySelector('input'), out=lab.querySelector('output');
+  const show=()=>{ out.textContent = (o.fmt?o.fmt(+inp.value):inp.value)+(o.unit?' '+o.unit:''); };
+  inp.addEventListener('input',()=>{show(); onInput&&onInput(+inp.value);}); show();
+  return { get v(){return +inp.value;}, set v(x){inp.value=x; show();}, el:lab, inp };
+}
+function themeColors(){ return {
+  ink:cssVar('--ink'), ink2:cssVar('--ink2'), muted:cssVar('--muted'), line:cssVar('--line'), paper:cssVar('--paper'), panel:cssVar('--panel'),
+  accent:cssVar('--accent'), mud:cssVar('--mud'), mudSoft:cssVar('--mud-soft'), rock:cssVar('--rock'), rock2:cssVar('--rock2'),
+  ok:cssVar('--ok'), warn:cssVar('--warn'), bad:cssVar('--bad'), comp:cssVar('--comp'), tens:cssVar('--tens'), zero:cssVar('--zero'),
+  okSoft:cssVar('--ok-soft'), warnSoft:cssVar('--warn-soft'), badSoft:cssVar('--bad-soft') }; }
+function hexToRgb(h){ h=h.replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join(''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function mix(a,b,t){ return [lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]; }
+function rgbStr(c,a=1){ return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+const MONO = '"IBM Plex Mono",ui-monospace,Consolas,monospace', SANS='"IBM Plex Sans",system-ui,sans-serif';
+
+/* ---------- physics (MPa, m, degrees). Compression positive. θ from S_Hmax. ---------- */
+const G = 9.81e-3; // MPa per metre per SG
+const q_of = phi => { const s=Math.sin(rad(phi)); return (1+s)/(1-s); };
+const hoopWall = (SH,Sh,Pw,Pp,th,dT=0) => SH+Sh-2*(SH-Sh)*Math.cos(2*rad(th))-Pw-Pp-0.4*dT; // effective hoop at wall
+function breakoutWidth(SH,Sh,Pw,Pp,UCS,phi){
+  const q=q_of(phi); const num = SH+Sh-2*Pp-UCS-(1+q)*(Pw-Pp);
+  if (SH-Sh<1e-6) return num>=0?180:0;
+  const X = num/(2*(SH-Sh)); if (X>=1) return 180; if (X<=-1) return 0; return 180-deg(Math.acos(X));
+}
+const PwShear = (SH,Sh,Pp,UCS,phi) => Pp+(3*SH-Sh-2*Pp-UCS)/(1+q_of(phi));
+const Pbreak = (SH,Sh,Pp,Ts,dT=0) => 3*Sh-SH-Pp+Ts-0.4*dT;
+function kirsch(SH,Sh,Pw,a,r,th){ // total stresses, Pp = 0
+  const m=(SH+Sh)/2, d=(SH-Sh)/2, a2=a*a/(r*r), a4=a2*a2, c=Math.cos(2*th), s=Math.sin(2*th);
+  const srr = Pw*a2 + m*(1-a2) + d*(1-4*a2+3*a4)*c;
+  const stt = -Pw*a2 + m*(1+a2) - d*(1+3*a4)*c;
+  const srt = -d*(1+2*a2-3*a4)*s;
+  return {srr,stt,srt,tmax:Math.sqrt(((srr-stt)/2)**2+srt*srt)};
+}
+
+/* ---------- shared depth scenario (Espinoza Example 6.1 in SI, extended with depth) ---------- */
+const SCEN = {
+  rho:2300, gw:9.95e-3, zop:2500, mu:0.6, kH:0.82, UCS:24.1, Ts:5.5, op:true,
+  q(mu=this.mu){ return Math.pow(Math.sqrt(mu*mu+1)+mu,2); },
+  phi(mu=this.mu){ return deg(Math.atan(mu)); },
+  at(z, o={}){ const rho=o.rho??this.rho, mu=o.mu??this.mu, zop=o.zop??this.zop, op=o.op??this.op;
+    const gr=rho*9.81e-6; const Sv=gr*z; let Pp=this.gw*z; if (op && z>zop) Pp=this.gw*zop+gr*(z-zop);
+    const Sh=Pp+(Sv-Pp)/this.q(mu), SH=Pp+this.kH*(Sv-Pp); return {Sv,Pp,Sh,SH}; }
+};
+
+/* ---------- shared drawing: unwrapped image strip ---------- */
+function drawImageStrip(cv, o){ // o: {SHaz, wBO, difw (deg extent of DITF, 0=none), title}
+  const {ctx,W,H}=fitCanvas(cv), C=themeColors();
+  ctx.clearRect(0,0,W,H);
+  const L=46,R=W-12,T=26,B=H-24; const pw=R-L, ph=B-T;
+  // rock texture background: amber-brown speckle like an acoustic image
+  const base=hexToRgb(C.accent), dark=hexToRgb(C.rock);
+  ctx.fillStyle=rgbStr(mix(base,dark,0.35)); ctx.fillRect(L,T,pw,ph);
+  let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647; return seed/2147483647;};
+  for(let i=0;i<900;i++){ const x=L+rnd()*pw, y=T+rnd()*ph, k=rnd(); ctx.fillStyle=rgbStr(mix(base,dark,k),0.35); ctx.fillRect(x,y,3+rnd()*6,2+rnd()*3); }
+  const xOf = az => L + (((az%360)+360)%360)/360*pw;
+  // breakouts: broad blurry dark bands centred at SHaz±90
+  if (o.wBO>0){
+    const hw=o.wBO/2;
+    for (const c of [o.SHaz+90,o.SHaz+270]){
+      for (let a=-hw;a<=hw;a+=0.5){
+        const f=1-Math.pow(Math.abs(a)/hw,2.5); const x=xOf(c+a);
+        ctx.fillStyle=`rgba(20,16,12,${0.15+0.6*f})`; ctx.fillRect(x-0.5,T,pw/360*0.5+1.2,ph);
+      }
+      // ragged edges
+      for(let y=T;y<B;y+=6){ const jit=(rnd()-0.5)*hw*0.25; ctx.fillStyle='rgba(20,16,12,0.35)'; ctx.fillRect(xOf(c-hw+jit),y,pw/360*1.5,6); ctx.fillRect(xOf(c+hw+jit),y,pw/360*1.5,6); }
+    }
+  }
+  // DITFs: narrow sharp lines at SHaz, SHaz+180
+  if (o.difw>0){
+    const t = 1.5+Math.min(4,o.difw*0.4);
+    for (const c of [o.SHaz,o.SHaz+180]){
+      ctx.strokeStyle='rgba(15,12,10,0.95)'; ctx.lineWidth=t; ctx.beginPath();
+      let x=xOf(c); for(let y=T;y<=B;y+=4){ const wob=Math.sin(y*0.12+c)*1.2+(rnd()-0.5)*1.5; if(y===T) ctx.moveTo(x+wob,y); else ctx.lineTo(x+wob,y);} ctx.stroke();
+    }
+  }
+  // frame, axis
+  ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.strokeRect(L+0.5,T+0.5,pw-1,ph-1);
+  ctx.fillStyle=C.ink2; ctx.font=`11px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  [['N',0],['E',90],['S',180],['W',270],['N',360]].forEach(([l,a])=>{ ctx.fillText(l,xOf(a===360?359.999:a)+(a===360?0:0),T-4); });
+  ctx.textAlign='left'; ctx.fillStyle=C.muted; ctx.fillText(o.title||'unwrapped borehole image', L, H-6);
+  ctx.textAlign='right'; ctx.fillText('azimuth →', R, H-6);
+  ctx.save(); ctx.translate(14,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth ↓',0,0); ctx.restore();
+  // SHmax / Shmin markers
+  if (!o.hideAz){
+    ctx.fillStyle=C.ink; ctx.font=`600 10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
+    for (const c of [o.SHaz,o.SHaz+180]) { const x=xOf(c); ctx.fillStyle=C.tens; ctx.beginPath(); ctx.moveTo(x-4,B+2); ctx.lineTo(x+4,B+2); ctx.lineTo(x,B-4); ctx.fill(); }
+    for (const c of [o.SHaz+90,o.SHaz+270]) { const x=xOf(c); ctx.fillStyle=C.comp; ctx.beginPath(); ctx.moveTo(x-4,B+2); ctx.lineTo(x+4,B+2); ctx.lineTo(x,B-4); ctx.fill(); }
+    ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('▲ S_Hmax', xOf(o.SHaz)+0, H-6);
+  }
+}
+
+/* ---------- shared drawing: cross-section ---------- */
+function drawSection(ctx, cx, cy, R, o){ // o: {SH,Sh,Pw,Pp,dT,wBO,tens(bool),C, labels}
+  const {C}=o;
+  // hoop stress ring coloured by effective hoop
+  const scale=120; const comp=hexToRgb(C.comp), tens=hexToRgb(C.tens), zero=hexToRgb(C.zero);
+  for(let a=0;a<360;a+=1){
+    const h=hoopWall(o.SH,o.Sh,o.Pw,o.Pp,a,o.dT||0); const t=clamp(h/scale,-1,1);
+    const col = t>=0? mix(zero,comp,t): mix(zero,tens,-t);
+    ctx.fillStyle=rgbStr(col); ctx.beginPath(); ctx.arc(cx,cy,R*1.32,rad(a-90)-0.012,rad(a-90)+rad(1)+0.012); ctx.arc(cx,cy,R,rad(a-90)+rad(1)+0.012,rad(a-90)-0.012,true); ctx.closePath(); ctx.fill();
+  }
+  // rock beyond ring
+  ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,R*1.32,0,Math.PI*2); ctx.stroke();
+  // mud
+  ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+  // breakouts: wedges centred at θ=90 (up/down on screen since S_Hmax horizontal)
+  if (o.wBO>0){
+    const hw=rad(o.wBO/2);
+    for (const c of [Math.PI/2, 3*Math.PI/2]){ // screen angle: θ=0 along +x (S_Hmax horizontal)
+      ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.moveTo(cx,cy);
+      const n=40; for(let i=0;i<=n;i++){ const a=c-hw+2*hw*i/n; const f=1-Math.pow(Math.abs(a-c)/hw,2); const rr=R*(1+0.22*f+0.03*Math.sin(i*2.7)*f); ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a)); }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=C.rock; ctx.lineWidth=1.5; ctx.stroke();
+    }
+  }
+  // wall outline
+  ctx.strokeStyle=C.rock; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  // tensile cracks at θ=0,180 (left/right)
+  if (o.tens>0){
+    const len=R*(0.18+0.25*Math.min(1,o.tens/20));
+    ctx.strokeStyle=C.tens; ctx.lineWidth=2.2;
+    for (const s of [1,-1]){ ctx.beginPath(); let x=cx+s*R, y=cy; ctx.moveTo(x,y); for(let i=1;i<=6;i++){ x+=s*len/6; y=cy+(i%2?1:-1)*R*0.03; ctx.lineTo(x,y);} ctx.stroke(); }
+  }
+  // far-field arrows
+  const arrow=(x1,y1,x2,y2,col,lw)=>{ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const an=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-9*Math.cos(an-0.4),y2-9*Math.sin(an-0.4)); ctx.lineTo(x2-9*Math.cos(an+0.4),y2-9*Math.sin(an+0.4)); ctx.closePath(); ctx.fill(); };
+  const lH=R*0.55*Math.sqrt(o.SH/60)+8, lh=R*0.55*Math.sqrt(o.Sh/60)+8;
+  arrow(cx-R*1.45-lH,cy,cx-R*1.42,cy,C.ink,2.2); arrow(cx+R*1.45+lH,cy,cx+R*1.42,cy,C.ink,2.2);
+  arrow(cx,cy-R*1.45-lh,cx,cy-R*1.42,C.ink2,1.6); arrow(cx,cy+R*1.45+lh,cx,cy+R*1.42,C.ink2,1.6);
+  ctx.fillStyle=C.ink; ctx.font=`600 12px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('S_Hmax', cx-R*1.45-lH-28, cy); ctx.fillText('S_Hmax', cx+R*1.45+lH+28, cy);
+  ctx.fillStyle=C.ink2; ctx.fillText('S_hmin', cx, cy-R*1.45-lh-12); ctx.fillText('S_hmin', cx, cy+R*1.45+lh+12);
+  ctx.fillStyle=C.mud; ctx.font=`11px ${MONO}`; ctx.fillText('mud '+fmt(o.Pw)+' MPa', cx, cy);
+}
+
+/* ---------- tab switching ---------- */
+const tabs=[...document.querySelectorAll('nav.tabs button')]; const draws={};
+function showTab(name){
+  tabs.forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===name?'true':'false'));
+  document.querySelectorAll('section.tab').forEach(s=>s.hidden = s.id!=='tab-'+name);
+  try{localStorage.setItem('bsl-tab',name);}catch(e){}
+  requestAnimationFrame(()=>draws[name]&&draws[name]());
+}
+tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+
+/* ================= TAB: KIRSCH ================= */
+(()=>{
+  const cv=$('#cv-kirsch'), cvp=$('#cv-kirsch-prof'); const st={SH:40,Sh:25,Pw:20,comp:'hoop'};
+  const ctl=$('#ctl-kirsch');
+  const sSH=slider(ctl,{id:'k-SH',label:'S<sub>Hmax</sub>',min:0,max:60,value:40,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'k-Sh',label:'S<sub>hmin</sub>',min:0,max:60,value:25,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'k-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:80,value:20,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
+  $('#k-fringes').addEventListener('change',draw); $('#k-mud').addEventListener('change',draw);
+  $('#k-comp').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ $('#k-comp').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); st.comp=b.dataset.c; draw(); }));
+  const N=180, EXT=3.3, SCALE=150, SHEARMAX=90, FSTEP=6, BAND=10; let img=null;
+  function hslToRgb(h,s,l){ const f=(n)=>{const k=(n+h*12)%12; const a=s*Math.min(l,1-l); return l-a*Math.max(-1,Math.min(k-3,9-k,1));}; return [f(0)*255,f(8)*255,f(4)*255]; }
+  function colorOf(v,cmp,fr,K){
+    if (cmp==='shear'){
+      if (fr){ const n=v/FSTEP; const hue=(n*70)%360; const dark=Math.pow(Math.abs(Math.sin(Math.PI*n)),0.35); return hslToRgb(hue/360,0.55,0.22+0.5*dark); }
+      const t=clamp(v/SHEARMAX,0,1); return mix(K.panel,K.comp,Math.pow(t,0.7));
+    }
+    let val=v; if (fr) val=(Math.floor(v/BAND)+0.5)*BAND;
+    const t=clamp(val/SCALE,-1,1); let col = t>=0? mix(K.zero,K.comp,Math.pow(t,0.8)) : mix(K.zero,K.tens,Math.pow(-t,0.8));
+    if (fr){ const f=v/BAND-Math.floor(v/BAND); const e=Math.min(f,1-f); if (e<0.06) col=mix(col,K.ink,0.75); }
+    return col;
+  }
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
+    const Pw = $('#k-mud').checked? st.Pw:0; const fr=$('#k-fringes').checked;
+    const K={comp:hexToRgb(C.comp),tens:hexToRgb(C.tens),zero:hexToRgb(C.zero),panel:hexToRgb(C.panel),ink:hexToRgb(C.ink)};
+    const barW=16, gap=28, labelW=54; const size=Math.min(W-(barW+gap+labelW+16), H-16); const ox=8, oy=(H-size)/2;
+    if (!img||img.width!==N) img=ctx.createImageData(N,N);
+    const d=img.data; const mudc=hexToRgb(C.mudSoft);
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){
+      const x=(i+0.5)/N*2*EXT-EXT, y=-((j+0.5)/N*2*EXT-EXT); const r=Math.hypot(x,y); const idx=(j*N+i)*4;
+      if (r<1){ d[idx]=mudc[0];d[idx+1]=mudc[1];d[idx+2]=mudc[2];d[idx+3]=255; continue; }
+      const k=kirsch(st.SH,st.Sh,Pw,1,r,Math.atan2(y,x));
+      const v = st.comp==='hoop'?k.stt: st.comp==='rad'?k.srr: k.tmax; const col=colorOf(v,st.comp,fr,K);
+      d[idx]=col[0];d[idx+1]=col[1];d[idx+2]=col[2];d[idx+3]=255;
+    }
+    const off=document.createElement('canvas'); off.width=N; off.height=N; off.getContext('2d').putImageData(img,0,0);
+    ctx.imageSmoothingEnabled=true; ctx.drawImage(off,ox,oy,size,size);
+    const cx=ox+size/2, cy=oy+size/2, a=size/(2*EXT);
+    ctx.strokeStyle=C.rock; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,a,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle=rgbStr(K.ink,0.3); ctx.lineWidth=1; ctx.setLineDash([3,4]); [2,3].forEach(n=>{ ctx.beginPath(); ctx.arc(cx,cy,a*n,0,Math.PI*2); ctx.stroke(); }); ctx.setLineDash([]);
+    ctx.fillStyle=C.ink; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='bottom'; [2,3].forEach(n=>ctx.fillText(n+'a',cx+a*n*0.707+2,cy-a*n*0.707-2));
+    const arrow=(x1,y1,x2,y2,col,lw)=>{ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const an=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-9*Math.cos(an-0.4),y2-9*Math.sin(an-0.4)); ctx.lineTo(x2-9*Math.cos(an+0.4),y2-9*Math.sin(an+0.4)); ctx.closePath(); ctx.fill(); };
+    const lH=10+size*0.12*st.SH/60, lh=10+size*0.12*st.Sh/60;
+    arrow(ox+4,cy,ox+4+lH,cy,C.ink,2.5); arrow(ox+size-4,cy,ox+size-4-lH,cy,C.ink,2.5);
+    arrow(cx,oy+4,cx,oy+4+lh,C.ink,2.5); arrow(cx,oy+size-4,cx,oy+size-4-lh,C.ink,2.5);
+    ctx.fillStyle=C.ink; ctx.font=`600 12px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('S_Hmax →',ox+6,cy+6); ctx.textAlign='center'; ctx.fillText('S_hmin ↓',cx+40,oy+6);
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.strokeRect(ox+0.5,oy+0.5,size-1,size-1);
+    // colour bar
+    const bx=ox+size+gap, by=oy+size*0.12, bh=size*0.76; const vmin= st.comp==='shear'?0:-SCALE, vmax= st.comp==='shear'?SHEARMAX:SCALE;
+    for(let i=0;i<bh;i++){ const v=vmax-(i/bh)*(vmax-vmin); ctx.fillStyle=rgbStr(colorOf(v,st.comp,fr,K)); ctx.fillRect(bx,by+i,barW,1.5); }
+    ctx.strokeStyle=C.line; ctx.strokeRect(bx+0.5,by+0.5,barW-1,bh-1);
+    ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle';
+    const ticks = st.comp==='shear'? [0,30,60,90] : [-150,-100,-50,0,50,100,150];
+    ticks.forEach(v=>{ const y=by+(1-(v-vmin)/(vmax-vmin))*bh; ctx.strokeStyle=C.ink2; ctx.beginPath(); ctx.moveTo(bx+barW,y); ctx.lineTo(bx+barW+4,y); ctx.stroke(); ctx.fillText((v>0?'+':'')+v,bx+barW+7,y); });
+    ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillStyle=C.ink; ctx.font=`600 10px ${MONO}`;
+    ctx.fillText(st.comp==='shear'?'τ_max':(st.comp==='hoop'?'σ_θθ':'σ_rr'),bx,by-14); ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.fillText('MPa',bx,by-3);
+    ctx.textBaseline='top'; ctx.fillStyle=C.muted;
+    if (st.comp==='shear') ctx.fillText(fr?'1 fringe':'', bx, by+bh+4), fr&&ctx.fillText('= '+FSTEP+' MPa', bx, by+bh+15);
+    else { ctx.fillText('+ compression', bx, by+bh+4); ctx.fillText('− tension', bx, by+bh+15); if (fr) ctx.fillText(BAND+' MPa bands', bx, by+bh+26); }
+    // readouts
+    const h90=3*st.SH-st.Sh-Pw, h0=3*st.Sh-st.SH-Pw;
+    $('#k-h90').textContent=fmt(h90)+' MPa'; $('#k-h0').textContent=fmt(h0)+' MPa'; $('#k-r').textContent=fmt(Pw)+' MPa';
+    setChip($('#t-k1'), Math.abs(st.SH-st.Sh)<0.5 && fr && st.SH>0);
+    setChip($('#t-k2'), $('#k-mud').checked && Math.abs(h0)<=1.5 && st.SH!==st.Sh);
+    drawProfile(Pw,C);
+  }
+  function drawProfile(Pw,C){
+    const {ctx,W,H}=fitCanvas(cvp); ctx.clearRect(0,0,W,H);
+    const L=54,R=W-16,T=16,B=H-28; const X=r=>L+(r-1)/2*(R-L); const vmax=Math.max(30,3*st.SH-st.Sh)*1.05, vmin=Math.min(-10,3*st.Sh-st.SH-Pw)*1.05;
+    const Y=v=>T+(vmax-v)/(vmax-vmin)*(B-T);
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.font=`10px ${MONO}`; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.textBaseline='top';
+    for(let r=1;r<=3.001;r+=0.5){ ctx.beginPath(); ctx.moveTo(X(r),T); ctx.lineTo(X(r),B); ctx.stroke(); ctx.fillText((r%1===0?r:r.toFixed(1))+'a',X(r),B+3); }
+    ctx.strokeStyle=C.zero; ctx.beginPath(); ctx.moveTo(L,Y(0)); ctx.lineTo(R,Y(0)); ctx.stroke();
+    ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText('0',L-4,Y(0)); ctx.fillText(fmt(vmax/1.05),L-4,Y(vmax/1.05)); ctx.fillText(fmt(vmin/1.05),L-4,Y(vmin/1.05));
+    ctx.setLineDash([3,3]); ctx.strokeStyle=C.muted; ctx.beginPath(); ctx.moveTo(L,Y(st.SH)); ctx.lineTo(R,Y(st.SH)); ctx.stroke(); ctx.beginPath(); ctx.moveTo(L,Y(st.Sh)); ctx.lineTo(R,Y(st.Sh)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.textAlign='left'; ctx.fillStyle=C.muted; ctx.fillText('far-field S_Hmax',R-100,Y(st.SH)-7); ctx.fillText('far-field S_hmin',R-100,Y(st.Sh)+8);
+    const line=(th,col,label,dy)=>{ ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath(); for(let r=1;r<=3.0;r+=0.01){ const v=kirsch(st.SH,st.Sh,Pw,1,r,th).stt; r===1?ctx.moveTo(X(r),Y(v)):ctx.lineTo(X(r),Y(v)); } ctx.stroke(); ctx.fillStyle=col; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(label,X(1)+6,Y(kirsch(st.SH,st.Sh,Pw,1,1,th).stt)+dy); };
+    line(Math.PI/2,C.comp,'hoop stress along the S_hmin side',-9); line(0,C.tens,'hoop stress along the S_Hmax side',9);
+    ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('distance from hole centre (radii) · MPa on the left',L,H-2);
+  }
+  draws.kirsch=draw;
+})();
+
+/* ================= TAB 3: BREAKOUTS ================= */
+(()=>{
+  const cv=$('#cv-bo'), cvi=$('#cv-bo-img'); const st={SH:45,Sh:30,Pp:15,Pw:18,UCS:50,phi:30,az:68,quiz:false,hidden:68,guess:90};
+  const ctl=$('#ctl-bo');
+  const sSH=slider(ctl,{id:'b-SH',label:'S<sub>Hmax</sub>',min:10,max:90,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'b-Sh',label:'S<sub>hmin</sub>',min:10,max:90,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'b-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:40,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
+  slider(ctl,{id:'b-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:70,value:18,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
+  slider(ctl,{id:'b-UCS',label:'Rock strength UCS',min:5,max:150,value:50,unit:'MPa'},v=>{st.UCS=v; draw();});
+  slider(ctl,{id:'b-phi',label:'Friction angle φ',min:15,max:45,value:30,unit:'°'},v=>{st.phi=v; draw();});
+  const sAz=slider(ctl,{id:'b-az',label:'S<sub>Hmax</sub> azimuth',min:0,max:179,value:68,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.az=v; draw();});
+  const sGuess=slider(ctl,{id:'b-guess',label:'Your S<sub>Hmax</sub> estimate',min:0,max:179,value:90,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.guess=v; draw();});
+  sGuess.el.hidden=true;
+  let collapsed=false;
+  $('#bo-quiz').addEventListener('click',()=>{ st.quiz=!st.quiz; if(st.quiz){ st.hidden=Math.floor(Math.random()*180); sAz.el.dataset.disabled='1'; sAz.inp.disabled=true; sGuess.el.hidden=false; $('#bo-reveal').disabled=false; $('#bo-quiz').innerHTML='Quiz off'; } else { sAz.el.dataset.disabled='0'; sAz.inp.disabled=false; sGuess.el.hidden=true; $('#bo-reveal').disabled=true; $('#bo-quiz').innerHTML='Quiz: hide S<sub>Hmax</sub>'; } draw(); });
+  $('#bo-reveal').addEventListener('click',()=>{ st.az=st.hidden; sAz.v=st.hidden; st.quiz=false; sAz.el.dataset.disabled='0'; sAz.inp.disabled=false; sGuess.el.hidden=true; $('#bo-reveal').disabled=true; $('#bo-quiz').innerHTML='Quiz: hide S<sub>Hmax</sub>'; draw(); });
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
+    const w=breakoutWidth(st.SH,st.Sh,st.Pw,st.Pp,st.UCS,st.phi); const az = st.quiz? st.hidden: st.az;
+    // cross-section left
+    const R=Math.min(H*0.26, W*0.16); drawSection(ctx, W*0.3, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,wBO:w,tens:0,C});
+    // Mohr circle right
+    const L=W*0.58, Rr=W-16, T=30, B=H-30; const q=q_of(st.phi); const s3=st.Pw-st.Pp, s1=hoopWall(st.SH,st.Sh,st.Pw,st.Pp,90);
+    const SMIN=-20, SMAX=240, TMAX=130; const scl=Math.min((Rr-L)/(SMAX-SMIN),(B-T)/TMAX); const X=s=>L+(s-SMIN)*scl; const Y0=B; const smax=SMAX;
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(L,Y0); ctx.lineTo(X(SMAX),Y0); ctx.moveTo(X(0),T); ctx.lineTo(X(0),Y0); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
+    for(let s=0;s<=SMAX;s+=40) ctx.fillText(fmt(s),X(s),Y0+4);
+    ctx.save(); ctx.beginPath(); ctx.rect(L,T-2,X(SMAX)-L,B-T+2); ctx.clip();
+    ctx.textAlign='left'; ctx.fillText('effective normal stress (MPa)',L,H-14); ctx.save(); ctx.translate(L-4,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('shear (MPa)',0,0); ctx.restore();
+    // envelope: tau = c + sigma tan(phi), c = UCS(1-sin)/(2cos)
+    const sp=Math.sin(rad(st.phi)), cp=Math.cos(rad(st.phi)); const coh=st.UCS*(1-sp)/(2*cp);
+    ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(0),Y0-coh*scl); const sEnd=smax; ctx.lineTo(X(sEnd),Y0-(coh+sEnd*Math.tan(rad(st.phi)))*scl); ctx.stroke();
+    ctx.fillStyle=C.ink2; ctx.font=`11px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('Mohr–Coulomb envelope',Rr-4,T+14);
+    // circle
+    const cX=X((s1+s3)/2), rad_=Math.abs(s1-s3)/2*scl; const fail=w>0;
+    ctx.strokeStyle=fail?C.bad:C.mud; ctx.fillStyle=fail?C.badSoft:C.mudSoft; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cX,Y0,rad_,Math.PI,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle=C.ink; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.font=`600 10px ${MONO}`; ctx.fillText('σ3 = P_w−P_p',X(s3),Y0+16); ctx.fillText('σ1 = hoop',X(s1),Y0+16);
+    ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillText('lower mud → σ3 shrinks, σ1 grows',(L+Rr)/2,T);
+    // status
+    const stt=$('#bo-status');
+    if (w<=0) setStatus(stt,'ok','No breakouts');
+    else if (w<60) setStatus(stt,'ok','Breakouts, tolerable ('+fmt(w)+'°)');
+    else if (w<120) setStatus(stt,'warn','Wide breakouts, stuck-pipe risk');
+    else setStatus(stt,'bad','Hole collapse');
+    $('#bo-w').textContent=fmt(w)+'°'; $('#bo-az').textContent = w>0? String((az+90)%180).padStart(3,'0')+'° / '+String((az+270)%360).padStart(3,'0')+'°':'–';
+    $('#bo-pw').textContent=fmt(PwShear(st.SH,st.Sh,st.Pp,st.UCS,st.phi),1)+' MPa';
+    // targets
+    setChip($('#t-b1'), w>0 && w<=60 && w>=45);
+    if (w>=120) collapsed=true; if (collapsed && w<=0 && st.UCS>=60) setChip($('#t-b2'),true);
+    if (st.quiz){ const diff=Math.abs(((st.guess-st.hidden)%180+270)%180-90); setChip($('#t-b3'), diff<=10 && w>0); }
+    drawImageStrip(cvi,{SHaz:az,wBO:w,difw:0,hideAz:st.quiz,title:'unwrapped image log · breakouts'});
+  }
+  draws.breakout=draw;
+})();
+
+/* ================= TAB 4: TENSILE ================= */
+(()=>{
+  const cv=$('#cv-te'), cvi=$('#cv-te-img'), cvw=$('#cv-te-win'); const st={SH:45,Sh:30,Pp:15,Pw:20,Ts:5,dT:0}; const UCS=50, phi=30, az=68;
+  const ctl=$('#ctl-te');
+  const sSH=slider(ctl,{id:'t-SH',label:'S<sub>Hmax</sub>',min:10,max:90,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'t-Sh',label:'S<sub>hmin</sub>',min:10,max:90,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'t-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:40,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
+  slider(ctl,{id:'t-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:80,step:0.5,value:20,unit:'MPa',cls:'mud',fmt:v=>v.toFixed(1)},v=>{st.Pw=v; draw();});
+  slider(ctl,{id:'t-Ts',label:'Tensile strength T<sub>s</sub>',min:0,max:15,value:5,unit:'MPa'},v=>{st.Ts=v; draw();});
+  slider(ctl,{id:'t-dT',label:'Cooling of the wall ΔT',min:0,max:200,value:0,unit:'°C'},v=>{st.dT=v; draw();});
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
+    const h0=hoopWall(st.SH,st.Sh,st.Pw,st.Pp,0,st.dT); const tensEx=-st.Ts-h0; // >0 means fractured
+    const w=breakoutWidth(st.SH,st.Sh,st.Pw,st.Pp,UCS,phi); // note: cooling ignored for breakouts (conservative)
+    const R=Math.min(H*0.26, W*0.16); drawSection(ctx, W*0.3, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,dT:st.dT,wBO:w,tens:tensEx>0?tensEx:0,C});
+    // hoop stress vs azimuth plot
+    const L=W*0.58, Rr=W-16, T=30, B=H-30; const q=q_of(phi); const thr=UCS+q*(st.Pw-st.Pp);
+    let vmax=Math.max(thr*1.1, hoopWall(st.SH,st.Sh,st.Pw,st.Pp,90,st.dT)*1.1, 40), vmin=Math.min(-st.Ts*2-10, h0*1.1);
+    const X=a=>L+a/360*(Rr-L), Y=v=>T+(vmax-v)/(vmax-vmin)*(B-T);
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.font=`10px ${MONO}`; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.textBaseline='top';
+    [0,90,180,270,360].forEach(a=>{ ctx.beginPath(); ctx.moveTo(X(a),T); ctx.lineTo(X(a),B); ctx.stroke(); ctx.fillText(a+'°',X(a),B+4); });
+    ctx.strokeStyle=C.zero; ctx.beginPath(); ctx.moveTo(L,Y(0)); ctx.lineTo(Rr,Y(0)); ctx.stroke();
+    ctx.textAlign='left'; ctx.fillText('θ from S_Hmax around the wall',L,H-14);
+    // thresholds
+    ctx.setLineDash([4,3]); ctx.strokeStyle=C.comp; ctx.beginPath(); ctx.moveTo(L,Y(thr)); ctx.lineTo(Rr,Y(thr)); ctx.stroke();
+    ctx.strokeStyle=C.tens; ctx.beginPath(); ctx.moveTo(L,Y(-st.Ts)); ctx.lineTo(Rr,Y(-st.Ts)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=C.comp; ctx.font=`10px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('shear failure',Rr-2,Y(thr)-2);
+    ctx.fillStyle=C.tens; ctx.textBaseline='top'; ctx.fillText('tensile failure −T_s',Rr-2,Y(-st.Ts)+2);
+    // curve
+    ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); for(let a=0;a<=360;a+=2){ const v=hoopWall(st.SH,st.Sh,st.Pw,st.Pp,a,st.dT); a?ctx.lineTo(X(a),Y(v)):ctx.moveTo(X(a),Y(v)); } ctx.stroke();
+    // fill exceedances
+    ctx.globalAlpha=0.35; ctx.fillStyle=C.tens; ctx.beginPath(); ctx.moveTo(X(0),Y(-st.Ts)); for(let a=0;a<=360;a+=2){ ctx.lineTo(X(a),Y(Math.min(-st.Ts,hoopWall(st.SH,st.Sh,st.Pw,st.Pp,a,st.dT)))); } ctx.lineTo(X(360),Y(-st.Ts)); ctx.fill();
+    ctx.fillStyle=C.comp; ctx.beginPath(); ctx.moveTo(X(0),Y(thr)); for(let a=0;a<=360;a+=2){ ctx.lineTo(X(a),Y(Math.max(thr,hoopWall(st.SH,st.Sh,st.Pw,st.Pp,a,0)))); } ctx.lineTo(X(360),Y(thr)); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle=C.ink2; ctx.font=`11px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('effective hoop stress at the wall (MPa)',L,T-18);
+    ctx.textAlign='right'; ctx.fillStyle=C.muted; ctx.textBaseline='middle'; ctx.fillText(fmt(vmax),L-3,Y(vmax)); ctx.fillText('0',L-3,Y(0)); ctx.fillText(fmt(vmin),L-3,Y(vmin));
+    // window bar
+    const lb=PwShear(st.SH,st.Sh,st.Pp,UCS,phi), ub=Pbreak(st.SH,st.Sh,st.Pp,st.Ts,st.dT);
+    $('#te-lb').textContent=fmt(lb,1)+' MPa'; $('#te-ub').textContent=fmt(ub,1)+' MPa'; $('#te-h0').textContent=fmt(h0,1)+' MPa';
+    drawWin(lb,ub,C);
+    setChip($('#t-t1'), tensEx>0 && tensEx<=2.5 && st.dT===0);
+    setChip($('#t-t2'), tensEx>0 && st.Pw-st.Pp<=5 && st.dT>0);
+    setChip($('#t-t3'), ub<lb);
+    const difw = tensEx>0? tensEx:0;
+    drawImageStrip(cvi,{SHaz:az,wBO:w,difw,title:'unwrapped image log · tensile fractures at S_Hmax, breakouts at S_hmin'});
+  }
+  function drawWin(lb,ub,C){
+    const {ctx,W,H}=fitCanvas(cvw); ctx.clearRect(0,0,W,H);
+    const L=8,R=W-8,T=8,B=H-20; const pmax=100; const X=p=>L+clamp(p,0,pmax)/pmax*(R-L);
+    ctx.fillStyle=C.badSoft; ctx.fillRect(L,T,R-L,B-T);
+    if (ub>lb){ ctx.fillStyle=C.okSoft; ctx.fillRect(X(lb),T,X(ub)-X(lb),B-T); ctx.strokeStyle=C.ok; ctx.lineWidth=1; ctx.strokeRect(X(lb)+0.5,T+0.5,X(ub)-X(lb)-1,B-T-1); }
+    else { ctx.fillStyle=C.bad; ctx.font=`600 10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('WINDOW CLOSED',(L+R)/2,(T+B)/2); }
+    ctx.fillStyle=C.tens; ctx.fillRect(X(st.Pp)-1,T,2,B-T);
+    ctx.fillStyle=C.mud; ctx.beginPath(); ctx.moveTo(X(st.Pw)-6,B+10); ctx.lineTo(X(st.Pw)+6,B+10); ctx.lineTo(X(st.Pw),B+1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=C.muted; ctx.font=`9px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('0',L,H-1); ctx.textAlign='right'; ctx.fillText('100 MPa',R,H-1); ctx.textAlign='center'; ctx.fillStyle=C.mud; ctx.fillText('P_w',X(st.Pw),H-1);
+  }
+  draws.tensile=draw;
+})();
+
+/* ================= TAB: SINUSOID ================= */
+(()=>{
+  const cv=$('#cv-sin'); const D=0.216; const st={dip:40,dir:120,t:0,view:180,m:{dip:62,dir:245}};
+  const ctl=$('#ctl-sin');
+  slider(ctl,{id:'s-dip',label:'Dip',min:0,max:80,value:40,unit:'°'},v=>{st.dip=v; draw();});
+  slider(ctl,{id:'s-dir',label:'Dip direction (azimuth)',min:0,max:359,value:120,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.dir=v; draw();});
+  const sView=slider(ctl,{id:'s-view',label:'Spin the borehole (viewed from)',min:0,max:359,value:180,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.view=v; draw();});
+  slider(ctl,{id:'s-un',label:'Unwrap the borehole',min:0,max:100,value:0,unit:'%',cls:'mud'},v=>{st.t=v/100; draw();});
+  $('#s-showm').addEventListener('change',draw);
+  $('#s-new').addEventListener('click',()=>{ st.m={dip:10+Math.floor(Math.random()*65), dir:Math.floor(Math.random()*360)}; draw(); });
+  // grab and spin
+  let drag=null; cv.style.touchAction='none'; cv.style.cursor='grab';
+  cv.addEventListener('pointerdown',e=>{ if (st.t>0.6) return; drag={x:e.clientX,view:st.view}; cv.setPointerCapture(e.pointerId); cv.style.cursor='grabbing'; });
+  cv.addEventListener('pointermove',e=>{ if(!drag) return; const R0=geom().R0; const dpx=(e.clientX-drag.x)*(cv.width/(cv.clientWidth||1))/Math.min(2,window.devicePixelRatio||1); st.view=((Math.round(drag.view-deg(dpx/R0))%360)+360)%360; sView.v=st.view; draw(); });
+  const endDrag=()=>{ drag=null; cv.style.cursor='grab'; }; cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+  let tallSeen=false, flatSeen=false;
+  function geom(){ const W=cv.clientWidth||760, H=W*560/760; const top=40, bot=H-40; return {W,H,top,bot,R0:Math.min(W*0.15,(bot-top)*0.2)}; }
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H); const t=st.t;
+    const Lax=44, top=40, bot=H-40; const zRange=1.3;
+    const Yz = z => (top+bot)/2 + z/zRange*(bot-top)/2*0.9;
+    const cx=W*0.5; const R0=Math.min(W*0.15,(bot-top)*0.2); const flatL=Lax+16, flatR=W-16; const K=0.32;
+    const phv=st.view-180; // rotation of the cylinder: front face is azimuth st.view
+    const rel = psi => rad(psi-phv);
+    const xOf = psi => lerp(cx+R0*Math.sin(rel(psi)), flatL+psi/360*(flatR-flatL), t);
+    const yOff = psi => -(1-t)*K*R0*Math.cos(rel(psi));
+    const cyl=[...Array(181).keys()].map(i=>i*2);
+    const order=[...cyl].slice(0,-1).sort((a,b)=>Math.cos(rel(b))-Math.cos(rel(a)));
+    const base=hexToRgb(C.accent), dark=hexToRgb(C.rock), panel=hexToRgb(C.panel);
+    order.forEach(psi=>{
+      const x1=xOf(psi), x2=xOf(psi+2); const shade=0.55+0.45*Math.max(0,-Math.cos(rel(psi)));
+      const rockCol=mix(mix(dark,base,0.35),panel,(1-t)*(1-shade)*0.8);
+      ctx.fillStyle=rgbStr(rockCol); ctx.beginPath(); ctx.moveTo(x1,top+yOff(psi)); ctx.lineTo(x2,top+yOff(psi+2)); ctx.lineTo(x2,bot+yOff(psi+2)); ctx.lineTo(x1,bot+yOff(psi)); ctx.closePath(); ctx.fill();
+      if (t>0.02){ ctx.strokeStyle=rgbStr(dark,0.15*t); ctx.lineWidth=0.5; ctx.stroke(); }
+    });
+    ctx.strokeStyle=C.rock; ctx.lineWidth=1.5; ctx.beginPath(); cyl.forEach((p,i)=>{ const x=xOf(p),y=top+yOff(p); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.stroke();
+    ctx.beginPath(); cyl.forEach((p,i)=>{ const x=xOf(p),y=bot+yOff(p); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.stroke();
+    // fracture traces: draw back-facing segments faint, front-facing solid
+    const trace=(dip,dir,col,lw)=>{
+      const amp=D/2*Math.tan(rad(dip));
+      const seg=(from,to,alpha)=>{ ctx.strokeStyle=col; ctx.globalAlpha=alpha; ctx.lineWidth=lw; ctx.beginPath(); let first=true; for(let p=from;p<=to;p+=1){ const z=amp*Math.cos(rad(p-dir)); const y=Yz(z)+yOff(p); if (y<top-2||y>bot+2){ first=true; continue;} const x=xOf(p); first?ctx.moveTo(x,y):ctx.lineTo(x,y); first=false;} ctx.stroke(); ctx.globalAlpha=1; };
+      // split the 0..360 range into runs of back-facing and front-facing
+      let runStart=0, backRun=Math.cos(rel(0))>0;
+      for(let p=1;p<=360;p++){ const back=Math.cos(rel(p))>0; if (back!==backRun||p===360){ seg(runStart,p,backRun?lerp(0.25,1,t):1); runStart=p; backRun=back; } }
+    };
+    if ($('#s-showm').checked) trace(st.m.dip,st.m.dir,C.accent,5);
+    trace(st.dip,st.dir,C.ink,2.5);
+    const ampS=D/2*Math.tan(rad(st.dip)); const ty=Yz(ampS)+yOff(st.dir), tx=xOf(st.dir);
+    if (ty<bot && (t>0.5 || Math.cos(rel(st.dir))<=0)){ ctx.fillStyle=C.tens; ctx.beginPath(); ctx.arc(tx,ty,4,0,Math.PI*2); ctx.fill(); ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillText('trough → dip direction',tx,ty+6); }
+    ctx.font=`600 11px ${MONO}`; ctx.textBaseline='bottom'; ctx.textAlign='center';
+    [['N',0],['E',90],['S',180],['W',270],['N',360]].forEach(([l,p])=>{ const x=xOf(p), y=top+yOff(p)-6; const back=Math.cos(rel(p))>0.3&&t<0.5; ctx.fillStyle=back?C.muted:C.ink; if (!(p===360&&t<0.05)) ctx.fillText(l,x,y); });
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(Lax,top); ctx.lineTo(Lax,bot); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let z=-1;z<=1;z+=0.5){ ctx.beginPath(); ctx.moveTo(Lax-4,Yz(z)); ctx.lineTo(Lax,Yz(z)); ctx.stroke(); ctx.fillText((1500+z).toFixed(1),Lax-6,Yz(z)); }
+    ctx.save(); ctx.translate(10,(top+bot)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth (m)',0,0); ctx.restore();
+    ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillStyle=C.muted; ctx.fillText(t<0.5?'borehole viewed from azimuth '+String(st.view).padStart(3,'0')+'° · drag to spin':'unwrapped image · slit along N', Lax, H-8);
+    ctx.textAlign='right'; ctx.fillStyle=C.accent; if ($('#s-showm').checked) ctx.fillText('■ mystery fracture', W-16, H-8);
+    ctx.fillStyle=C.ink; ctx.fillText('■ your plane', W-(($('#s-showm').checked)?150:16), H-8);
+    $('#s-amp').textContent=(D*Math.tan(rad(st.dip))).toFixed(2)+' m'; $('#s-trough').textContent=String(st.dir).padStart(3,'0')+'°';
+    const dd=Math.abs(st.dip-st.m.dip), da=Math.min(Math.abs(st.dir-st.m.dir),360-Math.abs(st.dir-st.m.dir)); const ok = dd<=3 && (da<=10 || st.m.dip===0);
+    $('#s-match').textContent = ok?'matched':'Δdip '+dd+'°, Δdir '+da+'°'; setChip($('#t-s1'),ok);
+    if (st.dip===0) flatSeen=true; if (D*Math.tan(rad(st.dip))>=2.4) tallSeen=true; setChip($('#t-s2'), flatSeen&&tallSeen);
+  }
+  draws.sinusoid=draw;
+})();
+
+/* ================= TAB: DEPTH (pressure and stress gradients) ================= */
+(()=>{
+  const cv=$('#cv-depth'); const ZMAX=4000, PMAX=110; const st={rho:2300,mw:1.20,mu:0.6,zop:2500,op:false};
+  const ctl=$('#ctl-depth');
+  slider(ctl,{id:'d-rho',label:'Rock density',min:2000,max:2800,step:50,value:2300,unit:'kg/m³'},v=>{st.rho=v; draw();});
+  slider(ctl,{id:'d-mw',label:'Mud weight',min:1.0,max:2.2,step:0.01,value:1.20,unit:'SG',cls:'mud',fmt:v=>v.toFixed(2)},v=>{st.mw=v; draw();});
+  slider(ctl,{id:'d-mu',label:'Fault friction coefficient μ',min:0.5,max:0.9,step:0.01,value:0.6,fmt:v=>v.toFixed(2)},v=>{st.mu=v; muMin=Math.min(muMin,v); muMax=Math.max(muMax,v); draw();});
+  const sZop=slider(ctl,{id:'d-zop',label:'Overpressure top',min:1000,max:3500,step:50,value:2500,unit:'m'},v=>{st.zop=v; draw();});
+  sZop.el.dataset.disabled='1'; sZop.inp.disabled=true;
+  $('#d-op').addEventListener('change',e=>{ st.op=e.target.checked; sZop.el.dataset.disabled=st.op?'0':'1'; sZop.inp.disabled=!st.op; draw(); });
+  let muMin=0.6, muMax=0.6;
+  const at = z => SCEN.at(z,{rho:st.rho,mu:st.mu,zop:st.zop,op:st.op});
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
+    const L=54,R=W-16,T=28,B=H-36; const X=p=>L+p/PMAX*(R-L), Y=z=>T+z/ZMAX*(B-T);
+    // window shading between Pp and Sh
+    ctx.fillStyle=C.ok; ctx.globalAlpha=0.14; ctx.beginPath(); for(let z=0;z<=ZMAX;z+=25){ const p=at(z); z?ctx.lineTo(X(p.Pp),Y(z)):ctx.moveTo(X(p.Pp),Y(z)); } for(let z=ZMAX;z>=0;z-=25){ const p=at(z); ctx.lineTo(X(Math.min(p.Sh,PMAX)),Y(z)); } ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+    // grid
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.font=`11px ${MONO}`; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.textBaseline='top';
+    for(let p=0;p<=PMAX;p+=20){ ctx.beginPath(); ctx.moveTo(X(p),T); ctx.lineTo(X(p),B); ctx.stroke(); ctx.fillText(p,X(p),B+4); }
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let z=0;z<=ZMAX;z+=500){ ctx.beginPath(); ctx.moveTo(L,Y(z)); ctx.lineTo(R,Y(z)); ctx.stroke(); ctx.fillText(z,L-6,Y(z)); }
+    ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('pressure or stress (MPa)', L, H-8); ctx.save(); ctx.translate(12,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth (m)',0,0); ctx.restore();
+    if (st.op){ ctx.strokeStyle=C.muted; ctx.setLineDash([2,4]); ctx.beginPath(); ctx.moveTo(L,Y(st.zop)); ctx.lineTo(R,Y(st.zop)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=C.muted; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('top of overpressure',R-4,Y(st.zop)-2); }
+    const curve=(f,col,dash,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw||2; ctx.setLineDash(dash||[]); ctx.beginPath(); let on=false; for(let z=0;z<=ZMAX;z+=10){ const v=f(z); if(v>PMAX){on=false;continue;} on?ctx.lineTo(X(v),Y(z)):ctx.moveTo(X(v),Y(z)); on=true;} ctx.stroke(); ctx.setLineDash([]); };
+    curve(z=>at(z).Sv,C.muted,[4,4],1.5); curve(z=>at(z).Pp,C.tens); curve(z=>at(z).Sh,C.bad);
+    // mud line, coloured by safety
+    let zsafe=null;
+    for(let z=0;z<ZMAX;z+=10){ const p=at(z+5); const pm=st.mw*G*(z+5); const inside=pm>=p.Pp&&pm<=p.Sh; if(!inside&&zsafe===null&&z>0) zsafe=z; ctx.strokeStyle=inside?C.ok:C.bad; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(X(st.mw*G*z),Y(z)); ctx.lineTo(X(Math.min(PMAX,st.mw*G*(z+10))),Y(z+10)); ctx.stroke(); if (st.mw*G*(z+10)>PMAX) break; }
+    // gradient labels at line ends
+    const gr=st.rho*9.81e-6*1000, gw=SCEN.gw*1000, gm=st.mw*G*1000; const q=SCEN.q(st.mu);
+    const gsh1=gw+(gr-gw)/q, gsh2=st.op? gr : gsh1;
+    const lab=(txt,p,z,col,dy)=>{ if (p>PMAX) return; ctx.fillStyle=col; ctx.font=`600 10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(txt,X(p)+5,Y(z)+(dy||0)); };
+    const zl=ZMAX*0.96; const pE=at(zl);
+    lab('S_v '+gr.toFixed(1)+' MPa/km',pE.Sv,zl,C.muted); lab('P_p',pE.Pp,zl,C.tens,-8); lab('S_hmin',pE.Sh,zl,C.bad,8);
+    lab('mud '+gm.toFixed(1)+' MPa/km', st.mw*G*zl, zl*0.55, C.mud);
+    // readouts
+    $('#d-gpp').textContent=gw.toFixed(1); $('#d-gop').textContent=st.op?gr.toFixed(1):'–'; $('#d-gsv').textContent=gr.toFixed(1);
+    $('#d-gsh').textContent=gsh1.toFixed(1); $('#d-gsh2').textContent=st.op?gsh2.toFixed(1):'–'; $('#d-gmud').textContent=gm.toFixed(1);
+    $('#d-zsafe').textContent = zsafe===null? 'never (to 4000 m)': fmt(zsafe)+' m';
+    setChip($('#t-d1'), !st.op && zsafe===null);
+    setChip($('#t-d2'), st.op && Math.abs(st.zop-2500)<1 && (zsafe===null||zsafe>=3500));
+    setChip($('#t-d3'), muMin<=0.52 && muMax>=0.88);
+  }
+  draws.depth=draw;
+})();
+
+/* ================= TAB: MUD WINDOW (drilling game, Example 6.1 scenario) ================= */
+(()=>{
+  const cv=$('#cv-window'); const TD=3500, ZMAX=3700, XMIN=0.8, XMAX=2.4;
+  const PHI=SCEN.phi(), Q=SCEN.q();
+  function prof(z){
+    const p=SCEN.at(z); const emw=x=>x/(G*z);
+    const onset=PwShear(p.SH,p.Sh,p.Pp,SCEN.UCS,PHI); const coll=p.Pp+(p.SH+p.Sh-2*p.Pp-SCEN.UCS)/(1+Q); // 90° breakouts
+    return {Sv:emw(p.Sv),Pp:emw(p.Pp),Sh:emw(p.Sh),onset:emw(onset),coll:emw(coll),raw:p};
+  }
+  const st={mw:1.15,bit:0,shoe:0,shoes:[],sections:[],drilling:false,fail:null,last:0};
+  const ctl=$('#ctl-window');
+  slider(ctl,{id:'w-mw',label:'Mud weight (open hole)',min:0.8,max:2.4,step:0.01,value:1.15,unit:'SG',cls:'mud',fmt:v=>v.toFixed(2)},v=>{st.mw=v; check(); draw();});
+  const sRate=slider(ctl,{id:'w-rate',label:'Animation speed',min:10,max:120,step:5,value:40,unit:'m/s'});
+  const status=$('#w-status');
+  const boAt = z => { const p=SCEN.at(z); return breakoutWidth(p.SH,p.Sh,st.mw*G*z,p.Pp,SCEN.UCS,PHI); };
+  function check(){
+    if (st.fail) return;
+    for (let z=Math.max(st.shoe,20); z<=st.bit; z+=10){
+      const p=prof(z);
+      if (st.mw<p.Pp) return fail('kick',z,'Kick! Formation fluid is flowing into the well.');
+      if (boAt(z)>=90) return fail('collapse',z,'Collapse: breakouts over 90°, cavings, stuck pipe.');
+      if (st.mw>p.Sh) return fail('lost',z,'Lost circulation: the mud has fractured the rock.');
+    }
+  }
+  function fail(type,z,msg){ st.fail={type,z}; st.drilling=false; $('#w-drill').textContent='Drill ahead'; setStatus(status,'bad',msg+' at '+fmt(z)+' m'); }
+  function updateUI(){
+    $('#w-depth').textContent=fmt(st.bit)+' m'; $('#w-shoes').textContent=st.shoes.length;
+    let w=0;
+    if (st.bit>20){ const b=prof(st.bit); $('#w-win').textContent=Math.max(b.Pp,b.coll).toFixed(2)+'–'+b.Sh.toFixed(2)+' SG'; w=boAt(st.bit); $('#w-bo').textContent= w>0? fmt(w)+'°':'none'; } else { $('#w-win').textContent='–'; $('#w-bo').textContent='–'; }
+    const reached = st.bit>=TD && !st.fail;
+    setChip($('#t-w1'),reached); setChip($('#t-w2'),reached&&st.shoes.length<=3); setChip($('#t-w3'),reached&&st.shoes.length<=2);
+    $('#w-casing').disabled = !!st.fail || st.bit-st.shoe<50 || st.bit>=TD;
+    $('#w-pull').disabled = !st.fail;
+    if (!st.fail){
+      if (reached) setStatus(status,'ok','Total depth reached');
+      else if (st.bit===0) setStatus(status,'','Ready at surface');
+      else if (w>=60) setStatus(status,'warn',(st.drilling?'Drilling, ':'Paused, ')+'wide breakouts '+fmt(w)+'°');
+      else if (w>0) setStatus(status,'ok',(st.drilling?'Drilling, ':'Paused, ')+'breakouts '+fmt(w)+'°, tolerable');
+      else setStatus(status,'ok',st.drilling?'Drilling ahead, clean hole':'Paused at '+fmt(st.bit)+' m');
+    }
+  }
+  function loop(ts){
+    if (!st.drilling) return; const dt=Math.min(0.1,(ts-st.last)/1000||0); st.last=ts;
+    st.bit=Math.min(TD, st.bit+sRate.v*dt); check();
+    if (st.bit>=TD){ st.drilling=false; $('#w-drill').textContent='Drill ahead'; }
+    draw(); if (st.drilling) requestAnimationFrame(loop);
+  }
+  $('#w-drill').addEventListener('click',()=>{ if (st.fail||st.bit>=TD) return; st.drilling=!st.drilling; $('#w-drill').textContent=st.drilling?'Pause':'Drill ahead'; if (st.drilling){ st.last=performance.now(); requestAnimationFrame(loop);} else draw(); });
+  $('#w-casing').addEventListener('click',()=>{ if (st.fail) return; st.sections.push({top:st.shoe,bot:st.bit,mw:st.mw}); st.shoes.push(st.bit); st.shoe=st.bit; draw(); });
+  $('#w-pull').addEventListener('click',()=>{ st.fail=null; st.bit=st.shoe; draw(); });
+  $('#w-reset').addEventListener('click',()=>{ Object.assign(st,{bit:0,shoe:0,shoes:[],sections:[],drilling:false,fail:null}); $('#w-drill').textContent='Drill ahead'; draw(); });
+
+  function draw(){
+    const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
+    const L=54,R=W-16,T=28,B=H-36; const X=v=>L+(v-XMIN)/(XMAX-XMIN)*(R-L), Y=z=>T+z/ZMAX*(B-T);
+    const zs=[]; for(let z=0;z<=ZMAX;z+=20) zs.push(z);
+    const band=(f1,f2,col,alpha)=>{ ctx.fillStyle=col; ctx.globalAlpha=alpha; ctx.beginPath(); zs.forEach((z,i)=>{const p=prof(Math.max(z,1)); const x=clamp(f1(p),XMIN,XMAX); i?ctx.lineTo(X(x),Y(z)):ctx.moveTo(X(x),Y(z));}); [...zs].reverse().forEach(z=>{const p=prof(Math.max(z,1)); ctx.lineTo(X(clamp(f2(p),XMIN,XMAX)),Y(z));}); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; };
+    const lo=p=>Math.max(p.Pp,p.coll), mid=p=>clamp(p.onset,lo(p),p.Sh);
+    band(p=>XMIN,p=>p.Pp,C.bad,0.10); band(p=>p.Pp,p=>lo(p),C.bad,0.10); band(p=>lo(p),p=>mid(p),C.warn,0.20); band(p=>mid(p),p=>p.Sh,C.ok,0.18); band(p=>p.Sh,p=>XMAX,C.bad,0.10);
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.font=`11px ${MONO}`; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.textBaseline='top';
+    for(let v=0.8;v<=2.4;v+=0.2){ ctx.beginPath(); ctx.moveTo(X(v),T); ctx.lineTo(X(v),B); ctx.stroke(); ctx.fillText(v.toFixed(1),X(v),B+4); }
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let z=0;z<=3500;z+=500){ ctx.beginPath(); ctx.moveTo(L,Y(z)); ctx.lineTo(R,Y(z)); ctx.stroke(); ctx.fillText(z,L-6,Y(z)); }
+    ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('equivalent mud weight (SG)', L, H-8); ctx.save(); ctx.translate(12,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth (m)',0,0); ctx.restore();
+    ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('overpressure below '+SCEN.zop+' m',X(2.1),Y(SCEN.zop)-3);
+    ctx.strokeStyle=C.muted; ctx.setLineDash([2,4]); ctx.beginPath(); ctx.moveTo(L,Y(SCEN.zop)); ctx.lineTo(R,Y(SCEN.zop)); ctx.stroke(); ctx.setLineDash([]);
+    const curve=(f,col,dash,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw||2; ctx.setLineDash(dash||[]); ctx.beginPath(); let started=false; for(let z=40;z<=ZMAX;z+=10){ const v=f(prof(z)); if(v<XMIN||v>XMAX){started=false;continue;} started?ctx.lineTo(X(v),Y(z)):ctx.moveTo(X(v),Y(z)); started=true;} ctx.stroke(); ctx.setLineDash([]); };
+    curve(p=>p.Sv,C.muted,[4,4],1.2); curve(p=>p.Pp,C.tens); curve(p=>p.onset,C.warn,[5,4],1.5); curve(p=>p.coll,C.warn); curve(p=>p.Sh,C.bad);
+    ctx.strokeStyle=C.ink; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(L,Y(TD)); ctx.lineTo(R,Y(TD)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=C.ink; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.font=`600 11px ${MONO}`; ctx.fillText('TD 3500 m',R-4,Y(TD)-2);
+    st.sections.forEach(s=>{ ctx.strokeStyle=C.mud; ctx.lineWidth=5; ctx.globalAlpha=0.55; ctx.beginPath(); ctx.moveTo(X(s.mw),Y(s.top)); ctx.lineTo(X(s.mw),Y(s.bot)); ctx.stroke(); ctx.globalAlpha=1; });
+    st.shoes.forEach(z=>{ ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,Y(z)); ctx.lineTo(L+14,Y(z)); ctx.moveTo(R-14,Y(z)); ctx.lineTo(R,Y(z)); ctx.stroke(); ctx.fillStyle=C.ink; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('shoe '+fmt(z)+' m',L+18,Y(z)-1); });
+    if (st.bit>st.shoe){ ctx.strokeStyle=C.mud; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(X(st.mw),Y(st.shoe)); ctx.lineTo(X(st.mw),Y(st.bit)); ctx.stroke(); }
+    const bx=X(st.mw), by=Y(st.bit); ctx.fillStyle=C.mud; ctx.beginPath(); ctx.moveTo(bx-7,by-2); ctx.lineTo(bx+7,by-2); ctx.lineTo(bx,by+9); ctx.closePath(); ctx.fill();
+    if (st.fail){ const fx=X(st.mw), fy=Y(st.fail.z); ctx.strokeStyle=C.bad; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(fx,fy,11,0,Math.PI*2); ctx.stroke(); ctx.fillStyle=C.bad; ctx.font=`600 11px ${MONO}`; ctx.textAlign=fx>W/2?'right':'left'; ctx.textBaseline='middle'; ctx.fillText({kick:'KICK',collapse:'COLLAPSE',lost:'LOST CIRCULATION'}[st.fail.type], fx+(fx>W/2?-16:16), fy); }
+    updateUI();
+  }
+  draws.window=draw;
+})();
+
+/* ---------- boot ---------- */
+let saved=null; try{saved=localStorage.getItem('bsl-tab');}catch(e){}
+showTab(saved && draws[saved]? saved:'depth');
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const cur=tabs.find(b=>b.getAttribute('aria-selected')==='true'); draws[cur.dataset.tab](); },120); });
+if (window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ const cur=tabs.find(b=>b.getAttribute('aria-selected')==='true'); draws[cur.dataset.tab](); }); }
+})();
+</script>
+
+</body>
+</html>

@@ -290,7 +290,8 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
       <canvas id="cv-depth" width="800" height="620" aria-label="Pressure and stress against depth"></canvas>
       <div class="legend">
         <span><i style="background:var(--tens)"></i>pore pressure P<sub>p</sub></span>
-        <span><i style="background:var(--bad)"></i>S<sub>hmin</sub></span>
+        <span><i style="background:var(--bad)"></i>S<sub>hmin</sub>, fracture propagates</span>
+        <span><i style="background:var(--accent)"></i>P<sub>b</sub>, intact wall breaks</span>
         <span><i style="background:var(--muted)"></i>overburden S<sub>v</sub></span>
         <span><i style="background:var(--mud);height:5px"></i>mud (green inside window, red outside)</span>
       </div>
@@ -325,7 +326,7 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
   </div>
   <details class="notes"><summary>Notes</summary><ol>
     <li>Gradient = density × g. Water gives 9.8 MPa/km, a 1.2 SG mud 11.8 MPa/km, rock of 2300 kg/m³ 22.6 MPa/km. With depth drawn downward, a larger gradient is a line closer to horizontal. Defaults match Espinoza Example 6.1 converted to SI: at 2134 m, P<sub>p</sub> = 21.2 MPa (0.44 psi/ft = 9.95 MPa/km), S<sub>hmin</sub> = 29.6 MPa, S<sub>v</sub> ≈ 48 MPa.</li>
-    <li>Below pore pressure the well kicks; above S<sub>hmin</sub> a hydraulic fracture opens and swallows the mud. Rock strength (breakouts) is left out of this tab and appears on tab 6.</li>
+    <li>Below pore pressure the well kicks. Above S<sub>hmin</sub> any fracture that already exists, natural or drilling-induced, is held open and propagated, and the mud is lost: this is the ceiling drillers use, and it is what a leak-off test measures. Breaking an intact wall is a different pressure: the hoop stress on the S<sub>Hmax</sub> side must go tensile, P<sub>b</sub> = 3S<sub>hmin</sub> − S<sub>Hmax</sub> − P<sub>p</sub> + T<sub>s</sub> (dashed amber), which sits above or below S<sub>hmin</sub> depending on the stress anisotropy. Here S<sub>Hmax</sub> = P<sub>p</sub> + 0.82(S<sub>v</sub> − P<sub>p</sub>) and T<sub>s</sub> = 5.5 MPa from Example 6.1, which puts P<sub>b</sub> almost on top of S<sub>hmin</sub>. Rock strength (breakouts) is left out of this tab and appears on tab 6.</li>
     <li>Below the overpressure top, pore pressure is taken to rise at the lithostatic gradient: the fluid is sealed in and carries the weight of the rock being added above it. Because S<sub>v</sub> − P<sub>p</sub> then stops growing, S<sub>hmin</sub> tracks the pore pressure and steepens with it.</li>
     <li>S<sub>hmin</sub> is set at the frictional limit for normal faulting: (S<sub>v</sub> − P<sub>p</sub>)/(S<sub>hmin</sub> − P<sub>p</sub>) = q = (√(μ²+1) + μ)². Stronger faults (higher μ) can hold a larger stress difference, so S<sub>hmin</sub> drops toward P<sub>p</sub> and the window narrows. Example 6.1's stresses sit at this limit for μ = 0.6.</li>
   </ol></details>
@@ -460,7 +461,7 @@ const SCEN = {
 function drawImageStrip(cv, o){ // o: {SHaz, wBO, difw (deg extent of DITF, 0=none), title}
   const {ctx,W,H}=fitCanvas(cv), C=themeColors();
   ctx.clearRect(0,0,W,H);
-  const L=46,R=W-12,T=26,B=H-24; const pw=R-L, ph=B-T;
+  const L=46,R=W-12,T=26,B=H-42; const pw=R-L, ph=B-T;
   // rock texture background: amber-brown speckle like an acoustic image
   const base=hexToRgb(C.accent), dark=hexToRgb(C.rock);
   ctx.fillStyle=rgbStr(mix(base,dark,0.35)); ctx.fillRect(L,T,pw,ph);
@@ -494,57 +495,56 @@ function drawImageStrip(cv, o){ // o: {SHaz, wBO, difw (deg extent of DITF, 0=no
   ctx.textAlign='left'; ctx.fillStyle=C.muted; ctx.fillText(o.title||'unwrapped borehole image', L, H-6);
   ctx.textAlign='right'; ctx.fillText('azimuth →', R, H-6);
   ctx.save(); ctx.translate(14,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth ↓',0,0); ctx.restore();
-  // SHmax / Shmin markers
+  // S_Hmax / S_hmin ticks under the strip
   if (!o.hideAz){
-    ctx.fillStyle=C.ink; ctx.font=`600 10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
-    for (const c of [o.SHaz,o.SHaz+180]) { const x=xOf(c); ctx.fillStyle=C.tens; ctx.beginPath(); ctx.moveTo(x-4,B+2); ctx.lineTo(x+4,B+2); ctx.lineTo(x,B-4); ctx.fill(); }
-    for (const c of [o.SHaz+90,o.SHaz+270]) { const x=xOf(c); ctx.fillStyle=C.comp; ctx.beginPath(); ctx.moveTo(x-4,B+2); ctx.lineTo(x+4,B+2); ctx.lineTo(x,B-4); ctx.fill(); }
-    ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='bottom';
-    ctx.fillText('▲ S_Hmax', xOf(o.SHaz)+0, H-6);
+    ctx.font=`600 10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
+    for (const [c,lab,col] of [[o.SHaz,'S_Hmax',C.tens],[o.SHaz+180,'S_Hmax',C.tens],[o.SHaz+90,'S_hmin',C.comp],[o.SHaz+270,'S_hmin',C.comp]]){
+      const x=xOf(c); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,B); ctx.lineTo(x,B+5); ctx.stroke(); ctx.fillStyle=col; ctx.fillText(lab,x,B+7);
+    }
   }
 }
 
 /* ---------- shared drawing: cross-section ---------- */
-function drawSection(ctx, cx, cy, R, o){ // o: {SH,Sh,Pw,Pp,dT,wBO,tens(bool),C, labels}
-  const {C}=o;
-  // hoop stress ring coloured by effective hoop
+function drawSection(ctx, cx, cy, R, o){ // o: {SH,Sh,Pw,Pp,dT,wBO,tens,C, az?} az = S_Hmax azimuth with north up; omit for an unoriented section
+  const {C}=o; const oriented = o.az!==undefined; const rot = oriented? rad(o.az-90): 0;
+  const P=(x,y)=>[cx + x*Math.cos(rot) - y*Math.sin(rot), cy + x*Math.sin(rot) + y*Math.cos(rot)];
   const scale=120; const comp=hexToRgb(C.comp), tens=hexToRgb(C.tens), zero=hexToRgb(C.zero);
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot);
+  // hoop-stress ring: θ measured from S_Hmax, which lies along local +x
   for(let a=0;a<360;a+=1){
     const h=hoopWall(o.SH,o.Sh,o.Pw,o.Pp,a,o.dT||0); const t=clamp(h/scale,-1,1);
     const col = t>=0? mix(zero,comp,t): mix(zero,tens,-t);
-    ctx.fillStyle=rgbStr(col); ctx.beginPath(); ctx.arc(cx,cy,R*1.32,rad(a-90)-0.012,rad(a-90)+rad(1)+0.012); ctx.arc(cx,cy,R,rad(a-90)+rad(1)+0.012,rad(a-90)-0.012,true); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=rgbStr(col); ctx.beginPath(); ctx.arc(0,0,R*1.32,rad(a)-0.012,rad(a)+rad(1)+0.012); ctx.arc(0,0,R,rad(a)+rad(1)+0.012,rad(a)-0.012,true); ctx.closePath(); ctx.fill();
   }
-  // rock beyond ring
-  ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,R*1.32,0,Math.PI*2); ctx.stroke();
-  // mud
-  ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
-  // breakouts: wedges centred at θ=90 (up/down on screen since S_Hmax horizontal)
-  if (o.wBO>0){
+  ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,R*1.32,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fill();
+  if (o.wBO>0){ // breakouts centred on θ = 90°, 270° (S_hmin sides)
     const hw=rad(o.wBO/2);
-    for (const c of [Math.PI/2, 3*Math.PI/2]){ // screen angle: θ=0 along +x (S_Hmax horizontal)
-      ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.moveTo(cx,cy);
-      const n=40; for(let i=0;i<=n;i++){ const a=c-hw+2*hw*i/n; const f=1-Math.pow(Math.abs(a-c)/hw,2); const rr=R*(1+0.22*f+0.03*Math.sin(i*2.7)*f); ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a)); }
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle=C.rock; ctx.lineWidth=1.5; ctx.stroke();
+    for (const c of [Math.PI/2, 3*Math.PI/2]){
+      const n=40, pts=[]; for(let i=0;i<=n;i++){ const a=c-hw+2*hw*i/n; const f=1-Math.pow(Math.abs(a-c)/hw,2); const rr=R*(1+0.22*f+0.03*Math.sin(i*2.7)*f); pts.push([rr*Math.cos(a),rr*Math.sin(a)]); }
+      ctx.fillStyle=C.mudSoft; ctx.beginPath(); ctx.moveTo(0,0); pts.forEach(p=>ctx.lineTo(p[0],p[1])); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=C.rock; ctx.lineWidth=1.5; ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke();
     }
   }
-  // wall outline
-  ctx.strokeStyle=C.rock; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
-  // tensile cracks at θ=0,180 (left/right)
-  if (o.tens>0){
-    const len=R*(0.18+0.25*Math.min(1,o.tens/20));
-    ctx.strokeStyle=C.tens; ctx.lineWidth=2.2;
-    for (const s of [1,-1]){ ctx.beginPath(); let x=cx+s*R, y=cy; ctx.moveTo(x,y); for(let i=1;i<=6;i++){ x+=s*len/6; y=cy+(i%2?1:-1)*R*0.03; ctx.lineTo(x,y);} ctx.stroke(); }
+  ctx.strokeStyle=C.rock; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.stroke();
+  if (o.tens>0){ // tensile cracks on the S_Hmax sides
+    const len=R*(0.18+0.25*Math.min(1,o.tens/20)); ctx.strokeStyle=C.tens; ctx.lineWidth=2.2;
+    for (const sg of [1,-1]){ ctx.beginPath(); let x=sg*R, y=0; ctx.moveTo(x,y); for(let i=1;i<=6;i++){ x+=sg*len/6; y=(i%2?1:-1)*R*0.03; ctx.lineTo(x,y);} ctx.stroke(); }
   }
-  // far-field arrows
   const arrow=(x1,y1,x2,y2,col,lw)=>{ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const an=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-9*Math.cos(an-0.4),y2-9*Math.sin(an-0.4)); ctx.lineTo(x2-9*Math.cos(an+0.4),y2-9*Math.sin(an+0.4)); ctx.closePath(); ctx.fill(); };
-  const lH=R*0.55*Math.sqrt(o.SH/60)+8, lh=R*0.55*Math.sqrt(o.Sh/60)+8;
-  arrow(cx-R*1.45-lH,cy,cx-R*1.42,cy,C.ink,2.2); arrow(cx+R*1.45+lH,cy,cx+R*1.42,cy,C.ink,2.2);
-  arrow(cx,cy-R*1.45-lh,cx,cy-R*1.42,C.ink2,1.6); arrow(cx,cy+R*1.45+lh,cx,cy+R*1.42,C.ink2,1.6);
-  ctx.fillStyle=C.ink; ctx.font=`600 12px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('S_Hmax', cx-R*1.45-lH-28, cy); ctx.fillText('S_Hmax', cx+R*1.45+lH+28, cy);
-  ctx.fillStyle=C.ink2; ctx.fillText('S_hmin', cx, cy-R*1.45-lh-12); ctx.fillText('S_hmin', cx, cy+R*1.45+lh+12);
+  const lH=R*0.55*Math.sqrt(o.SH/100)+8, lh=R*0.55*Math.sqrt(o.Sh/100)+8;
+  arrow(-R*1.45-lH,0,-R*1.42,0,C.ink,2.2); arrow(R*1.45+lH,0,R*1.42,0,C.ink,2.2);
+  arrow(0,-R*1.45-lh,0,-R*1.42,C.ink2,1.6); arrow(0,R*1.45+lh,0,R*1.42,C.ink2,1.6);
+  ctx.restore();
+  // upright labels at rotated positions
+  ctx.font=`600 12px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=C.ink;
+  for (const sg of [1,-1]){ const p=P(sg*(R*1.45+lH+30),0); ctx.fillText('S_Hmax',p[0],p[1]); }
+  ctx.fillStyle=C.ink2; for (const sg of [1,-1]){ const p=P(0,sg*(R*1.45+lh+13)); ctx.fillText('S_hmin',p[0],p[1]); }
   ctx.fillStyle=C.mud; ctx.font=`11px ${MONO}`; ctx.fillText('mud '+fmt(o.Pw)+' MPa', cx, cy);
+  // compass
+  const nx=18, ny=10;
+  if (oriented){ ctx.strokeStyle=C.ink2; ctx.fillStyle=C.ink2; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(nx,ny+22); ctx.lineTo(nx,ny+4); ctx.stroke(); ctx.beginPath(); ctx.moveTo(nx,ny); ctx.lineTo(nx-4,ny+8); ctx.lineTo(nx+4,ny+8); ctx.closePath(); ctx.fill(); ctx.font=`600 11px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillText('N',nx,ny+24); ctx.font=`10px ${MONO}`; ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.fillText('S_Hmax at '+String(o.az).padStart(3,'0')+'°',nx+10,ny+2); }
+  else { ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('section not oriented',nx-6,ny); }
 }
 
 /* ---------- tab switching ---------- */
@@ -561,12 +561,12 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 (()=>{
   const cv=$('#cv-kirsch'), cvp=$('#cv-kirsch-prof'); const st={SH:40,Sh:25,Pw:20,comp:'hoop'};
   const ctl=$('#ctl-kirsch');
-  const sSH=slider(ctl,{id:'k-SH',label:'S<sub>Hmax</sub>',min:0,max:60,value:40,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
-  const sSh=slider(ctl,{id:'k-Sh',label:'S<sub>hmin</sub>',min:0,max:60,value:25,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
-  slider(ctl,{id:'k-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:80,value:20,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
+  const sSH=slider(ctl,{id:'k-SH',label:'S<sub>Hmax</sub>',min:0,max:100,value:40,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'k-Sh',label:'S<sub>hmin</sub>',min:0,max:100,value:25,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'k-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:100,value:20,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
   $('#k-fringes').addEventListener('change',draw); $('#k-mud').addEventListener('change',draw);
   $('#k-comp').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ $('#k-comp').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); st.comp=b.dataset.c; draw(); }));
-  const N=180, EXT=3.3, SCALE=150, SHEARMAX=90, FSTEP=6, BAND=10; let img=null;
+  const N=180, EXT=3.3, SCALE=200, SHEARMAX=120, FSTEP=6, BAND=10; let img=null;
   function hslToRgb(h,s,l){ const f=(n)=>{const k=(n+h*12)%12; const a=s*Math.min(l,1-l); return l-a*Math.max(-1,Math.min(k-3,9-k,1));}; return [f(0)*255,f(8)*255,f(4)*255]; }
   function colorOf(v,cmp,fr,K){
     if (cmp==='shear'){
@@ -599,7 +599,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     ctx.strokeStyle=rgbStr(K.ink,0.3); ctx.lineWidth=1; ctx.setLineDash([3,4]); [2,3].forEach(n=>{ ctx.beginPath(); ctx.arc(cx,cy,a*n,0,Math.PI*2); ctx.stroke(); }); ctx.setLineDash([]);
     ctx.fillStyle=C.ink; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='bottom'; [2,3].forEach(n=>ctx.fillText(n+'a',cx+a*n*0.707+2,cy-a*n*0.707-2));
     const arrow=(x1,y1,x2,y2,col,lw)=>{ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const an=Math.atan2(y2-y1,x2-x1); ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-9*Math.cos(an-0.4),y2-9*Math.sin(an-0.4)); ctx.lineTo(x2-9*Math.cos(an+0.4),y2-9*Math.sin(an+0.4)); ctx.closePath(); ctx.fill(); };
-    const lH=10+size*0.12*st.SH/60, lh=10+size*0.12*st.Sh/60;
+    const lH=10+size*0.12*st.SH/100, lh=10+size*0.12*st.Sh/100;
     arrow(ox+4,cy,ox+4+lH,cy,C.ink,2.5); arrow(ox+size-4,cy,ox+size-4-lH,cy,C.ink,2.5);
     arrow(cx,oy+4,cx,oy+4+lh,C.ink,2.5); arrow(cx,oy+size-4,cx,oy+size-4-lh,C.ink,2.5);
     ctx.fillStyle=C.ink; ctx.font=`600 12px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('S_Hmax →',ox+6,cy+6); ctx.textAlign='center'; ctx.fillText('S_hmin ↓',cx+40,oy+6);
@@ -609,7 +609,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     for(let i=0;i<bh;i++){ const v=vmax-(i/bh)*(vmax-vmin); ctx.fillStyle=rgbStr(colorOf(v,st.comp,fr,K)); ctx.fillRect(bx,by+i,barW,1.5); }
     ctx.strokeStyle=C.line; ctx.strokeRect(bx+0.5,by+0.5,barW-1,bh-1);
     ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle';
-    const ticks = st.comp==='shear'? [0,30,60,90] : [-150,-100,-50,0,50,100,150];
+    const ticks = st.comp==='shear'? [0,40,80,120] : [-200,-100,0,100,200];
     ticks.forEach(v=>{ const y=by+(1-(v-vmin)/(vmax-vmin))*bh; ctx.strokeStyle=C.ink2; ctx.beginPath(); ctx.moveTo(bx+barW,y); ctx.lineTo(bx+barW+4,y); ctx.stroke(); ctx.fillText((v>0?'+':'')+v,bx+barW+7,y); });
     ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillStyle=C.ink; ctx.font=`600 10px ${MONO}`;
     ctx.fillText(st.comp==='shear'?'τ_max':(st.comp==='hoop'?'σ_θθ':'σ_rr'),bx,by-14); ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.fillText('MPa',bx,by-3);
@@ -644,10 +644,10 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 (()=>{
   const cv=$('#cv-bo'), cvi=$('#cv-bo-img'); const st={SH:45,Sh:30,Pp:15,Pw:18,UCS:50,phi:30,az:68,quiz:false,hidden:68,guess:90};
   const ctl=$('#ctl-bo');
-  const sSH=slider(ctl,{id:'b-SH',label:'S<sub>Hmax</sub>',min:10,max:90,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
-  const sSh=slider(ctl,{id:'b-Sh',label:'S<sub>hmin</sub>',min:10,max:90,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
-  slider(ctl,{id:'b-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:40,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
-  slider(ctl,{id:'b-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:70,value:18,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
+  const sSH=slider(ctl,{id:'b-SH',label:'S<sub>Hmax</sub>',min:0,max:100,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'b-Sh',label:'S<sub>hmin</sub>',min:0,max:100,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'b-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:100,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
+  slider(ctl,{id:'b-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:100,value:18,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
   slider(ctl,{id:'b-UCS',label:'Rock strength UCS',min:5,max:150,value:50,unit:'MPa'},v=>{st.UCS=v; draw();});
   slider(ctl,{id:'b-phi',label:'Friction angle φ',min:15,max:45,value:30,unit:'°'},v=>{st.phi=v; draw();});
   const sAz=slider(ctl,{id:'b-az',label:'S<sub>Hmax</sub> azimuth',min:0,max:179,value:68,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.az=v; draw();});
@@ -660,19 +660,19 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
     const w=breakoutWidth(st.SH,st.Sh,st.Pw,st.Pp,st.UCS,st.phi); const az = st.quiz? st.hidden: st.az;
     // cross-section left
-    const R=Math.min(H*0.26, W*0.16); drawSection(ctx, W*0.3, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,wBO:w,tens:0,C});
+    const R=Math.min(H*0.22, W*0.115); drawSection(ctx, W*0.31, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,wBO:w,tens:0,C, az: st.quiz? undefined: az});
     // Mohr circle right
     const L=W*0.58, Rr=W-16, T=30, B=H-30; const q=q_of(st.phi); const s3=st.Pw-st.Pp, s1=hoopWall(st.SH,st.Sh,st.Pw,st.Pp,90);
-    const SMIN=-20, SMAX=240, TMAX=130; const scl=Math.min((Rr-L)/(SMAX-SMIN),(B-T)/TMAX); const X=s=>L+(s-SMIN)*scl; const Y0=B; const smax=SMAX;
+    const SMIN=-20, SMAX=300, TMAX=160; const scl=Math.min((Rr-L)/(SMAX-SMIN),(B-T)/TMAX); const X=s=>L+(s-SMIN)*scl; const Y0=B; const smax=SMAX;
     ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(L,Y0); ctx.lineTo(X(SMAX),Y0); ctx.moveTo(X(0),T); ctx.lineTo(X(0),Y0); ctx.stroke();
     ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
-    for(let s=0;s<=SMAX;s+=40) ctx.fillText(fmt(s),X(s),Y0+4);
+    for(let s=0;s<=SMAX;s+=50) ctx.fillText(fmt(s),X(s),Y0+4);
     ctx.save(); ctx.beginPath(); ctx.rect(L,T-2,X(SMAX)-L,B-T+2); ctx.clip();
     ctx.textAlign='left'; ctx.fillText('effective normal stress (MPa)',L,H-14); ctx.save(); ctx.translate(L-4,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('shear (MPa)',0,0); ctx.restore();
     // envelope: tau = c + sigma tan(phi), c = UCS(1-sin)/(2cos)
     const sp=Math.sin(rad(st.phi)), cp=Math.cos(rad(st.phi)); const coh=st.UCS*(1-sp)/(2*cp);
     ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(0),Y0-coh*scl); const sEnd=smax; ctx.lineTo(X(sEnd),Y0-(coh+sEnd*Math.tan(rad(st.phi)))*scl); ctx.stroke();
-    ctx.fillStyle=C.ink2; ctx.font=`11px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('Mohr–Coulomb envelope',Rr-4,T+14);
+    ctx.fillStyle=C.ink2; ctx.font=`11px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('Mohr–Coulomb envelope',Rr-4,T+30);
     // circle
     const cX=X((s1+s3)/2), rad_=Math.abs(s1-s3)/2*scl; const fail=w>0;
     ctx.strokeStyle=fail?C.bad:C.mud; ctx.fillStyle=fail?C.badSoft:C.mudSoft; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cX,Y0,rad_,Math.PI,0); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -700,17 +700,17 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 (()=>{
   const cv=$('#cv-te'), cvi=$('#cv-te-img'), cvw=$('#cv-te-win'); const st={SH:45,Sh:30,Pp:15,Pw:20,Ts:5,dT:0}; const UCS=50, phi=30, az=68;
   const ctl=$('#ctl-te');
-  const sSH=slider(ctl,{id:'t-SH',label:'S<sub>Hmax</sub>',min:10,max:90,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
-  const sSh=slider(ctl,{id:'t-Sh',label:'S<sub>hmin</sub>',min:10,max:90,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
-  slider(ctl,{id:'t-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:40,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
-  slider(ctl,{id:'t-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:80,step:0.5,value:20,unit:'MPa',cls:'mud',fmt:v=>v.toFixed(1)},v=>{st.Pw=v; draw();});
+  const sSH=slider(ctl,{id:'t-SH',label:'S<sub>Hmax</sub>',min:0,max:100,value:45,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
+  const sSh=slider(ctl,{id:'t-Sh',label:'S<sub>hmin</sub>',min:0,max:100,value:30,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
+  slider(ctl,{id:'t-Pp',label:'Pore pressure P<sub>p</sub>',min:0,max:100,value:15,unit:'MPa'},v=>{st.Pp=v; draw();});
+  slider(ctl,{id:'t-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:100,step:0.5,value:20,unit:'MPa',cls:'mud',fmt:v=>v.toFixed(1)},v=>{st.Pw=v; draw();});
   slider(ctl,{id:'t-Ts',label:'Tensile strength T<sub>s</sub>',min:0,max:15,value:5,unit:'MPa'},v=>{st.Ts=v; draw();});
   slider(ctl,{id:'t-dT',label:'Cooling of the wall ΔT',min:0,max:200,value:0,unit:'°C'},v=>{st.dT=v; draw();});
   function draw(){
     const {ctx,W,H}=fitCanvas(cv), C=themeColors(); ctx.clearRect(0,0,W,H);
     const h0=hoopWall(st.SH,st.Sh,st.Pw,st.Pp,0,st.dT); const tensEx=-st.Ts-h0; // >0 means fractured
     const w=breakoutWidth(st.SH,st.Sh,st.Pw,st.Pp,UCS,phi); // note: cooling ignored for breakouts (conservative)
-    const R=Math.min(H*0.26, W*0.16); drawSection(ctx, W*0.3, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,dT:st.dT,wBO:w,tens:tensEx>0?tensEx:0,C});
+    const R=Math.min(H*0.22, W*0.115); drawSection(ctx, W*0.31, H/2, R, {SH:st.SH,Sh:st.Sh,Pw:st.Pw,Pp:st.Pp,dT:st.dT,wBO:w,tens:tensEx>0?tensEx:0,C, az});
     // hoop stress vs azimuth plot
     const L=W*0.58, Rr=W-16, T=30, B=H-30; const q=q_of(phi); const thr=UCS+q*(st.Pw-st.Pp);
     let vmax=Math.max(thr*1.1, hoopWall(st.SH,st.Sh,st.Pw,st.Pp,90,st.dT)*1.1, 40), vmin=Math.min(-st.Ts*2-10, h0*1.1);
@@ -845,7 +845,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('pressure or stress (MPa)', L, H-8); ctx.save(); ctx.translate(12,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('depth (m)',0,0); ctx.restore();
     if (st.op){ ctx.strokeStyle=C.muted; ctx.setLineDash([2,4]); ctx.beginPath(); ctx.moveTo(L,Y(st.zop)); ctx.lineTo(R,Y(st.zop)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=C.muted; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('top of overpressure',R-4,Y(st.zop)-2); }
     const curve=(f,col,dash,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw||2; ctx.setLineDash(dash||[]); ctx.beginPath(); let on=false; for(let z=0;z<=ZMAX;z+=10){ const v=f(z); if(v>PMAX){on=false;continue;} on?ctx.lineTo(X(v),Y(z)):ctx.moveTo(X(v),Y(z)); on=true;} ctx.stroke(); ctx.setLineDash([]); };
-    curve(z=>at(z).Sv,C.muted,[4,4],1.5); curve(z=>at(z).Pp,C.tens); curve(z=>at(z).Sh,C.bad);
+    curve(z=>at(z).Sv,C.muted,[4,4],1.5); curve(z=>{const p=at(z); return 3*p.Sh-p.SH-p.Pp+SCEN.Ts;},C.accent,[6,4],1.5); curve(z=>at(z).Pp,C.tens); curve(z=>at(z).Sh,C.bad);
     // mud line, coloured by safety
     let zsafe=null;
     for(let z=0;z<ZMAX;z+=10){ const p=at(z+5); const pm=st.mw*G*(z+5); const inside=pm>=p.Pp&&pm<=p.Sh; if(!inside&&zsafe===null&&z>0) zsafe=z; ctx.strokeStyle=inside?C.ok:C.bad; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(X(st.mw*G*z),Y(z)); ctx.lineTo(X(Math.min(PMAX,st.mw*G*(z+10))),Y(z+10)); ctx.stroke(); if (st.mw*G*(z+10)>PMAX) break; }
@@ -854,7 +854,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     const gsh1=gw+(gr-gw)/q, gsh2=st.op? gr : gsh1;
     const lab=(txt,p,z,col,dy)=>{ if (p>PMAX) return; ctx.fillStyle=col; ctx.font=`600 10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(txt,X(p)+5,Y(z)+(dy||0)); };
     const zl=ZMAX*0.96; const pE=at(zl);
-    lab('S_v '+gr.toFixed(1)+' MPa/km',pE.Sv,zl,C.muted); lab('P_p',pE.Pp,zl,C.tens,-8); lab('S_hmin',pE.Sh,zl,C.bad,8);
+    lab('S_v '+gr.toFixed(1)+' MPa/km',pE.Sv,zl,C.muted); lab('P_p',pE.Pp,zl,C.tens,-8); lab('S_hmin',pE.Sh,zl,C.bad,8); { const zb=ZMAX*0.62, pb=at(zb); lab('P_b, wall breaks',3*pb.Sh-pb.SH-pb.Pp+SCEN.Ts,zb,C.accent); }
     lab('mud '+gm.toFixed(1)+' MPa/km', st.mw*G*zl, zl*0.55, C.mud);
     // readouts
     $('#d-gpp').textContent=gw.toFixed(1); $('#d-gop').textContent=st.op?gr.toFixed(1):'–'; $('#d-gsv').textContent=gr.toFixed(1);
@@ -878,7 +878,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   }
   const st={mw:1.15,bit:0,shoe:0,shoes:[],sections:[],drilling:false,fail:null,last:0};
   const ctl=$('#ctl-window');
-  slider(ctl,{id:'w-mw',label:'Mud weight (open hole)',min:0.8,max:2.4,step:0.01,value:1.15,unit:'SG',cls:'mud',fmt:v=>v.toFixed(2)},v=>{st.mw=v; check(); draw();});
+  slider(ctl,{id:'w-mw',label:'Mud weight (open hole)',min:0.8,max:2.4,step:0.01,value:1.15,unit:'SG',cls:'mud',fmt:v=>v.toFixed(2)},v=>{st.mw=v; st.fail=null; check(); draw();});
   const sRate=slider(ctl,{id:'w-rate',label:'Animation speed',min:10,max:120,step:5,value:40,unit:'m/s'});
   const status=$('#w-status');
   const boAt = z => { const p=SCEN.at(z); return breakoutWidth(p.SH,p.Sh,st.mw*G*z,p.Pp,SCEN.UCS,PHI); };

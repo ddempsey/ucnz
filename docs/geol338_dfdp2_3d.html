@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DFDP-2B in Three Dimensions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#f2f4f6; --panel:#ffffff; --ink:#182028; --ink2:#4a5561; --muted:#8a95a1; --line:#d5dbe1;
+  --accent:#c9791b; --mud:#2a8583; --rock:#7b6f60; --fault:#c3423f; --fol:#2f6fb3; --ok:#3a8f5c; --sky:#e7edf3;
+  --sans:"IBM Plex Sans",system-ui,Segoe UI,Roboto,sans-serif; --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171c; --panel:#1b2229; --ink:#e7eaed; --ink2:#b3bcc5; --muted:#7d8791; --line:#303941;
+  --accent:#e29a3c; --mud:#4fb3af; --rock:#8d8172; --fault:#e0625e; --fol:#5c98dc; --ok:#57b47c; --sky:#232c35;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171c; --panel:#1b2229; --ink:#e7eaed; --ink2:#b3bcc5; --muted:#7d8791; --line:#303941;
+  --accent:#e29a3c; --mud:#4fb3af; --rock:#8d8172; --fault:#e0625e; --fol:#5c98dc; --ok:#57b47c; --sky:#232c35;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:12px 32px;padding-inline:16px}
+.topbar{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding-block:4px 10px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.topbar h1{font-family:var(--cond);font-weight:600;font-size:22px;margin:0}
+.topbar .course{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.lead{margin:0 0 14px;max-width:72ch;font-size:16px}
+sup.fn{font-family:var(--mono);font-size:11px;color:var(--accent);margin-left:1px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;min-width:0}
+#view{position:relative;width:100%;aspect-ratio:4/3;max-width:100%;background:var(--sky);border-radius:4px;overflow:hidden;cursor:grab;touch-action:none}
+#view canvas{display:block;width:100%!important;height:100%!important}
+#labels{position:absolute;inset:0;pointer-events:none}
+#labels span{position:absolute;transform:translate(-50%,-50%);font:600 11px var(--mono);color:var(--ink);white-space:nowrap;text-shadow:0 0 3px var(--sky),0 0 3px var(--sky)}
+#labels span.dim{color:var(--ink2);font-weight:400}
+.nets{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media (max-width:560px){.nets{grid-template-columns:1fr}}
+.nets canvas{display:block;width:100%;height:auto;max-width:100%}
+.nets .cap{font:11px var(--mono);color:var(--muted);text-align:center;margin-top:4px}
+.panel{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.card h3{margin:0 0 8px;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding-block:5px}
+.ctl .l{font-size:13.5px;color:var(--ink2)}
+.ctl output{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0;height:22px}
+.ctl.mud input[type=range]{accent-color:var(--mud)}
+.tog{display:flex;align-items:center;gap:8px;padding-block:4px;font-size:13.5px;color:var(--ink2)}
+.tog input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.btns{display:flex;gap:6px;flex-wrap:wrap;padding-block:4px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 13px var(--sans);padding:6px 10px;border-radius:4px;cursor:pointer}
+.btn:focus-visible,.ctl input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.read{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;color:var(--ink2)}
+.read output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);padding:8px 4px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.legend i.box{height:10px;opacity:.6}
+details.notes{margin-top:16px;border-top:1px solid var(--line);padding-top:8px;max-width:80ch}
+details.notes summary{cursor:pointer;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+details.notes ol{margin:8px 0 0;padding-left:22px;font-size:13.5px;color:var(--ink2)}
+details.notes li{margin-bottom:6px}
+details.notes li::marker{font-family:var(--mono);color:var(--accent)}
+details.notes a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><h1>DFDP-2B in Three Dimensions</h1><span class="course">GEOL338 · the hole that walked with the fabric</span></div>
+  <p class="lead">Drilled vertically into the Alpine Fault hanging wall, DFDP-2B began to curve at about 300 m and never stopped. It reached 893 m along the hole but only 816 m down, a quarter of a kilometre north-north-west of where it started, tracking the up-dip direction of the foliation it was cutting<sup class="fn">1</sup>.</p>
+
+  <div class="lab">
+    <div class="fig">
+      <div id="view"><div id="labels"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--mud);height:4px"></i>borehole (drilled)</span>
+        <span><i style="background:var(--mud);height:2px;opacity:.5"></i>extrapolated</span>
+        <span><i style="background:var(--ink);height:2px;opacity:.5"></i>vertical reference</span>
+        <span><i class="box" style="background:var(--fol)"></i>foliation, 60°→145°</span>
+        <span><i class="box" style="background:var(--fault)"></i>Alpine Fault</span>
+      </div>
+      <div class="nets">
+        <div><canvas id="net-fol" width="360" height="360" aria-label="Stereonet of foliation poles and the fault"></canvas><div class="cap">poles to foliation, mean foliation and fault as great circles<sup class="fn">2</sup></div></div>
+        <div><canvas id="net-well" width="360" height="360" aria-label="Stereonet of borehole direction with depth"></canvas><div class="cap">borehole direction with depth, and where the foliation points<sup class="fn">3</sup></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Drill the hole</h3>
+        <div id="ctl-drill"></div>
+        <div class="read" style="margin-top:6px">
+          <span>Inclination from vertical</span><output id="r-dev">–</output>
+          <span>Azimuth of deviation</span><output id="r-az">–</output>
+          <span>True vertical depth</span><output id="r-tvd">–</output>
+          <span>Horizontal offset from wellhead</span><output id="r-off">–</output>
+          <span>Rock at the bit<sup class="fn">4</sup></span><output id="r-rock">–</output>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Geology you can argue about<sup class="fn">5</sup></h3>
+        <div id="ctl-geo"></div>
+        <label class="tog"><input type="checkbox" id="t-fol" checked> Foliation sheets along the hole</label>
+        <label class="tog"><input type="checkbox" id="t-fault" checked> Alpine Fault plane</label>
+        <label class="tog"><input type="checkbox" id="t-ext" checked> Extrapolate hole to the fault</label>
+        <label class="tog"><input type="checkbox" id="t-vert" checked> Vertical reference line</label>
+        <div class="read" style="margin-top:6px">
+          <span>Hole would meet the fault at</span><output id="r-hit">–</output>
+          <span>Fault surface trace, from wellhead</span><output id="r-trace">–</output>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Viewpoint</h3>
+        <div class="btns">
+          <button class="btn" data-view="strike">Along strike</button>
+          <button class="btn" data-view="nw">From the north-west</button>
+          <button class="btn" data-view="plan">Plan view</button>
+          <button class="btn" data-view="oblique">Oblique</button>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:4px">Drag to orbit, scroll or pinch to zoom.</div>
+      </div>
+    </div>
+  </div>
+
+  <details class="notes"><summary>Notes and sources</summary><ol>
+    <li>Trajectory from the mean hole azimuth and deviation of the 13 televiewer logging runs in Table A1 of Massiot et al. (2018), <a href="https://doi.org/10.1029/2017GC007368">doi.org/10.1029/2017GC007368</a>, integrated along measured depth. Azimuths are geographic (declination 23.15°E already removed). The integration gives 816 m true vertical depth at 893 m measured depth; the report quotes 818 m. Casing shoe in basement at 264 m. The J-shaped curve has a radius of about 700 m (GNS Science Report 2015/50, Figure 65).</li>
+    <li>Lower hemisphere, equal area. Foliation planes in the televiewer log average 57°→145° in the preliminary interpretation (SR 2015/50, Figures 66 and 67) and 60°→145° in Massiot et al. (2018). The pole cloud here is synthetic, drawn around that mean with a spread chosen to look like Figure 67, not the measured data. The fault great circle uses the dip you choose and the regional dip direction of 145°.</li>
+    <li>Each dot is the direction the hole was heading at that depth: a vertical hole plots at the centre, and the dots walk outward as inclination grows. The star is the pole to the foliation, at azimuth 325° and plunge 30°. The hole drifted toward the foliation up-dip direction, 10° to 30° clockwise of it, which the report attributes to the clockwise rotation of the bit climbing the northern side of the hole.</li>
+    <li>Cuttings stratigraphy after Toy et al. (2017) as summarised by Massiot et al. (2018): Quaternary sediments to 239 m, Alpine Schist to 280 m, protomylonite to 852 m, mylonite to 893 m.</li>
+    <li>The fault was not reached. The pre-drill plan assumed a 40° dip; foliation in the hole suggests about 60°; Massiot et al. shade the plausible fault position for dips of 50° to 70°. Drilling stopped an estimated 100 to 200 m short. The two sliders span those ranges. The dip direction is fixed at 145°, the regional dip direction of the fault and the foliation.</li>
+  </ol></details>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $=s=>document.querySelector(s); const rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const MONO='"IBM Plex Mono",ui-monospace,Consolas,monospace';
+const T=()=>({ink:cssVar('--ink'),ink2:cssVar('--ink2'),muted:cssVar('--muted'),line:cssVar('--line'),panel:cssVar('--panel'),sky:cssVar('--sky'),mud:cssVar('--mud'),fault:cssVar('--fault'),fol:cssVar('--fol'),accent:cssVar('--accent'),rock:cssVar('--rock'),ok:cssVar('--ok')});
+function slider(parent,o,onInput){ const lab=document.createElement('label'); lab.className='ctl'+(o.cls?' '+o.cls:''); lab.htmlFor=o.id;
+  lab.innerHTML=`<span class="l">${o.label}</span><output></output><input type="range" id="${o.id}" min="${o.min}" max="${o.max}" step="${o.step||1}" value="${o.value}">`;
+  parent.appendChild(lab); const inp=lab.querySelector('input'),out=lab.querySelector('output'); const show=()=>{out.textContent=(o.fmt?o.fmt(+inp.value):inp.value)+(o.unit?' '+o.unit:'');};
+  inp.addEventListener('input',()=>{show(); onInput&&onInput(+inp.value);}); show(); return {get v(){return +inp.value;}, set v(x){inp.value=x; show();}}; }
+
+/* ---------------- survey and trajectory (E, N, down) ---------------- */
+const SURVEY=[[0,0,0],[260,0,0],[267,2.8,217],[296,2.2,300],[329,3.9,335],[362,7.7,343],[420,13.5,345],[461,16.1,345],[471,16.4,346],[500,18.7,347],[535,22.3,345],[672,34.8,343],[808,42.3,340],[851,43.5,341],[886,44.9,341],[893,45.0,340.6]];
+const TD=893, MDMAX=1500;
+function devaz(md){ for(let i=0;i<SURVEY.length-1;i++){ const a=SURVEY[i],b=SURVEY[i+1]; if(md>=a[0]&&md<=b[0]){ const t=b[0]>a[0]?(md-a[0])/(b[0]-a[0]):0; return [a[1]+t*(b[1]-a[1]), a[2]+t*(b[2]-a[2])]; } } return [SURVEY.at(-1)[1],SURVEY.at(-1)[2]]; }
+const path=[{md:0,E:0,N:0,D:0}]; { let E=0,N=0,D=0; for(let k=0;k<MDMAX;k++){ const [dv,az]=devaz(k+0.5); E+=Math.sin(rad(dv))*Math.sin(rad(az)); N+=Math.sin(rad(dv))*Math.cos(rad(az)); D+=Math.cos(rad(dv)); path.push({md:k+1,E,N,D}); } }
+const at=md=>path[clamp(Math.round(md),0,MDMAX)];
+const rockAt=md=> md<239?'Quaternary sediments': md<280?'Alpine Schist': md<852?'protomylonite': md<=TD?'mylonite':'not drilled';
+const DIPDIR=145; // fault and foliation dip direction
+const st={md:TD, faultDip:60, faultGap:150, folDip:60};
+
+/* ---------------- three.js scene: x = E, y = up, z = S ---------------- */
+const V=(E,N,U)=>new THREE.Vector3(E,U,-N);
+const view=$('#view'), labelsEl=$('#labels');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1)); view.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); const camera=new THREE.PerspectiveCamera(38,4/3,10,20000);
+scene.add(new THREE.HemisphereLight(0xffffff,0x667788,0.9)); const sun=new THREE.DirectionalLight(0xffffff,0.6); sun.position.set(-600,900,400); scene.add(sun);
+const target=V(-40,140,-450); const orbit={theta:rad(290),phi:rad(22),r:2100};
+function placeCamera(){ const ct=Math.cos(orbit.phi); camera.position.set(target.x+orbit.r*ct*Math.sin(orbit.theta), target.y+orbit.r*Math.sin(orbit.phi), target.z+orbit.r*ct*Math.cos(orbit.theta)); camera.lookAt(target); }
+const hex=c=>new THREE.Color(c);
+const G=new THREE.Group(); scene.add(G); // rebuilt on change
+const labels=[]; // {pos:Vector3,text,cls}
+function addLabel(pos,text,cls){ labels.push({pos,text,cls}); }
+function quad(pts,color,opacity){ const g=new THREE.BufferGeometry(); const a=new Float32Array(18); const [p0,p1,p2,p3]=pts; [p0,p1,p2,p0,p2,p3].forEach((p,i)=>{a[3*i]=p.x;a[3*i+1]=p.y;a[3*i+2]=p.z;}); g.setAttribute('position',new THREE.BufferAttribute(a,3)); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:hex(color),transparent:true,opacity,side:THREE.DoubleSide,depthWrite:false})); const e=new THREE.LineSegments(new THREE.EdgesGeometry(g),new THREE.LineBasicMaterial({color:hex(color),transparent:true,opacity:Math.min(1,opacity+0.35)})); const gr=new THREE.Group(); gr.add(m); gr.add(e); return gr; }
+function tube(points,color,radius,opacity=1){ const c=new THREE.CatmullRomCurve3(points); const g=new THREE.TubeGeometry(c,Math.max(8,points.length),radius,10,false); return new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:hex(color),transparent:opacity<1,opacity})); }
+function line(points,color,opacity=1,dashed=false){ const g=new THREE.BufferGeometry().setFromPoints(points); const m=dashed? new THREE.LineDashedMaterial({color:hex(color),transparent:true,opacity,dashSize:18,gapSize:12}) : new THREE.LineBasicMaterial({color:hex(color),transparent:opacity<1,opacity}); const l=new THREE.Line(g,m); if(dashed) l.computeLineDistances(); return l; }
+// plane geometry helpers for dip/dipdir planes: strike unit vector and down-dip unit vector in (E,N,U)
+function planeVecs(dip,dd){ const b=rad(dd),d=rad(dip); return { s:[-Math.cos(b),Math.sin(b),0], dn:[Math.sin(b)*Math.cos(d),Math.cos(b)*Math.cos(d),-Math.sin(d)], up:[-Math.sin(b)*Math.cos(d),-Math.cos(b)*Math.cos(d),Math.sin(d)] }; }
+const add=(p,v,k)=>[p[0]+v[0]*k,p[1]+v[1]*k,p[2]+v[2]*k];
+
+let faultInfo={};
+function build(){
+  while(G.children.length) G.remove(G.children[0]); labels.length=0; const C=T();
+  // ground grid and north arrow
+  const grid=new THREE.GridHelper(1800,18,hex(C.line),hex(C.line)); grid.position.set(-100,0,-150); grid.material.transparent=true; grid.material.opacity=0.7; G.add(grid);
+  G.add(line([V(-100,800,0),V(-100,950,0)],C.ink,0.9)); addLabel(V(-100,990,0),'N','');
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(14,40,12),new THREE.MeshLambertMaterial({color:hex(C.ink)})); cone.position.copy(V(-100,950,0)); cone.rotation.x=-Math.PI/2; G.add(cone);
+  // depth ruler at the wellhead
+  for(let d=0;d<=1200;d+=200){ G.add(line([V(-260,-200,-d),V(-230,-200,-d)],C.muted,0.8)); addLabel(V(-320,-200,-d),d+' m','dim'); } G.add(line([V(-260,-200,0),V(-260,-200,-1200)],C.muted,0.8));
+  // borehole
+  const drilled=[],ext=[]; for(let md=0;md<=Math.min(st.md,TD);md+=5){ const p=at(md); drilled.push(V(p.E,p.N,-p.D)); } { const p=at(Math.min(st.md,TD)); drilled.push(V(p.E,p.N,-p.D)); }
+  if (drilled.length>1) G.add(tube(drilled,C.mud,7));
+  const head=at(st.md); const bit=new THREE.Mesh(new THREE.SphereGeometry(13,14,14),new THREE.MeshLambertMaterial({color:hex(C.accent)})); bit.position.copy(V(head.E,head.N,-head.D)); G.add(bit);
+  addLabel(V(head.E-70,head.N,-head.D-20), st.md>=TD?'TD 893 m':Math.round(st.md)+' m','');
+  const shoe=at(264); G.add(new THREE.Mesh(new THREE.TorusGeometry(16,3,8,24),new THREE.MeshLambertMaterial({color:hex(C.ink)})).translateX(shoe.E).translateY(-shoe.D).translateZ(-shoe.N)); G.children.at(-1).rotation.x=Math.PI/2; addLabel(V(shoe.E+110,shoe.N,-shoe.D),'casing shoe 264 m','dim');
+  addLabel(V(0,0,45),'DFDP-2B wellhead','');
+  if ($('#t-vert').checked) G.add(line([V(0,0,0),V(0,0,-820)],C.ink,0.35,true));
+  // fault plane through the extrapolated hole at TD + gap
+  const hit=at(TD+st.faultGap); const pv=planeVecs(st.faultDip,DIPDIR); const P=[hit.E,hit.N,-hit.D];
+  const t0=hit.D/Math.sin(rad(st.faultDip)); const trace=add(P,pv.up,t0); // surface trace point
+  const L=1250/Math.sin(rad(st.faultDip)); const bottom=add(trace,pv.dn,L); const W=900;
+  faultInfo={hit,trace,traceDist:Math.hypot(trace[0],trace[1]),traceAz:(deg(Math.atan2(trace[0],trace[1]))+360)%360};
+  if ($('#t-fault').checked){
+    G.add(quad([V(...add(trace,pv.s,-W)),V(...add(trace,pv.s,W)),V(...add(bottom,pv.s,W)),V(...add(bottom,pv.s,-W))],C.fault,0.28));
+    G.add(line([V(...add(trace,pv.s,-W)),V(...add(trace,pv.s,W))],C.fault,1));
+    addLabel(V(...add(trace,pv.s,-W*0.75)),'Alpine Fault trace',''); addLabel(V(...add(add(trace,pv.dn,L*0.7),pv.s,W*0.55)),'Alpine Fault, '+st.faultDip+'° → 145°','dim');
+  }
+  if ($('#t-ext').checked && st.md>=TD){ for(let md=TD;md<=TD+st.faultGap;md+=10){ const p=at(md); ext.push(V(p.E,p.N,-p.D)); } if(ext.length>1) G.add(line(ext,C.mud,0.6,true)); const h=new THREE.Mesh(new THREE.SphereGeometry(9,12,12),new THREE.MeshLambertMaterial({color:hex(C.fault)})); h.position.copy(V(hit.E,hit.N,-hit.D)); G.add(h); addLabel(V(hit.E+120,hit.N,-hit.D-10),'fault at '+(TD+st.faultGap)+' m MD','dim'); }
+  // foliation sheets along the drilled hole
+  if ($('#t-fol').checked){ const fv=planeVecs(st.folDip,DIPDIR); const S=110; for(let md=330;md<=Math.min(st.md,TD)-10;md+=90){ const p=at(md); const c=[p.E,p.N,-p.D]; G.add(quad([V(...add(add(c,fv.s,-S),fv.dn,-S)),V(...add(add(c,fv.s,S),fv.dn,-S)),V(...add(add(c,fv.s,S),fv.dn,S)),V(...add(add(c,fv.s,-S),fv.dn,S))],C.fol,0.22)); }
+    if (st.md>500){ const p=at(560); addLabel(V(p.E+230,p.N,-p.D),'foliation '+st.folDip+'° → 145°','dim'); } }
+  // readouts
+  const [dv,az]=devaz(Math.min(st.md,TD)); const p=at(Math.min(st.md,TD));
+  $('#r-dev').textContent=dv.toFixed(1)+'°'; $('#r-az').textContent= dv<1? '–' : String(Math.round(az)%360).padStart(3,'0')+'°'; $('#r-tvd').textContent=Math.round(p.D)+' m'; $('#r-off').textContent=Math.round(Math.hypot(p.E,p.N))+' m toward '+String(Math.round((deg(Math.atan2(p.E,p.N))+360)%360)).padStart(3,'0')+'°';
+  $('#r-rock').textContent=rockAt(Math.min(st.md,TD)); $('#r-hit').textContent=(TD+st.faultGap)+' m MD, '+Math.round(hit.D)+' m TVD'; $('#r-trace').textContent=Math.round(faultInfo.traceDist)+' m toward '+String(Math.round(faultInfo.traceAz)).padStart(3,'0')+'°';
+  drawNets(C); render();
+}
+function render(){ const w=view.clientWidth,h=view.clientHeight; if (renderer.domElement.width!==Math.round(w*renderer.getPixelRatio())){ renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+  placeCamera(); renderer.setClearColor(0x000000,0); renderer.render(scene,camera);
+  // labels
+  labelsEl.innerHTML=''; const v=new THREE.Vector3(); labels.forEach(L=>{ v.copy(L.pos).project(camera); if (v.z>1) return; const s=document.createElement('span'); s.textContent=L.text; s.className=L.cls; s.style.left=((v.x+1)/2*w)+'px'; s.style.top=((1-v.y)/2*h)+'px'; labelsEl.appendChild(s); }); }
+// orbit
+let drag=null, pinch=null; const ptrs=new Map();
+view.addEventListener('pointerdown',e=>{ ptrs.set(e.pointerId,[e.clientX,e.clientY]); view.setPointerCapture(e.pointerId); if(ptrs.size===1){ drag={x:e.clientX,y:e.clientY,th:orbit.theta,ph:orbit.phi}; view.style.cursor='grabbing'; } else if(ptrs.size===2){ const a=[...ptrs.values()]; pinch={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),r:orbit.r}; drag=null; } });
+view.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId,[e.clientX,e.clientY]); if(pinch&&ptrs.size===2){ const a=[...ptrs.values()]; const d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); orbit.r=clamp(pinch.r*pinch.d/d,600,6000); render(); } else if(drag){ orbit.theta=drag.th-(e.clientX-drag.x)*0.006; orbit.phi=clamp(drag.ph+(e.clientY-drag.y)*0.006,-0.35,1.52); render(); } });
+const up=e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(ptrs.size===0){ drag=null; view.style.cursor='grab'; } }; view.addEventListener('pointerup',up); view.addEventListener('pointercancel',up);
+view.addEventListener('wheel',e=>{ e.preventDefault(); orbit.r=clamp(orbit.r*(e.deltaY>0?1.1:0.91),600,6000); render(); },{passive:false});
+const VIEWS={strike:{theta:rad(305),phi:rad(6),r:2300}, nw:{theta:rad(215),phi:rad(20),r:2300}, plan:{theta:rad(180),phi:rad(89),r:2600}, oblique:{theta:rad(290),phi:rad(22),r:2100}};
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{ Object.assign(orbit,VIEWS[b.dataset.view]); render(); }));
+
+/* ---------------- controls ---------------- */
+slider($('#ctl-drill'),{id:'s-md',label:'Measured depth along the hole',min:0,max:TD,step:1,value:TD,unit:'m',cls:'mud'},v=>{st.md=v; build();});
+const cg=$('#ctl-geo');
+slider(cg,{id:'s-fd',label:'Alpine Fault dip',min:40,max:70,value:60,unit:'°'},v=>{st.faultDip=v; build();});
+slider(cg,{id:'s-fg',label:'Fault beyond total depth',min:20,max:400,step:10,value:150,unit:'m'},v=>{st.faultGap=v; build();});
+slider(cg,{id:'s-fo',label:'Foliation dip',min:40,max:70,value:60,unit:'°'},v=>{st.folDip=v; build();});
+['t-fol','t-fault','t-ext','t-vert'].forEach(id=>$('#'+id).addEventListener('change',build));
+
+/* ---------------- stereonets (lower hemisphere, equal area; x=E, y=N, z=up) ---------------- */
+function fitCanvas(cv){ const dpr=Math.min(2,window.devicePixelRatio||1); const w=cv.clientWidth||cv.width; cv.width=Math.round(w*dpr); cv.height=Math.round(w*dpr); cv.style.height=w+'px'; const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,W:w,H:w}; }
+const proj=(v,cx,cy,R)=>{ const th=Math.acos(clamp(-v[2],-1,1)); const r=Math.SQRT2*Math.sin(th/2)*R; const h=Math.hypot(v[0],v[1])||1e-9; return [cx+r*v[0]/h, cy-r*v[1]/h]; };
+const vecFrom=(az,plunge)=>[Math.cos(rad(plunge))*Math.sin(rad(az)),Math.cos(rad(plunge))*Math.cos(rad(az)),-Math.sin(rad(plunge))];
+function netFrame(ctx,cx,cy,R,C,title){ ctx.fillStyle=C.panel; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.setLineDash([2,4]); [30,60].forEach(pl=>{ ctx.beginPath(); ctx.arc(cx,cy,Math.SQRT2*Math.sin(rad(90-pl)/2)*R,0,Math.PI*2); ctx.stroke(); }); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke(); ctx.strokeStyle=C.ink2; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  for(let a=0;a<360;a+=30){ const t=a%90?4:7; ctx.beginPath(); ctx.moveTo(cx+R*Math.sin(rad(a)),cy-R*Math.cos(rad(a))); ctx.lineTo(cx+(R-t)*Math.sin(rad(a)),cy-(R-t)*Math.cos(rad(a))); ctx.stroke(); }
+  ctx.fillStyle=C.ink; ctx.font=`600 12px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('N',cx,cy-R-11); ctx.fillText('S',cx,cy+R+11); ctx.fillText('E',cx+R+11,cy); ctx.fillText('W',cx-R-11,cy);
+  ctx.fillStyle=C.muted; ctx.font=`11px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(title,4,4); }
+function greatCircle(ctx,dip,dd,col,lw,cx,cy,R){ const pv=planeVecs(dip,dd); ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath(); for(let i=0;i<=90;i++){ const t=Math.PI*i/90; const v=[Math.cos(t)*pv.s[0]+Math.sin(t)*pv.dn[0],Math.cos(t)*pv.s[1]+Math.sin(t)*pv.dn[1],Math.cos(t)*pv.s[2]+Math.sin(t)*pv.dn[2]]; const p=proj(v,cx,cy,R); i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); } ctx.stroke(); }
+// synthetic Fisher-like pole cloud about the mean foliation pole (deterministic)
+const CLOUD=(()=>{ let seed=12345; const rnd=()=>{seed=(seed*16807)%2147483647; return seed/2147483647;}; const pts=[]; for(let i=0;i<380;i++){ const k=(rnd()<0.85? 7: 20); const ang=Math.sqrt(-2*Math.log(1-rnd()))*k*(Math.PI/180)/Math.SQRT2; const rot=rnd()*Math.PI*2; pts.push([ang,rot]); } return pts; })();
+function drawNets(C){
+  // (a) foliation
+  { const cv=$('#net-fol'); const {ctx,W}=fitCanvas(cv); ctx.clearRect(0,0,W,W); const cx=W/2,cy=W/2+6,R=W/2-26; netFrame(ctx,cx,cy,R,C,'poles to foliation · fault');
+    const b=rad(DIPDIR), d=rad(st.folDip); const n=[-Math.sin(b)*Math.sin(d),-Math.cos(b)*Math.sin(d),-Math.cos(d)]; // lower-hemisphere pole
+    // local frame around n
+    const e1=[-Math.cos(b),Math.sin(b),0]; const e2=[n[1]*e1[2]-n[2]*e1[1], n[2]*e1[0]-n[0]*e1[2], n[0]*e1[1]-n[1]*e1[0]];
+    ctx.fillStyle=C.fol; CLOUD.forEach(([ang,rot])=>{ let v=[0,1,2].map(i=>Math.cos(ang)*n[i]+Math.sin(ang)*(Math.cos(rot)*e1[i]+Math.sin(rot)*e2[i])); if (v[2]>0) v=v.map(x=>-x); const p=proj(v,cx,cy,R); ctx.globalAlpha=0.55; ctx.beginPath(); ctx.arc(p[0],p[1],2.2,0,Math.PI*2); ctx.fill(); }); ctx.globalAlpha=1;
+    greatCircle(ctx,st.folDip,DIPDIR,C.fol,2.5,cx,cy,R); greatCircle(ctx,st.faultDip,DIPDIR,C.fault,2.5,cx,cy,R);
+    const pn=proj(n,cx,cy,R); ctx.fillStyle=C.fol; ctx.beginPath(); ctx.arc(pn[0],pn[1],5,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=C.panel; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.font=`600 10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillStyle=C.fol; ctx.fillText('foliation '+st.folDip+'/145',cx+R*0.3,cy-R*0.78); ctx.fillStyle=C.fault; ctx.fillText('fault '+st.faultDip+'/145',cx+R*0.3,cy-R*0.64); }
+  // (b) borehole direction with depth
+  { const cv=$('#net-well'); const {ctx,W}=fitCanvas(cv); ctx.clearRect(0,0,W,W); const cx=W/2,cy=W/2+6,R=W/2-26; netFrame(ctx,cx,cy,R,C,'borehole direction · depth');
+    // foliation pole target and up-dip azimuth tick
+    const b=rad(DIPDIR), d=rad(st.folDip); const n=[-Math.sin(b)*Math.sin(d),-Math.cos(b)*Math.sin(d),-Math.cos(d)]; const pn=proj(n,cx,cy,R);
+    ctx.strokeStyle=C.fol; ctx.lineWidth=1.5; ctx.beginPath(); for(let k=0;k<5;k++){ const a=-Math.PI/2+k*4*Math.PI/5; const x=pn[0]+8*Math.cos(a), y=pn[1]+8*Math.sin(a); k?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.closePath(); ctx.stroke();
+    ctx.fillStyle=C.fol; ctx.font=`10px ${MONO}`; ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText('pole to foliation',pn[0]-12,pn[1]);
+    const upAz=(DIPDIR+180)%360; const q=[cx+R*Math.sin(rad(upAz)),cy-R*Math.cos(rad(upAz))]; ctx.fillStyle=C.fol; ctx.beginPath(); ctx.arc(q[0],q[1],3.5,0,Math.PI*2); ctx.fill(); ctx.textAlign='right'; ctx.fillText('up-dip 325°',q[0]-6,q[1]-8);
+    // path of hole direction, coloured by depth
+    const pts=[]; for(let md=0;md<=Math.min(st.md,TD);md+=5){ const [dv,az]=devaz(md); pts.push({md,p:proj(vecFrom(az,90-dv),cx,cy,R)}); }
+    for(let i=1;i<pts.length;i++){ const t=pts[i].md/TD; ctx.strokeStyle=C.mud; ctx.globalAlpha=0.25+0.75*t; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(pts[i-1].p[0],pts[i-1].p[1]); ctx.lineTo(pts[i].p[0],pts[i].p[1]); ctx.stroke(); } ctx.globalAlpha=1;
+    [300,500,700,893].forEach(md=>{ if (md>st.md) return; const [dv,az]=devaz(md); const p=proj(vecFrom(az,90-dv),cx,cy,R); ctx.fillStyle=C.mud; ctx.beginPath(); ctx.arc(p[0],p[1],3.5,0,Math.PI*2); ctx.fill(); ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(md+' m',p[0]+7,p[1]+(md===300?10:0)); });
+    const [dv,az]=devaz(Math.min(st.md,TD)); const ph=proj(vecFrom(az,90-dv),cx,cy,R); ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(ph[0],ph[1],6,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=C.panel; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.font=`10px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('centre = vertical · edge = horizontal',cx,W-2); }
+}
+
+/* ---------------- boot ---------------- */
+build();
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(build,120); });
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',build);
+})();
+</script>
+</body>
+</html>

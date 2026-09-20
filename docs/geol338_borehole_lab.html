@@ -128,7 +128,8 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
       </div>
       <div class="card">
         <h3>Display</h3>
-        <label class="tog"><input type="checkbox" id="k-fringes"> Photoelastic fringes<sup class="fn">2</sup></label>
+        <div id="ctl-kdisp"></div>
+        <label class="tog"><input type="checkbox" id="k-fringes"> Photoelastic fringes on max shear<sup class="fn">2</sup></label>
         <label class="tog"><input type="checkbox" id="k-mud" checked> Include mud pressure</label>
         <div class="seg" id="k-comp" role="group" aria-label="Stress component">
           <button aria-pressed="true" data-c="hoop">hoop σ<sub>θθ</sub></button>
@@ -144,7 +145,7 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
       <div class="card target">
         <h3>Targets</h3>
         <ul>
-          <li id="t-k1"><span class="chip">1</span><span>Make the fringes concentric circles. What does that say about the far-field stress?</span></li>
+          <li id="t-k1"><span class="chip">1</span><span>Make the contours concentric circles. What does that say about the far-field stress?</span></li>
           <li id="t-k2"><span class="chip">2</span><span>Using mud pressure alone, bring the hoop stress on the S<sub>Hmax</sub> sides to zero<sup class="fn">3</sup>.</span></li>
           <li id="t-k3"><span class="chip">3</span><span>With hoop stress showing, read off how many radii out the disturbance falls below 10%<sup class="fn">4</sup>.</span></li>
         </ul>
@@ -153,7 +154,7 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
   </div>
   <details class="notes"><summary>Notes</summary><ol>
     <li>Kirsch (1898) solution for a circular hole in an elastic plate, vertical well, θ measured from the S<sub>Hmax</sub> direction. At the wall, hoop stress is <code>S_H + S_h − 2(S_H − S_h)cos2θ − P_w</code>: it peaks at <code>3S_H − S_h − P_w</code> on the S<sub>hmin</sub> sides and drops to <code>3S_h − S_H − P_w</code> on the S<sub>Hmax</sub> sides. Pore pressure is set to zero on this tab. Compression is positive (warm colours); tension is negative (cool colours).</li>
-    <li>A stressed transparent solid between crossed polarisers shows coloured bands wherever the maximum shear stress passes a multiple of a fixed value. Fringe density is stress concentration made visible. In class: a drilled acrylic sheet squeezed in front of a laptop screen, viewed through polarised sunglasses. Here the max-shear view reproduces that colour cycle (one fringe per 6 MPa); for hoop and radial stress the fringe toggle instead draws 10 MPa contour bands so the sign is still readable against the colour bar.</li>
+    <li>A stressed transparent solid between crossed polarisers shows coloured bands wherever the maximum shear stress passes a multiple of a fixed value. Fringe density is stress concentration made visible. In class: a drilled acrylic sheet squeezed in front of a laptop screen, viewed through polarised sunglasses. Here the max-shear view can reproduce that colour cycle (one fringe per 6 MPa). Otherwise every component is drawn as discrete contour bands with a line at each boundary, so the shape of the concentration is readable; the contour interval slider sets the band width, and the heavy line is the zero contour where compression turns to tension.</li>
     <li>Mud pressure pushes on the wall (radial compression) but pulls the hoop stress down by the same amount. Push hard enough and the hoop stress goes negative: tension.</li>
     <li>The perturbation decays as 1/r². Three radii out the disturbance is about a tenth of its wall value; by four radii it is a few percent. A 20 cm hole disturbs less than half a metre of rock.</li>
   </ol></details>
@@ -566,23 +567,21 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 
 /* ================= TAB: KIRSCH ================= */
 (()=>{
-  const cv=$('#cv-kirsch'), cvp=$('#cv-kirsch-prof'); const st={SH:40,Sh:25,Pw:20,comp:'hoop'};
+  const cv=$('#cv-kirsch'), cvp=$('#cv-kirsch-prof'); const st={SH:40,Sh:25,Pw:20,comp:'hoop',band:10};
   const ctl=$('#ctl-kirsch');
   const sSH=slider(ctl,{id:'k-SH',label:'S<sub>Hmax</sub>',min:0,max:100,value:40,unit:'MPa'},v=>{st.SH=v; if(st.Sh>v){st.Sh=v; sSh.v=v;} draw();});
   const sSh=slider(ctl,{id:'k-Sh',label:'S<sub>hmin</sub>',min:0,max:100,value:25,unit:'MPa'},v=>{st.Sh=v; if(st.SH<v){st.SH=v; sSH.v=v;} draw();});
   slider(ctl,{id:'k-Pw',label:'Mud pressure P<sub>w</sub>',min:0,max:100,value:20,unit:'MPa',cls:'mud'},v=>{st.Pw=v; draw();});
+  slider($('#ctl-kdisp'),{id:'k-band',label:'Contour interval',min:5,max:50,step:5,value:10,unit:'MPa'},v=>{st.band=v; draw();});
   $('#k-fringes').addEventListener('change',draw); $('#k-mud').addEventListener('change',draw);
   $('#k-comp').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ $('#k-comp').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); st.comp=b.dataset.c; draw(); }));
-  const N=180, EXT=3.3, SCALE=200, SHEARMAX=120, FSTEP=6, BAND=10; let img=null;
+  const N=240, EXT=3.3, SCALE=200, SHEARMAX=120, FSTEP=6; let img=null;
   function hslToRgb(h,s,l){ const f=(n)=>{const k=(n+h*12)%12; const a=s*Math.min(l,1-l); return l-a*Math.max(-1,Math.min(k-3,9-k,1));}; return [f(0)*255,f(8)*255,f(4)*255]; }
   function colorOf(v,cmp,fr,K){
-    if (cmp==='shear'){
-      if (fr){ const n=v/FSTEP; const hue=(n*70)%360; const dark=Math.pow(Math.abs(Math.sin(Math.PI*n)),0.35); return hslToRgb(hue/360,0.55,0.22+0.5*dark); }
-      const t=clamp(v/SHEARMAX,0,1); return mix(K.panel,K.comp,Math.pow(t,0.7));
-    }
-    let val=v; if (fr) val=(Math.floor(v/BAND)+0.5)*BAND;
-    const t=clamp(val/SCALE,-1,1); let col = t>=0? mix(K.zero,K.comp,Math.pow(t,0.8)) : mix(K.zero,K.tens,Math.pow(-t,0.8));
-    if (fr){ const f=v/BAND-Math.floor(v/BAND); const e=Math.min(f,1-f); if (e<0.06) col=mix(col,K.ink,0.75); }
+    if (cmp==='shear' && fr){ const n=v/FSTEP; const hue=(n*70)%360; const dark=Math.pow(Math.abs(Math.sin(Math.PI*n)),0.35); return hslToRgb(hue/360,0.55,0.22+0.5*dark); }
+    const step=st.band; const val=(Math.floor(v/step)+0.5)*step; let col;
+    if (cmp==='shear'){ const t=clamp(val/SHEARMAX,0,1); col=mix(K.panel,K.comp,Math.pow(t,0.7)); }
+    else { const t=clamp(val/SCALE,-1,1); col = t>=0? mix(K.zero,K.comp,Math.pow(t,0.8)) : mix(K.zero,K.tens,Math.pow(-t,0.8)); }
     return col;
   }
   function draw(){
@@ -592,11 +591,26 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     const barW=16, gap=28, labelW=54; const size=Math.min(W-(barW+gap+labelW+16), H-16); const ox=8, oy=(H-size)/2;
     if (!img||img.width!==N) img=ctx.createImageData(N,N);
     const d=img.data; const mudc=hexToRgb(C.mudSoft);
+    // pass 1: field values and band indices
+    const val=new Float32Array(N*N), band=new Int32Array(N*N), inHole=new Uint8Array(N*N);
     for(let j=0;j<N;j++) for(let i=0;i<N;i++){
-      const x=(i+0.5)/N*2*EXT-EXT, y=-((j+0.5)/N*2*EXT-EXT); const r=Math.hypot(x,y); const idx=(j*N+i)*4;
-      if (r<1){ d[idx]=mudc[0];d[idx+1]=mudc[1];d[idx+2]=mudc[2];d[idx+3]=255; continue; }
+      const x=(i+0.5)/N*2*EXT-EXT, y=-((j+0.5)/N*2*EXT-EXT); const r=Math.hypot(x,y); const q=j*N+i;
+      if (r<1){ inHole[q]=1; continue; }
       const k=kirsch(st.SH,st.Sh,Pw,1,r,Math.atan2(y,x));
-      const v = st.comp==='hoop'?k.stt: st.comp==='rad'?k.srr: k.tmax; const col=colorOf(v,st.comp,fr,K);
+      const v = st.comp==='hoop'?k.stt: st.comp==='rad'?k.srr: k.tmax; val[q]=v; band[q]=Math.floor(v/st.band);
+    }
+    // pass 2: colour, with one-pixel contour lines where the band index changes (zero contour two pixels)
+    const lines = !(st.comp==='shear' && fr);
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){
+      const q=j*N+i, idx=q*4;
+      if (inHole[q]){ d[idx]=mudc[0];d[idx+1]=mudc[1];d[idx+2]=mudc[2];d[idx+3]=255; continue; }
+      let col=colorOf(val[q],st.comp,fr,K);
+      if (lines){
+        const nb=[q-1,q-N,q+1,q+N].filter(p=>p>=0&&p<N*N&&!inHole[p]&&(Math.abs(p-q)!==1||Math.floor(p/N)===j));
+        const b=band[q]; let edge=false, zero=false;
+        for (const p of nb){ if (band[p]!==b){ if (p===q-1||p===q-N) edge=true; if ((band[p]<0)!==(b<0)) zero=true; } }
+        if (zero) col=mix(col,K.ink,0.9); else if (edge) col=mix(col,K.ink,0.65);
+      }
       d[idx]=col[0];d[idx+1]=col[1];d[idx+2]=col[2];d[idx+3]=255;
     }
     const off=document.createElement('canvas'); off.width=N; off.height=N; off.getContext('2d').putImageData(img,0,0);
@@ -613,7 +627,7 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.strokeRect(ox+0.5,oy+0.5,size-1,size-1);
     // colour bar
     const bx=ox+size+gap, by=oy+size*0.12, bh=size*0.76; const vmin= st.comp==='shear'?0:-SCALE, vmax= st.comp==='shear'?SHEARMAX:SCALE;
-    for(let i=0;i<bh;i++){ const v=vmax-(i/bh)*(vmax-vmin); ctx.fillStyle=rgbStr(colorOf(v,st.comp,fr,K)); ctx.fillRect(bx,by+i,barW,1.5); }
+    let prevB=null; for(let i=0;i<bh;i++){ const v=vmax-(i/bh)*(vmax-vmin); let col=colorOf(v,st.comp,fr,K); const b=Math.floor(v/st.band); if (prevB!==null && b!==prevB && !(st.comp==='shear'&&fr)) col=mix(col,K.ink,(b<0)!==(prevB<0)?0.9:0.65); prevB=b; ctx.fillStyle=rgbStr(col); ctx.fillRect(bx,by+i,barW,1.5); }
     ctx.strokeStyle=C.line; ctx.strokeRect(bx+0.5,by+0.5,barW-1,bh-1);
     ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle';
     const ticks = st.comp==='shear'? [0,40,80,120] : [-200,-100,0,100,200];
@@ -621,12 +635,13 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillStyle=C.ink; ctx.font=`600 10px ${MONO}`;
     ctx.fillText(st.comp==='shear'?'τ_max':(st.comp==='hoop'?'σ_θθ':'σ_rr'),bx,by-14); ctx.fillStyle=C.ink2; ctx.font=`10px ${MONO}`; ctx.fillText('MPa',bx,by-3);
     ctx.textBaseline='top'; ctx.fillStyle=C.muted;
-    if (st.comp==='shear') ctx.fillText(fr?'1 fringe':'', bx, by+bh+4), fr&&ctx.fillText('= '+FSTEP+' MPa', bx, by+bh+15);
-    else { ctx.fillText('+ compression', bx, by+bh+4); ctx.fillText('− tension', bx, by+bh+15); if (fr) ctx.fillText(BAND+' MPa bands', bx, by+bh+26); }
+    if (st.comp==='shear' && fr){ ctx.fillText('1 fringe', bx, by+bh+4); ctx.fillText('= '+FSTEP+' MPa', bx, by+bh+15); }
+    else if (st.comp==='shear') ctx.fillText(st.band+' MPa bands', bx, by+bh+4);
+    else { ctx.fillText('+ compression', bx, by+bh+4); ctx.fillText('− tension', bx, by+bh+15); ctx.fillText(st.band+' MPa bands', bx, by+bh+26); }
     // readouts
     const h90=3*st.SH-st.Sh-Pw, h0=3*st.Sh-st.SH-Pw;
     $('#k-h90').textContent=fmt(h90)+' MPa'; $('#k-h0').textContent=fmt(h0)+' MPa'; $('#k-r').textContent=fmt(Pw)+' MPa';
-    setChip($('#t-k1'), Math.abs(st.SH-st.Sh)<0.5 && fr && st.SH>0);
+    setChip($('#t-k1'), Math.abs(st.SH-st.Sh)<0.5 && st.SH>0);
     setChip($('#t-k2'), $('#k-mud').checked && Math.abs(h0)<=1.5 && st.SH!==st.Sh);
     drawProfile(Pw,C);
   }

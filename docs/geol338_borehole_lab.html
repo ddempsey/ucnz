@@ -29,6 +29,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+#cv-stereo{display:block;width:210px;max-width:100%;height:auto;margin:4px auto 0;cursor:grab;touch-action:none}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-block:0 32px;padding-inline:16px}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
@@ -259,6 +260,11 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
         <div class="btns"><button class="btn" id="s-new">New mystery fracture</button></div>
       </div>
       <div class="card">
+        <h3>Stereonet<sup class="fn">3</sup></h3>
+        <canvas id="cv-stereo" width="240" height="240" aria-label="Lower-hemisphere stereonet showing both planes and their poles; drag the pole to set your plane"></canvas>
+        <div class="legend" style="justify-content:center;padding-top:4px"><span><i style="background:var(--ink)"></i>your plane</span><span><i style="background:var(--accent)"></i>mystery</span><span>● pole, drag it</span><span>lower hemisphere, equal area</span></div>
+      </div>
+      <div class="card">
         <h3>Readout</h3>
         <div class="read">
           <span>Sinusoid amplitude<sup class="fn">2</sup></span><output id="s-amp">–</output>
@@ -279,6 +285,7 @@ details.notes code{font-family:var(--mono);font-size:12.5px;background:var(--pap
   <details class="notes"><summary>Notes</summary><ol>
     <li>Vertical hole; drag the cylinder or use the spin slider to change your viewpoint. Image logs are displayed with azimuth 0–360° from north along the top and depth down the side. The plane's depth around the wall is <code>z(ψ) = z₀ + (D/2)·tan(dip)·cos(ψ − dip direction)</code>, so the deepest point (the trough) sits at the dip direction and the peak is 180° from it. Breakouts and tensile fractures run parallel to the axis instead, which is how you tell them from natural fractures.</li>
     <li>Peak-to-trough height = D·tan(dip), for a hole of diameter D = 216 mm (8½ inch). A 60° fracture in this hole spans 0.37 m of depth; steep fractures make tall sinusoids, flat ones make near-horizontal lines.</li>
+    <li>Lower-hemisphere, equal-area (Schmidt) projection. A plane plots as a great circle and its pole sits 90° away, on the opposite side of the net. A horizontal plane is the primitive circle with its pole at the centre; a vertical plane is a diameter with its pole on the primitive. The sinusoid trough, the dip direction and the great circle's outermost point all sit at the same azimuth. Drag your pole to set the plane.</li>
   </ol></details>
 </section>
 
@@ -758,8 +765,8 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 (()=>{
   const cv=$('#cv-sin'); const D=0.216; const st={dip:40,dir:120,t:0,view:180,m:{dip:62,dir:245}};
   const ctl=$('#ctl-sin');
-  slider(ctl,{id:'s-dip',label:'Dip',min:0,max:80,value:40,unit:'°'},v=>{st.dip=v; draw();});
-  slider(ctl,{id:'s-dir',label:'Dip direction (azimuth)',min:0,max:359,value:120,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.dir=v; draw();});
+  const sDip=slider(ctl,{id:'s-dip',label:'Dip',min:0,max:80,value:40,unit:'°'},v=>{st.dip=v; draw();});
+  const sDir=slider(ctl,{id:'s-dir',label:'Dip direction (azimuth)',min:0,max:359,value:120,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.dir=v; draw();});
   const sView=slider(ctl,{id:'s-view',label:'Spin the borehole (viewed from)',min:0,max:359,value:180,unit:'°',fmt:v=>String(v).padStart(3,'0')},v=>{st.view=v; draw();});
   slider(ctl,{id:'s-un',label:'Unwrap the borehole',min:0,max:100,value:0,unit:'%',cls:'mud'},v=>{st.t=v/100; draw();});
   $('#s-showm').addEventListener('change',draw);
@@ -816,7 +823,49 @@ tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
     const dd=Math.abs(st.dip-st.m.dip), da=Math.min(Math.abs(st.dir-st.m.dir),360-Math.abs(st.dir-st.m.dir)); const ok = dd<=3 && (da<=10 || st.m.dip===0);
     $('#s-match').textContent = ok?'matched':'Δdip '+dd+'°, Δdir '+da+'°'; setChip($('#t-s1'),ok);
     if (st.dip===0) flatSeen=true; if (D*Math.tan(rad(st.dip))>=2.4) tallSeen=true; setChip($('#t-s2'), flatSeen&&tallSeen);
+    drawStereo(C);
   }
+  /* ---- stereonet: lower hemisphere, equal area. Coordinates x=E, y=N, z=up. ---- */
+  const cvS=$('#cv-stereo'); let sGeom={cx:0,cy:0,R:1};
+  const proj=(v,cx,cy,R)=>{ // lower-hemisphere unit vector -> screen
+    const th=Math.acos(clamp(-v[2],-1,1)); const r=Math.SQRT2*Math.sin(th/2)*R; const h=Math.hypot(v[0],v[1])||1e-9;
+    return [cx+r*v[0]/h, cy-r*v[1]/h];
+  };
+  function drawStereo(C){
+    const {ctx,W,H}=fitCanvas(cvS); ctx.clearRect(0,0,W,H);
+    const cx=W/2, cy=H/2+4, R=Math.min(W,H)/2-22; sGeom={cx,cy,R};
+    ctx.fillStyle=C.panel; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+    // faint small circles and the two diameters
+    ctx.strokeStyle=C.line; ctx.lineWidth=1;
+    [30,60].forEach(pl=>{ const r=Math.SQRT2*Math.sin(rad(90-pl)/2)*R; ctx.setLineDash([2,4]); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); });
+    ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke();
+    ctx.strokeStyle=C.ink2; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+    for(let a=0;a<360;a+=30){ const t=a%90? 4:7; ctx.beginPath(); ctx.moveTo(cx+R*Math.sin(rad(a)),cy-R*Math.cos(rad(a))); ctx.lineTo(cx+(R-t)*Math.sin(rad(a)),cy-(R-t)*Math.cos(rad(a))); ctx.stroke(); }
+    ctx.fillStyle=C.ink; ctx.font=`600 11px ${MONO}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('N',cx,cy-R-10); ctx.fillText('S',cx,cy+R+10); ctx.fillText('E',cx+R+10,cy); ctx.fillText('W',cx-R-10,cy);
+    const plane=(dip,dir,col,lw,poleR)=>{
+      const b=rad(dir), d=rad(dip); const sv=[-Math.cos(b),Math.sin(b),0], dv=[Math.sin(b)*Math.cos(d),Math.cos(b)*Math.cos(d),-Math.sin(d)];
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath();
+      for(let i=0;i<=90;i++){ const t=Math.PI*i/90; const v=[Math.cos(t)*sv[0]+Math.sin(t)*dv[0],Math.cos(t)*sv[1]+Math.sin(t)*dv[1],Math.cos(t)*sv[2]+Math.sin(t)*dv[2]]; const p=proj(v,cx,cy,R); i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); }
+      ctx.stroke();
+      const n=[-Math.sin(b)*Math.sin(d),-Math.cos(b)*Math.sin(d),-Math.cos(d)]; const p=proj(n,cx,cy,R);
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(p[0],p[1],poleR,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=C.panel; ctx.lineWidth=1.5; ctx.stroke();
+      return p;
+    };
+    if ($('#s-showm').checked) plane(st.m.dip,st.m.dir,C.accent,3,5);
+    plane(st.dip,st.dir,C.ink,2,6);
+    // dip-direction tick on the primitive
+    const p=[cx+R*Math.sin(rad(st.dir)),cy-R*Math.cos(rad(st.dir))]; ctx.fillStyle=C.tens; ctx.beginPath(); ctx.arc(p[0],p[1],3,0,Math.PI*2); ctx.fill();
+  }
+  let sDrag=false;
+  const stereoPick=e=>{ const rc=cvS.getBoundingClientRect(); const sx=(e.clientX-rc.left)*(cvS.clientWidth? (cvS.clientWidth/rc.width):1), sy=(e.clientY-rc.top)*(cvS.clientHeight? (cvS.clientHeight/rc.height):1);
+    const dx=sx-sGeom.cx, dy=sy-sGeom.cy; const r=Math.min(Math.hypot(dx,dy),sGeom.R*0.999); const th=2*Math.asin(r/(sGeom.R*Math.SQRT2)); // angle of pole from vertical = dip
+    const az=(deg(Math.atan2(dx,-dy))+360)%360; // pole azimuth; dip direction is opposite
+    st.dip=clamp(Math.round(deg(th)),0,80); st.dir=Math.round((az+180)%360); sDip.v=st.dip; sDir.v=st.dir; draw(); };
+  cvS.addEventListener('pointerdown',e=>{ sDrag=true; cvS.setPointerCapture(e.pointerId); cvS.style.cursor='grabbing'; stereoPick(e); });
+  cvS.addEventListener('pointermove',e=>{ if(sDrag) stereoPick(e); });
+  const sEnd=()=>{ sDrag=false; cvS.style.cursor='grab'; }; cvS.addEventListener('pointerup',sEnd); cvS.addEventListener('pointercancel',sEnd);
   draws.sinusoid=draw;
 })();
 
